@@ -2015,11 +2015,16 @@ window.generateAdminDesc=async function(){
   const specs=(document.getElementById('adminSpecs').value||'').trim();
   const btn=document.getElementById('genDescBtn');
   btn.disabled=true;
-  btn.lastChild.textContent=' جارٍ التوليد...';
+  btn.lastChild.textContent=' جارٍ البحث على redseafish.com...';
   try{
     const r=await apiCall('generate_desc',{name,category,stock,specs},true);
-    if(r.desc)document.getElementById('adminDesc').value=r.desc;
-    else alert('تعذر التوليد، حاول مجدداً');
+    if(r.notFound){
+      alert('المنتج غير موجود على redseafish.com — الوصف لم يُولَّد');
+    }else if(r.desc){
+      document.getElementById('adminDesc').value=r.desc;
+    }else{
+      alert('تعذر التوليد، حاول مجدداً');
+    }
   }catch(e){alert('خطأ: '+e.message);}
   finally{btn.disabled=false;btn.lastChild.textContent=' توليد الوصف بالذكاء الاصطناعي';}
 };
