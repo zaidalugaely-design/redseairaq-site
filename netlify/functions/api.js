@@ -280,6 +280,42 @@ exports.handler = async function(event) {
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }
 
+  /* GENERATE PRODUCT DESCRIPTION */
+  if (action === 'generate_desc') {
+    const { name, category, stock, specs } = body;
+    if (!name) return res(headers, 400, { error: 'name مطلوب' });
+
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) return res(headers, 500, { error: 'OpenAI key not configured' });
+
+    const stockMap = { available: 'متوفر', preorder: 'حجز مسبق', soon: 'قريباً', out: 'غير متوفر' };
+    const specsLine = specs ? `\nالمميزات:\n${specs}` : '';
+    const prompt = `اكتب وصفاً تسويقياً مختصراً ومحترفاً بالعربية لمنتج Red Sea (3-4 جمل فقط، بدون عناوين أو نقاط):
+الاسم: ${name}
+الفئة: ${category || 'غير محدد'}
+الحالة: ${stockMap[stock] || stock}${specsLine}
+الوصف يجب أن يكون جذاباً وموجهاً لمحبي أحواض البحر في العراق.`;
+
+    try {
+      const aiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          max_tokens: 220,
+          temperature: 0.7,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      if (!aiRes.ok) { const err = await aiRes.text(); throw new Error(err); }
+      const data = await aiRes.json();
+      const desc = data.choices?.[0]?.message?.content?.trim() || '';
+      return res(headers, 200, { desc });
+    } catch (e) {
+      return res(headers, 502, { error: 'OpenAI error: ' + e.message });
+    }
+  }
+
   return res(headers, 400, { error: `action غير معروف: ${action}` });
 };
 

@@ -883,6 +883,12 @@ main{min-height:75vh}
             </select>
             <input class="input" id="adminBadge" placeholder="شارة اختيارية: جديد / الأكثر طلباً">
             <textarea class="textarea" id="adminDesc" placeholder="وصف مختصر ومحترف للمنتج"></textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:-4px">
+              <button class="btn" id="genDescBtn" onclick="generateAdminDesc()" style="font-size:12px;padding:7px 14px;gap:5px;display:flex;align-items:center">
+                <svg style="width:13px;height:13px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                توليد الوصف بالذكاء الاصطناعي
+              </button>
+            </div>
             <textarea class="textarea" id="adminSpecs" placeholder="مميزات المنتج — كل ميزة بسطر مستقل"></textarea>
             <textarea class="textarea" id="adminVariants" placeholder="الأحجام / الخيارات — كل سطر: الاسم=السعر&#10;مثال: 500ml=40000&#10;1000ml=75000"></textarea>
             <div class="admin-image-tools">
@@ -2001,6 +2007,22 @@ function compress(file,mw=900,q=.82){return new Promise((res,rej)=>{const rd=new
 function dlFile(name,content){const b=new Blob([content],{type:'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u);}
 window.onAdminImg=async function(e){const f=e.target.files[0];if(!f)return;if(!f.type.startsWith('image/')){toast('اختر ملف صورة');return;}try{adminImgData=await compress(f);document.getElementById('adminImagePreview').innerHTML=`<img src="${adminImgData}" alt="">`;toast('تم تجهيز الصورة ✓')}catch{toast('تعذر تحميل الصورة');}};
 window.clearAdminImage=function(){adminImgData='';document.getElementById('adminImage').value='';document.getElementById('adminImagePreview').textContent='اختر صورة المنتج';};
+window.generateAdminDesc=async function(){
+  const name=(document.getElementById('adminName').value||'').trim();
+  if(!name){alert('أدخل اسم المنتج أولاً');return;}
+  const category=document.getElementById('adminCategory').value||'';
+  const stock=document.getElementById('adminStock').value||'available';
+  const specs=(document.getElementById('adminSpecs').value||'').trim();
+  const btn=document.getElementById('genDescBtn');
+  btn.disabled=true;
+  btn.lastChild.textContent=' جارٍ التوليد...';
+  try{
+    const r=await apiCall('generate_desc',{name,category,stock,specs},true);
+    if(r.desc)document.getElementById('adminDesc').value=r.desc;
+    else alert('تعذر التوليد، حاول مجدداً');
+  }catch(e){alert('خطأ: '+e.message);}
+  finally{btn.disabled=false;btn.lastChild.textContent=' توليد الوصف بالذكاء الاصطناعي';}
+};
 window.resetAdminForm=function(){
   ['adminProductId','adminName','adminPrice','adminBadge','adminDesc','adminSpecs','adminVariants'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const s=document.getElementById('adminStock');if(s)s.value='available';
