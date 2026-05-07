@@ -2017,11 +2017,18 @@ window.generateAdminDesc=async function(){
   btn.disabled=true;
   btn.lastChild.textContent=' جارٍ البحث على redseafish.com...';
   try{
-    const r=await apiCall('generate_desc',{name,category,stock,specs},true);
-    if(r.notFound){
+    if(!_adminToken)throw new Error('غير مصرح — سجل الدخول أولاً');
+    const r=await fetch('/.netlify/functions/generate-description',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+_adminToken},
+      body:JSON.stringify({name,category,stock,specs})
+    });
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(data.error||'HTTP '+r.status);
+    if(data.notFound){
       alert('المنتج غير موجود على redseafish.com — الوصف لم يُولَّد');
-    }else if(r.desc){
-      document.getElementById('adminDesc').value=r.desc;
+    }else if(data.desc){
+      document.getElementById('adminDesc').value=data.desc;
     }else{
       alert('تعذر التوليد، حاول مجدداً');
     }
