@@ -169,12 +169,13 @@ exports.handler = async function(event) {
   /* SYNC — قراءة عامة */
   if (action === 'sync') {
     try {
-      const [products, categories, blog] = await Promise.all([
+      const [products, categories, blog, reference] = await Promise.all([
         sb('GET', '/products?order=sort_order.asc,created_at.desc&limit=500', null),
         sb('GET', '/categories?order=sort_order.asc&limit=100', null),
-        sb('GET', '/blog_posts?order=created_at.desc&limit=100&select=id,slug,title,excerpt,category,tags,image_url,created_at', null)
+        sb('GET', '/blog_posts?order=created_at.desc&limit=100&select=id,slug,title,excerpt,category,tags,image_url,created_at', null),
+        sb('GET', '/reference_topics?order=sort_order.asc,created_at.desc&limit=200&select=id,slug,title,excerpt,category,tags,image,hidden,created_at,updated_at', null)
       ]);
-      return res(headers, 200, { products: products||[], categories: categories||[], blog: blog||[] });
+      return res(headers, 200, { products: products||[], categories: categories||[], blog: blog||[], reference: reference||[] });
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }
 
@@ -276,6 +277,40 @@ exports.handler = async function(event) {
     if (!id) return res(headers, 400, { error: 'id مطلوب' });
     try {
       await sb('DELETE', `/blog_posts?id=eq.${encodeURIComponent(id)}`, null);
+      return res(headers, 200, { ok: true });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
+  /* SAVE REFERENCE TOPIC */
+  if (action === 'save_reference') {
+    const { topic } = body;
+    if (!topic?.id || !topic?.title) return res(headers, 400, { error: 'بيانات الموضوع ناقصة' });
+    try {
+      await sb('POST', '/reference_topics', {
+        id: topic.id, slug: topic.slug || topic.id,
+        title: topic.title, excerpt: topic.excerpt || '',
+        content_markdown: topic.content_markdown || '',
+        category: topic.category || 'عام',
+        tags: JSON.stringify(topic.tags || []),
+        related_topics: JSON.stringify(topic.related_topics || []),
+        image: topic.image || '',
+        seo_title: topic.seo_title || topic.title,
+        meta_description: topic.meta_description || topic.excerpt || '',
+        hidden: !!topic.hidden,
+        sort_order: topic.sort_order || 0,
+        created_at: topic.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+      return res(headers, 200, { ok: true });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
+  /* DELETE REFERENCE TOPIC */
+  if (action === 'delete_reference') {
+    const { id } = body;
+    if (!id) return res(headers, 400, { error: 'id مطلوب' });
+    try {
+      await sb('DELETE', `/reference_topics?id=eq.${encodeURIComponent(id)}`, null);
       return res(headers, 200, { ok: true });
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }
