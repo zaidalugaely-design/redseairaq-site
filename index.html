@@ -877,6 +877,7 @@ main{min-height:75vh}
             </div>
             <select class="select" id="adminStock">
               <option value="available">متوفر (السعر بالدينار)</option>
+              <option value="available_nd">متوفر</option>
               <option value="preorder">حجز مسبق (السعر بالدولار)</option>
               <option value="soon">قريباً</option>
               <option value="out">غير متوفر</option>
@@ -1697,11 +1698,11 @@ window.onDetailVarChange=function(pid){
   const p=byId(pid),el=document.getElementById('dpr-'+pid);
   if(p&&el)el.textContent=money(varPrice(p),getCur(p));
 };
-function stockLbl(s){return s==='available'?'متوفر':s==='soon'?'قريباً':s==='preorder'?'حجز مسبق':'غير متوفر';}
+function stockLbl(s){return (s==='available'||s==='available_nd')?'متوفر':s==='soon'?'قريباً':s==='preorder'?'حجز مسبق':'غير متوفر';}
 function stockCls(s){return s==='soon'?' soon':s==='out'?' out':s==='preorder'?' preorder':'';}
 
 function prodCard(p){
-  const ok=p.stock==='available'||p.stock==='preorder', hv=p.variants&&p.variants.length;
+  const ok=p.stock==='available'||p.stock==='available_nd'||p.stock==='preorder', hv=p.variants&&p.variants.length;
   const cur=getCur(p);
   const isPre=p.stock==='preorder';
   const catObj=catById(p.category);
@@ -1721,7 +1722,7 @@ function prodCard(p){
         ${p.variants.map((v,i)=>`<option value="${i}">${v.name} — ${money(v.price,cur)}</option>`).join('')}</select>`:''}
       <div class="product-bottom">
         <div class="price${isPre?' preorder-price':''}" id="pr-${p.id}">${money(hv?p.variants[0].price:p.price,cur)}<small>${isPre?'حجز مسبق · بالدولار':'الدفع عند الاستلام'}</small></div>
-        ${isPre?`<button class="small-btn preorder-btn" onclick="addToCart('${p.id}')">احجز الآن</button>`:`<button class="small-btn" ${ok?'':'disabled'} onclick="addToCart('${p.id}')">${p.stock==='available'?t('add_to_cart'):stockLbl(p.stock)}</button>`}
+        ${isPre?`<button class="small-btn preorder-btn" onclick="addToCart('${p.id}')">احجز الآن</button>`:`<button class="small-btn" ${ok?'':'disabled'} onclick="addToCart('${p.id}')">${(p.stock==='available'||p.stock==='available_nd')?t('add_to_cart'):stockLbl(p.stock)}</button>`}
         <button class="small-btn" style="background:var(--pearl);color:var(--navy);border:1px solid var(--line);padding:11px 13px" onclick="shareProduct('${p.id}')" title="مشاركة المنتج" aria-label="مشاركة"><svg class="ico" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
       </div>
     </div>
@@ -1734,7 +1735,7 @@ function renderHome(){
   var homeCats=['tanks','salt','filtration','control','tools','food','lighting','supplements','colors','rocks','pumps','test'];
   homeCats.forEach(function(cat){
     /* لا تعرض المخفية */
-    var p=products.find(function(x){return !x.hidden&&x.category===cat&&(x.stock==='available'||x.stock==='preorder');});
+    var p=products.find(function(x){return !x.hidden&&x.category===cat&&(x.stock==='available'||x.stock==='available_nd'||x.stock==='preorder');});
     if(p&&homeProds.length<6) homeProds.push(p);
   });
   if(homeProds.length<6){
@@ -1759,7 +1760,7 @@ window.renderProducts=function(){
   const old=document.getElementById('suggWrap'); if(old)old.remove();
   if(cat){
     const sc=SUGG_MAP[cat]||[];
-    const sp=products.filter(p=>!p.hidden&&sc.includes(p.category)&&p.stock==='available').slice(0,4);
+    const sp=products.filter(p=>!p.hidden&&sc.includes(p.category)&&(p.stock==='available'||p.stock==='available_nd')).slice(0,4);
     if(sp.length){
       const div=document.createElement('div'); div.id='suggWrap'; div.style.gridColumn='1/-1';
       div.innerHTML=`<div class="suggestion-strip"><h4>${t('suggestion_title')}</h4><div class="suggestion-items">
@@ -1779,7 +1780,7 @@ function renderCatSelects(){
 
 function getSugg(p){
   const sc=SUGG_MAP[p.category]||[];
-  return products.filter(x=>!x.hidden&&sc.includes(x.category)&&x.id!==p.id&&x.stock==='available').slice(0,3);
+  return products.filter(x=>!x.hidden&&sc.includes(x.category)&&x.id!==p.id&&(x.stock==='available'||x.stock==='available_nd')).slice(0,3);
 }
 function relatedHtml(cur){
   const r=products.filter(x=>!x.hidden&&x.category===cur.category&&x.id!==cur.id).slice(0,3);
