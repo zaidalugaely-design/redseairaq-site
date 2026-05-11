@@ -173,7 +173,7 @@ exports.handler = async function(event) {
         sb('GET', '/products?order=sort_order.asc,created_at.desc&limit=500', null),
         sb('GET', '/categories?order=sort_order.asc&limit=100', null),
         sb('GET', '/blog_posts?order=created_at.desc&limit=100&select=id,slug,title,excerpt,category,tags,image_url,created_at', null),
-        sb('GET', '/reference_topics?order=sort_order.asc,created_at.desc&limit=200&select=id,slug,title,excerpt,category,tags,image,hidden,created_at,updated_at', null)
+        sb('GET', '/reference_topics?order=sort_order.asc,created_at.desc&limit=200&select=id,slug,title,excerpt,category,tags,image,hidden,product_links,created_at,updated_at', null)
       ]);
       return res(headers, 200, { products: products||[], categories: categories||[], blog: blog||[], reference: reference||[] });
     } catch (e) { return res(headers, 500, { error: e.message }); }
@@ -294,6 +294,7 @@ exports.handler = async function(event) {
         tags: JSON.stringify(topic.tags || []),
         related_topics: JSON.stringify(topic.related_topics || []),
         image: topic.image || '',
+        product_links: JSON.stringify(topic.product_links || []),
         seo_title: topic.seo_title || topic.title,
         meta_description: topic.meta_description || topic.excerpt || '',
         hidden: !!topic.hidden,
