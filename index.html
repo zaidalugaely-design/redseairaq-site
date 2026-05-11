@@ -556,6 +556,15 @@ main{min-height:75vh}
   .toast{right:14px;left:14px;text-align:center}
   .admin-modal-box{padding:32px 24px}
 }
+/* ── Arabic text fix: letter-spacing breaks Arabic letter joining ── */
+[dir="rtl"] *{letter-spacing:normal!important}
+/* ── Arabic font rendering ── */
+[dir="rtl"] body{
+  font-family:'Tajawal','Segoe UI','Tahoma','Arabic Typesetting',sans-serif;
+  text-rendering:optimizeLegibility;
+  -webkit-font-smoothing:antialiased;
+  word-spacing:normal
+}
 </style>
 
 <!-- Structured Data for Google -->
