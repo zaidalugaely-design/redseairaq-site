@@ -903,6 +903,9 @@ html{scroll-behavior:smooth}
         <a class="contact-item" href="https://www.facebook.com/share/1DXTZeLSS3/" target="_blank" rel="noopener noreferrer">
           <i><svg class="ico" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></i><div><b>Facebook</b><span>صفحتنا الرسمية على فيسبوك</span></div>
         </a>
+        <a class="contact-item" href="mailto:Info@redseairaq.com">
+          <i><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></i><div><b>البريد الإلكتروني</b><span style="font-size:12px;color:var(--muted);font-weight:700">للاستفسارات فقط — وليس للطلبات</span><span>Info@redseairaq.com</span></div>
+        </a>
       </div>
       <div class="form-grid">
         <input class="input" id="quickName" placeholder="اسمك">
@@ -971,7 +974,10 @@ html{scroll-behavior:smooth}
       <div class="panel" style="padding:20px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
           <h3 style="color:var(--navy);font-size:18px;font-weight:900"><svg style="width:15px;height:15px;vertical-align:-.15em;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> طلبات الزبائن</h3>
-          <button class="btn" onclick="loadOrders()" data-i18n="btn_refresh_orders"><svg style="width:15px;height:15px;vertical-align:-.15em;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> تحديث الطلبات</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn" onclick="loadOrders()"><svg style="width:15px;height:15px;vertical-align:-.15em;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> تحديث الطلبات</button>
+            <button class="btn" id="archiveToggleBtn" onclick="toggleShowArchived()" style="background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1"><svg style="width:14px;height:14px;vertical-align:-.12em;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg> عرض المؤرشفة</button>
+          </div>
         </div>
         <div id="ordersPanel"><div style="color:var(--muted);font-size:13.5px">اضغط "تحديث الطلبات" لعرض الطلبات الواردة.</div></div>
       </div>
@@ -1200,6 +1206,7 @@ html{scroll-behavior:smooth}
       <a href="https://chat.whatsapp.com/33lzXAGYpja7flG48jRMIl" target="_blank" rel="noopener noreferrer">WhatsApp Group</a>
       <a href="https://www.facebook.com/share/1DXTZeLSS3/" target="_blank" rel="noopener noreferrer">Facebook</a>
       <a href="tel:+9647726669956" data-i18n="direct_call">اتصال مباشر</a>
+      <a href="mailto:Info@redseairaq.com" title="للاستفسارات فقط — وليس للطلبات">Info@redseairaq.com</a>
     </div>
   </div>
   <div class="container footer-bottom">
@@ -2166,7 +2173,15 @@ window.doOrder=async function(mode){
     sub:tv.sub, del:tv.del, tot:tv.tot,
     created:new Date().toISOString()
   };
-  if(mode==='wa'){window.open(`https://wa.me/${CFG.wa}?text=${orderMsg(o)}`,'_blank','noopener');toast('تم فتح واتساب ✓');return;}
+  if(mode==='wa'){
+    window.open(`https://wa.me/${CFG.wa}?text=${orderMsg(o)}`,'_blank','noopener');
+    /* save to Supabase so admin can see it, but don't block on failure */
+    apiCall('save_order',{order:o}).catch(()=>{});
+    const locWa=safeJson('rsi_orders',[]);locWa.unshift(o);localStorage.setItem('rsi_orders',JSON.stringify(locWa));
+    cart=[];saveCart();renderCart();
+    toast('✅ تم فتح واتساب وإرسال الطلب');
+    return;
+  }
   await apiCall('save_order',{order:o});
   const loc=safeJson('rsi_orders',[]);loc.unshift(o);localStorage.setItem('rsi_orders',JSON.stringify(loc));
   cart=[];saveCart();renderCart();
@@ -2292,19 +2307,51 @@ window.resetProductsToDefault=function(){
   products=JSON.parse(JSON.stringify(DEF_PRODUCTS));
   saveProd();renderAdmin();renderHome();renderProducts();toast('تم الاسترجاع ✓');
 };
+var _showArchived=false;
+var _archivedOrders=safeJson('rsi_archived_orders',[]);
+
+window.toggleShowArchived=function(){
+  _showArchived=!_showArchived;
+  var btn=document.getElementById('archiveToggleBtn');
+  if(btn){
+    btn.style.background=_showArchived?'#e8f0ff':'#f1f5f9';
+    btn.style.color=_showArchived?'#1a3a8a':'#64748b';
+    btn.style.border='1px solid '+(_showArchived?'#1a3a8a':'#cbd5e1');
+    btn.textContent=_showArchived?'إخفاء المؤرشفة':'عرض المؤرشفة';
+  }
+  loadOrders();
+};
+
+window.archiveOrder=function(oid){
+  if(!_archivedOrders.includes(oid)) _archivedOrders.push(oid);
+  localStorage.setItem('rsi_archived_orders',JSON.stringify(_archivedOrders));
+  var el=document.getElementById('order-'+oid);
+  if(el) el.style.display='none';
+  toast('تم أرشفة الطلب ✓');
+};
+
+window.unarchiveOrder=function(oid){
+  _archivedOrders=_archivedOrders.filter(function(x){return x!==oid;});
+  localStorage.setItem('rsi_archived_orders',JSON.stringify(_archivedOrders));
+  loadOrders();
+  toast('تم إلغاء الأرشفة ✓');
+};
+
 window.loadOrders=async function(){
   const panel=document.getElementById('ordersPanel');if(!panel)return;
   panel.innerHTML='<div style="color:var(--muted)">جاري التحميل...</div>';
   try{
     const data=await apiCall('get_orders',{},true);
-    const orders=data.orders||[];
-    if(orders.length){panel.innerHTML=ordersTable(orders);return;}
-    panel.innerHTML='<div style="color:var(--muted);padding:20px">لا توجد طلبات بعد.</div>';
+    var orders=data.orders||[];
+    if(!_showArchived) orders=orders.filter(function(o){return !_archivedOrders.includes(o.id);});
+    if(orders.length){panel.innerHTML=ordersTable(orders,_showArchived);return;}
+    panel.innerHTML='<div style="color:var(--muted);padding:20px">'
+      +(_showArchived?'لا توجد طلبات مؤرشفة.':'لا توجد طلبات بعد.')+'</div>';
   }catch(e){
     panel.innerHTML=`<div style="color:var(--red);padding:12px;border-radius:10px;background:#fff2f2;font-weight:800">⚠️ ${e.message}</div>`;
   }
 };
-function ordersTable(orders){
+function ordersTable(orders,showingArchived){
   if(!orders||!orders.length) return '<div style="color:var(--muted);padding:20px">لا توجد طلبات</div>';
   return orders.map(function(o,i){
     var bg      = i%2===0?'#fff':'#f8fafc';
@@ -2317,7 +2364,7 @@ function ordersTable(orders){
     var status  = o.status||'new';
     var oid     = o.id||'-';
     var dateStr = (o.created_at||o.created)?new Date(o.created_at||o.created).toLocaleString('ar-IQ'):'-';
-    var items   = o.items||[];
+    var items   = o.items ? (typeof o.items==='string' ? (function(){try{return JSON.parse(o.items);}catch(e){return [];}}()) : o.items) : [];
 
     var statusColors = {
       'new':      {bg:'#e4fff4',color:'#0a7a46',label:'جديد'},
@@ -2415,9 +2462,13 @@ function ordersTable(orders){
         +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+statusBtns+'</div>'
       +'</div>'
       // Action buttons
-      +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
         +(phone?'<a href="https://wa.me/964'+phone.replace(/^0/,'')+'" target="_blank" style="background:#25d366;color:#fff;border-radius:8px;padding:9px 16px;font-weight:900;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:6px"><svg style="width:14px;height:14px;vertical-align:-.12em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg> واتساب</a>':'')
         +(phone?'<a href="tel:'+phone+'" style="background:var(--navy);color:#fff;border-radius:8px;padding:9px 16px;font-weight:900;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:6px"><svg style="width:13px;height:13px;vertical-align:-.1em;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> اتصال</a>':'')
+        +(showingArchived
+          ?'<button onclick="unarchiveOrder(\''+oid+'\')" style="margin-right:auto;background:#e8f0ff;color:#1a3a8a;border:1px solid #1a3a8a;border-radius:8px;padding:9px 14px;font-weight:900;font-size:12px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px"><svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg> إلغاء الأرشفة</button>'
+          :'<button onclick="archiveOrder(\''+oid+'\')" style="margin-right:auto;background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1;border-radius:8px;padding:9px 14px;font-weight:900;font-size:12px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px"><svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg> أرشفة</button>'
+        )
       +'</div>'
     +'</div>';
   }).join('');
