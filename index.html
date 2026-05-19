@@ -565,6 +565,81 @@ main{min-height:75vh}
   -webkit-font-smoothing:antialiased;
   word-spacing:normal
 }
+
+/* ════════════════════════════════
+   UX / ANIMATION ENHANCEMENTS
+════════════════════════════════ */
+
+/* ── Scroll Progress Bar ── */
+#scrollProgress{position:fixed;top:0;left:0;height:3px;background:var(--grad-red);z-index:9999;width:0%;transition:width .08s linear;border-radius:0 2px 2px 0;pointer-events:none}
+
+/* ── Frosted-glass navbar on scroll ── */
+.header{transition:background .3s ease,box-shadow .3s ease,backdrop-filter .3s ease}
+.header--scrolled{background:rgba(255,255,255,.88)!important;backdrop-filter:blur(20px) saturate(1.8);-webkit-backdrop-filter:blur(20px) saturate(1.8);box-shadow:0 2px 32px rgba(10,22,40,.1)!important}
+
+/* ── Page transition ── */
+.page{animation:fade .28s cubic-bezier(.4,0,.2,1)}
+
+/* ── Scroll Reveal ── */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .6s cubic-bezier(.4,0,.2,1),transform .6s cubic-bezier(.4,0,.2,1)}
+.reveal.revealed{opacity:1;transform:none}
+.reveal-up{opacity:0;transform:translateY(40px);transition:opacity .55s cubic-bezier(.4,0,.2,1),transform .55s cubic-bezier(.4,0,.2,1)}
+.reveal-up.revealed{opacity:1;transform:none}
+.reveal-scale{opacity:0;transform:scale(.95);transition:opacity .5s cubic-bezier(.4,0,.2,1),transform .5s cubic-bezier(.4,0,.2,1)}
+.reveal-scale.revealed{opacity:1;transform:none}
+.sd-1{transition-delay:.07s}.sd-2{transition-delay:.14s}.sd-3{transition-delay:.21s}.sd-4{transition-delay:.28s}.sd-5{transition-delay:.35s}.sd-6{transition-delay:.42s}
+
+/* ── Product card hover lift ── */
+.product-card{transition:transform .25s cubic-bezier(.4,0,.2,1),box-shadow .25s cubic-bezier(.4,0,.2,1)}
+.product-card:hover{transform:translateY(-6px);box-shadow:0 22px 56px rgba(10,22,40,.15),0 6px 16px rgba(10,22,40,.07)}
+.product-card:active{transform:translateY(-2px)}
+
+/* ── Category card hover ── */
+.category-card{transition:transform .25s cubic-bezier(.4,0,.2,1),box-shadow .25s cubic-bezier(.4,0,.2,1)}
+.category-card:hover{transform:translateY(-5px);box-shadow:0 18px 48px rgba(10,22,40,.13)}
+
+/* ── Blog & Reference card hover ── */
+.blog-card,.ref-card{transition:transform .25s cubic-bezier(.4,0,.2,1),box-shadow .25s cubic-bezier(.4,0,.2,1)}
+.blog-card:hover,.ref-card:hover{transform:translateY(-4px);box-shadow:0 16px 44px rgba(10,22,40,.11)}
+
+/* ── Button ripple ── */
+.btn,.small-btn,.icon-btn{position:relative;overflow:hidden}
+.ripple-wave{position:absolute;border-radius:50%;transform:scale(0);animation:rippleAnim .55s linear;background:rgba(255,255,255,.32);pointer-events:none}
+@keyframes rippleAnim{to{transform:scale(4);opacity:0}}
+
+/* ── Button press feedback ── */
+.btn:active,.small-btn:active{transform:scale(.97)}
+
+/* ── Pulse for WhatsApp / primary CTA ── */
+@keyframes pulseWa{0%,100%{box-shadow:0 0 0 0 rgba(37,211,102,.5)}65%{box-shadow:0 0 0 10px rgba(37,211,102,0)}}
+.pulse-wa{animation:pulseWa 2.4s ease-in-out infinite}
+@keyframes pulseRed{0%,100%{box-shadow:var(--shadow-red),0 0 0 0 rgba(200,32,42,.45)}65%{box-shadow:var(--shadow-red),0 0 0 10px rgba(200,32,42,0)}}
+.pulse-red{animation:pulseRed 2.4s ease-in-out infinite}
+
+/* ── Skeleton screens ── */
+@keyframes shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
+.sk{background:linear-gradient(90deg,#eaecf0 25%,#f4f5f7 50%,#eaecf0 75%);background-size:1200px 100%;animation:shimmer 1.6s ease-in-out infinite;border-radius:8px}
+.sk-card{background:#fff;border:1px solid var(--line);border-radius:22px;overflow:hidden}
+.sk-img{height:210px;border-radius:0;margin:0}
+.sk-body{padding:20px;display:flex;flex-direction:column;gap:10px}
+.sk-line{height:13px}.sk-line.h{height:19px;width:72%}.sk-line.s{width:48%}
+.sk-btn{height:38px;border-radius:10px;margin-top:6px}
+
+/* ── Image fade-in on load ── */
+.product-image img{opacity:0;transition:opacity .4s ease}
+.product-image img.img-loaded{opacity:1}
+
+/* ── Hero entrance ── */
+@keyframes heroUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
+.hero-content-enter{animation:heroUp .75s cubic-bezier(.4,0,.2,1) .05s both}
+.hero-visual-enter{animation:heroUp .75s cubic-bezier(.4,0,.2,1) .2s both}
+
+/* ── Smooth scroll ── */
+html{scroll-behavior:smooth}
+
+/* ── Mobile tap targets ── */
+.bottom-nav a{min-height:44px;min-width:44px}
+.nav a{min-height:36px;display:inline-flex;align-items:center}
 </style>
 
 <!-- Structured Data for Google -->
@@ -593,6 +668,7 @@ main{min-height:75vh}
 </script>
 </head>
 <body>
+<div id="scrollProgress"></div>
 
 <a class="skip-link" href="#mainContent">تخطي إلى المحتوى</a>
 
@@ -697,7 +773,7 @@ main{min-height:75vh}
     <div class="hero-orb orb-2"></div>
     <div class="container">
       <div class="hero-grid">
-        <div>
+        <div class="hero-content-enter">
           <div class="hero-eyebrow" data-i18n="hero_eyebrow"><span class="dot"></span>Red Sea Iraq · الوكيل الحصري</div>
           <h1 data-i18n="hero_h1">منتجات <em>Red Sea</em><br>الأصلية لأحواضك<br>البحرية والمرجانية</h1>
           <p class="hero-desc" data-i18n="hero_desc">منتجات Red Sea الأصلية المعتمدة، متوفرة الآن في العراق حصريًا. اختر المنتج، أرسل طلبك، وسنتواصل معك للتوصيل.</p>
@@ -706,7 +782,7 @@ main{min-height:75vh}
             <button class="btn outline" onclick="go('contact')" data-i18n="btn_need_help">تحتاج مساعدة؟</button>
           </div>
         </div>
-        <div class="hero-visual">
+        <div class="hero-visual hero-visual-enter">
           <div class="hero-card-main">
             <div class="hero-product-mock">
               <div class="rs-logo-mock">
@@ -724,14 +800,14 @@ main{min-height:75vh}
       </div>
     </div>
   </div>
-  <div class="section container">
+  <div class="section container reveal">
     <div class="section-head">
       <div class="section-title"><span class="section-kicker" data-i18n="categories_kicker">الفئات</span><h2 data-i18n="categories_title">الفئات الرئيسية</h2><p data-i18n="categories_desc">ملح · مكملات · تلوين مرجان · تنقية مياه · أجهزة قياس</p></div>
       <button class="btn" onclick="go('categories')" data-i18n="btn_all_cats">كل الفئات</button>
     </div>
     <div class="category-grid" id="homeCategories"></div>
   </div>
-  <div class="section container" style="padding-top:0">
+  <div class="section container reveal sd-1" style="padding-top:0">
     <div class="section-head">
       <div class="section-title"><span class="section-kicker" data-i18n="featured_kicker">الأكثر طلبًا</span><h2 data-i18n="featured_title">منتجات مختارة هذا الأسبوع</h2><p data-i18n="featured_desc">أبرز منتجات Red Sea المطلوبة لأحواض المرجان والمياه المالحة</p></div>
       <button class="btn" onclick="go('products')" data-i18n="btn_all_prods">كل المنتجات</button>
@@ -739,7 +815,7 @@ main{min-height:75vh}
     <div class="product-grid" id="featuredProducts"></div>
   </div>
   <!-- شريط الضمانات — مكان ثانوي مدمج -->
-  <div class="container" style="padding:20px 20px 0">
+  <div class="container reveal sd-2" style="padding:20px 20px 0">
     <div class="trust-mini">
       <div class="trust-mini-item"><svg class="ico" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.5 0 4.77 1.02 6.4 2.66"/></svg><span data-i18n="trust1_title">منتجات أصلية معتمدة</span></div>
       <div class="trust-mini-item"><svg class="ico" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><polygon points="16 8 20 8 23 11 23 16 16 16"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span data-i18n="trust2_title">توصيل لكل العراق</span></div>
@@ -763,7 +839,7 @@ main{min-height:75vh}
       <option value="high">السعر: الأعلى أولاً</option>
     </select>
   </div>
-  <div id="productsLoading" style="grid-column:1/-1;text-align:center;padding:50px;color:var(--muted)"><div style="font-size:36px;margin-bottom:12px">⏳</div><p style="font-weight:800;font-size:15px">جاري تحميل المنتجات...</p></div><div class="product-grid" id="productsGrid"></div>
+  <div id="productsLoading" class="product-grid" style="grid-column:1/-1"></div><div class="product-grid" id="productsGrid"></div>
 </section>
 
 <!-- CATEGORIES -->
@@ -1860,6 +1936,7 @@ function renderHome(){
     });
   }
   document.getElementById('featuredProducts').innerHTML=homeProds.map(prodCard).join('');
+  setTimeout(function(){if(typeof imgFadeIn==='function')imgFadeIn();if(typeof initReveal==='function')initReveal();},20);
 }
 window.renderProducts=function(){
   const grid=document.getElementById('productsGrid'); if(!grid)return;
@@ -1885,6 +1962,7 @@ window.renderProducts=function(){
       grid.after(div);
     }
   }
+  setTimeout(function(){if(typeof imgFadeIn==='function')imgFadeIn();if(typeof initReveal==='function')initReveal();},20);
 };
 function renderCategoriesPage(){document.getElementById('categoriesGrid').innerHTML=CATS.map(catCard).join('');}
 function renderCatSelects(){
@@ -3251,6 +3329,111 @@ if(typeof T!=='undefined'){
   T.ar.authorized='الوكيل الوحيد والحصري في العراق';
   T.en.authorized='The Exclusive & Only Distributor in Iraq';
 }
+
+/* ═══════════════════════════════════════
+   UX ENHANCEMENTS
+═══════════════════════════════════════ */
+
+/* ── Scroll Progress Bar ── */
+(function(){
+  var bar=document.getElementById('scrollProgress');
+  if(!bar)return;
+  function upd(){
+    var el=document.documentElement;
+    var pct=(el.scrollTop||document.body.scrollTop||0)/(el.scrollHeight-el.clientHeight)*100;
+    bar.style.width=Math.min(pct,100)+'%';
+  }
+  window.addEventListener('scroll',upd,{passive:true});
+})();
+
+/* ── Frosted-glass navbar on scroll ── */
+(function(){
+  var hdr=document.querySelector('.header');
+  if(!hdr)return;
+  function upd(){hdr.classList.toggle('header--scrolled',(window.scrollY||window.pageYOffset)>50);}
+  window.addEventListener('scroll',upd,{passive:true});
+  upd();
+})();
+
+/* ── Scroll Reveal (IntersectionObserver) ── */
+var _revealIO=null;
+function initReveal(){
+  if(!window.IntersectionObserver)return;
+  if(_revealIO)_revealIO.disconnect();
+  _revealIO=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){e.target.classList.add('revealed');_revealIO.unobserve(e.target);}
+    });
+  },{threshold:0.1,rootMargin:'0px 0px -30px 0px'});
+  document.querySelectorAll('.reveal,.reveal-up,.reveal-scale').forEach(function(el){
+    if(!el.classList.contains('revealed'))_revealIO.observe(el);
+  });
+}
+initReveal();
+/* re-run reveal when active page changes */
+(function(){
+  var mo=new MutationObserver(function(){setTimeout(initReveal,80);});
+  var wrap=document.querySelector('main')||document.body;
+  mo.observe(wrap,{subtree:true,attributeFilter:['class']});
+})();
+
+/* ── Button Ripple effect ── */
+document.addEventListener('click',function(e){
+  var btn=e.target.closest('.btn,.small-btn,.icon-btn');
+  if(!btn||btn.disabled)return;
+  var r=document.createElement('span');
+  r.className='ripple-wave';
+  var rect=btn.getBoundingClientRect();
+  var sz=Math.max(rect.width,rect.height);
+  r.style.cssText='width:'+sz+'px;height:'+sz+'px;left:'+(e.clientX-rect.left-sz/2)+'px;top:'+(e.clientY-rect.top-sz/2)+'px';
+  btn.appendChild(r);
+  setTimeout(function(){if(r.parentNode)r.parentNode.removeChild(r);},620);
+},{passive:true});
+
+/* ── Image fade-in on load ── */
+function imgFadeIn(root){
+  (root||document).querySelectorAll('.product-image img').forEach(function(img){
+    if(img.complete&&img.naturalWidth){img.classList.add('img-loaded');return;}
+    img.addEventListener('load',function(){this.classList.add('img-loaded');},{once:true});
+    img.addEventListener('error',function(){this.classList.add('img-loaded');},{once:true});
+  });
+}
+imgFadeIn();
+/* re-run after products render */
+var _origRenderProducts=typeof renderProducts==='function'?renderProducts:null;
+if(_origRenderProducts){
+  renderProducts=function(){
+    _origRenderProducts.apply(this,arguments);
+    setTimeout(function(){imgFadeIn();initReveal();},20);
+  };
+}
+
+/* ── Skeleton screen for products loading ── */
+(function(){
+  var pl=document.getElementById('productsLoading');
+  if(!pl)return;
+  var html='';
+  for(var i=0;i<8;i++){
+    html+='<div class="sk-card">'
+      +'<div class="sk sk-img"></div>'
+      +'<div class="sk-body">'
+      +'<div class="sk sk-line h"></div>'
+      +'<div class="sk sk-line s"></div>'
+      +'<div class="sk sk-line"></div>'
+      +'<div class="sk sk-btn"></div>'
+      +'</div></div>';
+  }
+  pl.innerHTML=html;
+})();
+
+/* ── Add pulse-wa to WhatsApp links in contact page ── */
+(function(){
+  document.querySelectorAll('a[href*="wa.me"]').forEach(function(a){
+    if(a.classList.contains('contact-item')||a.closest('.contact-item'))
+      a.classList.add('pulse-wa');
+  });
+})();
+
 </script>
 </body>
 </html>
