@@ -396,6 +396,63 @@ exports.handler = async function(event) {
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }
 
+  /* TRANSLATE FIELDS — ترجمة تلقائية عبر Claude */
+  if (action === 'translate_fields') {
+    const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+    if (!ANTHROPIC_KEY) return res(headers, 500, { error: 'ANTHROPIC_API_KEY غير مضبوط' });
+
+    const { fields, context_fields } = body;
+    if (!fields || typeof fields !== 'object' || !Object.keys(fields).length)
+      return res(headers, 400, { error: 'fields مطلوب' });
+
+    const contextText = context_fields
+      ? '\n\nمعلومات سياقية (لا تُترجم — لتحسين الدقة فقط):\n' +
+        Object.entries(context_fields).map(([k, v]) => `${k}: ${v}`).join('\n')
+      : '';
+
+    const fieldList = Object.entries(fields).map(([k, v]) => `${k}: ${v}`).join('\n');
+
+    const prompt = `أنت مترجم متخصص في علم الأحياء البحرية وأسماء الكائنات البحرية.
+
+ترجم الحقول التالية من العربية إلى الإنجليزية والكردية (سوراني) في آنٍ واحد.
+
+الحقول للترجمة:
+${fieldList}${contextText}
+
+أرجع الإجابة بصيغة JSON فقط، بدون أي نص إضافي أو markdown:
+{
+  "en": { "field_name": "translation", ... },
+  "ku": { "field_name": "translation", ... }
+}`;
+
+    try {
+      const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': ANTHROPIC_KEY,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 512,
+          system: 'You are a marine biology translator. Return ONLY valid JSON, no markdown, no extra text.',
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      if (!aiRes.ok) {
+        const err = await aiRes.json().catch(() => ({}));
+        throw new Error(err?.error?.message || `Anthropic HTTP ${aiRes.status}`);
+      }
+      const aiData = await aiRes.json();
+      const rawText = aiData.content?.[0]?.text || '{}';
+      let translations;
+      try { translations = JSON.parse(rawText); }
+      catch { throw new Error('استجابة غير صالحة من الذكاء الاصطناعي'); }
+      return res(headers, 200, { translations });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
   return res(headers, 400, { error: `action غير معروف: ${action}` });
 };
 

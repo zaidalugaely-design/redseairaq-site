@@ -679,6 +679,43 @@ html{scroll-behavior:smooth}
 .edu-empty{text-align:center;padding:60px 20px;color:var(--muted)}
 .edu-empty svg{width:56px;height:56px;opacity:.3;margin:0 auto 14px;display:block}
 .edu-empty p{font-size:16px;font-weight:800}
+
+/* ════════════════════════════════
+   ADMIN ACCORDION
+════════════════════════════════ */
+.acc-section{border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-bottom:14px;transition:border-color .2s}
+.acc-section.open{border-color:var(--red)}
+.acc-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;cursor:pointer;background:var(--pearl);user-select:none;gap:12px;transition:background .15s}
+.acc-header:hover{background:#edf2f7}
+.acc-section.open>.acc-header{border-bottom:1px solid var(--line);background:#fff8f8}
+.acc-header-title{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:900;color:var(--navy)}
+.acc-header-actions{display:flex;align-items:center;gap:8px}
+.acc-chevron{width:20px;height:20px;flex-shrink:0;color:var(--muted);transition:transform .3s ease}
+.acc-section.open>.acc-header .acc-chevron{transform:rotate(180deg)}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .4s cubic-bezier(.4,0,.2,1)}
+.acc-section.open>.acc-body{max-height:9999px}
+.acc-body-inner{padding:20px}
+/* sub-accordion inside education */
+.acc-sub{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:12px;transition:border-color .2s}
+.acc-sub.open{border-color:#94a3b8}
+.acc-sub-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;background:#f8fafc;user-select:none;gap:10px;transition:background .15s}
+.acc-sub-header:hover{background:#f1f5f9}
+.acc-sub.open>.acc-sub-header{border-bottom:1px solid var(--line);background:#f1f5f9}
+.acc-sub-header-title{font-size:14px;font-weight:900;color:var(--navy);display:flex;align-items:center;gap:8px}
+.acc-sub-chevron{width:16px;height:16px;flex-shrink:0;color:var(--muted);transition:transform .3s ease}
+.acc-sub.open>.acc-sub-header .acc-sub-chevron{transform:rotate(180deg)}
+.acc-sub-body{max-height:0;overflow:hidden;transition:max-height .4s cubic-bezier(.4,0,.2,1)}
+.acc-sub.open>.acc-sub-body{max-height:5000px}
+.acc-sub-body-inner{padding:16px}
+
+/* ── Translate button ── */
+.translate-btn{display:inline-flex;align-items:center;gap:6px;background:#eef2ff;color:#1a3a8a;border:1.5px solid #c7d2fe;border-radius:10px;padding:8px 14px;font-size:12.5px;font-weight:900;cursor:pointer;font-family:inherit;transition:background .15s,border-color .15s;margin-bottom:4px}
+.translate-btn:hover{background:#e0e7ff;border-color:#a5b4fc}
+.translate-btn:disabled{opacity:.55;cursor:not-allowed}
+.translate-btn .t-spin{display:none;width:14px;height:14px;border:2px solid #a5b4fc;border-top-color:#1a3a8a;border-radius:50%;animation:spin .6s linear infinite}
+.translate-btn.loading .t-spin{display:block}
+.translate-btn.loading .t-icon{display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 
 <!-- Structured Data for Google -->
@@ -988,48 +1025,65 @@ html{scroll-behavior:smooth}
     </div>
     <div class="admin-dashboard">
       <div class="admin-help"><b>قاعدة العملة:</b> المنتج "متوفر" → السعر بالدينار · المنتج "حجز مسبق" → السعر بالدولار. اختر "تلقائي" لاستخدام هذه القاعدة، أو حدد العملة يدوياً للتحكم الكامل.</div>
-      <!-- Category Manager -->
-      <div class="panel" style="padding:18px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-          <h3 style="color:var(--navy);font-size:17px;font-weight:900">🗂 إدارة الفئات</h3>
-          <button class="btn primary" onclick="showAddCatForm()" style="padding:9px 14px;font-size:13px" data-i18n="btn_new_cat">＋ فئة جديدة</button>
-        </div>
-        <div id="addCatForm" style="display:none;background:var(--pearl);border-radius:14px;padding:16px;margin-bottom:14px">
-          <div style="display:grid;grid-template-columns:1fr 80px auto;gap:10px;align-items:center">
-            <input class="input" id="newCatName" placeholder="اسم الفئة — مثال: الأحواض">
-            <select class="select" id="newCatIcon">
-              <option>🐠</option><option>💡</option><option>🦠</option>
-              <option>🪨</option><option>🌿</option><option>⚡</option>
-              <option>🔧</option><option>🧬</option><option>🏠</option>
-              <option>💧</option><option>🐚</option><option>⭐</option>
-              <option>🔴</option><option>🟢</option><option>🟡</option>
-            </select>
-            <button class="btn primary" onclick="addCustomCat()" style="white-space:nowrap;padding:11px 14px" data-i18n="btn_add">إضافة</button>
-          </div>
-          <input class="input" id="newCatDesc" placeholder="وصف الفئة (اختياري)" style="margin-top:10px">
-        </div>
-        <div id="catManagerList"></div>
-      </div>
-      <div class="panel" style="padding:20px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
-          <h3 style="color:var(--navy);font-size:18px;font-weight:900"><svg style="width:15px;height:15px;vertical-align:-.15em;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> طلبات الزبائن</h3>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn" onclick="loadOrders()"><svg style="width:15px;height:15px;vertical-align:-.15em;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> تحديث الطلبات</button>
-            <button class="btn" id="archiveToggleBtn" onclick="toggleShowArchived()" style="background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1"><svg style="width:14px;height:14px;vertical-align:-.12em;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg> عرض المؤرشفة</button>
+      <!-- Categories accordion -->
+      <div class="acc-section" id="accCategories">
+        <div class="acc-header" onclick="toggleAccordion('accCategories')">
+          <span class="acc-header-title">🗂 إدارة الفئات</span>
+          <div class="acc-header-actions">
+            <button class="btn primary" onclick="event.stopPropagation();openAccordion('accCategories');showAddCatForm()" style="padding:9px 14px;font-size:13px" data-i18n="btn_new_cat">＋ فئة جديدة</button>
+            <svg class="acc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
         </div>
-        <div id="ordersPanel"><div style="color:var(--muted);font-size:13.5px">اضغط "تحديث الطلبات" لعرض الطلبات الواردة.</div></div>
+        <div class="acc-body"><div class="acc-body-inner">
+          <div id="addCatForm" style="display:none;background:var(--pearl);border-radius:14px;padding:16px;margin-bottom:14px">
+            <div style="display:grid;grid-template-columns:1fr 80px auto;gap:10px;align-items:center">
+              <input class="input" id="newCatName" placeholder="اسم الفئة — مثال: الأحواض">
+              <select class="select" id="newCatIcon">
+                <option>🐠</option><option>💡</option><option>🦠</option>
+                <option>🪨</option><option>🌿</option><option>⚡</option>
+                <option>🔧</option><option>🧬</option><option>🏠</option>
+                <option>💧</option><option>🐚</option><option>⭐</option>
+                <option>🔴</option><option>🟢</option><option>🟡</option>
+              </select>
+              <button class="btn primary" onclick="addCustomCat()" style="white-space:nowrap;padding:11px 14px" data-i18n="btn_add">إضافة</button>
+            </div>
+            <input class="input" id="newCatDesc" placeholder="وصف الفئة (اختياري)" style="margin-top:10px">
+          </div>
+          <div id="catManagerList"></div>
+        </div></div>
       </div>
-      <div class="admin-top-actions">
-        <div class="left">
-          <button class="btn primary" onclick="resetAdminForm()" data-i18n="btn_new_product">＋ منتج جديد</button>
-          <button class="btn" onclick="exportProductsJSON()" data-i18n="btn_export">تصدير المنتجات</button>
-          <button class="btn" onclick="document.getElementById('adminImportFile').click()" data-i18n="btn_import">استيراد المنتجات</button>
-          <input type="file" id="adminImportFile" accept="application/json" style="display:none" onchange="importProductsJSON(event)">
-          <button class="btn danger" onclick="resetProductsToDefault()" data-i18n="btn_reset">استرجاع الأصلية</button>
+      <!-- Orders accordion -->
+      <div class="acc-section" id="accOrders">
+        <div class="acc-header" onclick="toggleAccordion('accOrders')">
+          <span class="acc-header-title"><svg style="width:15px;height:15px;vertical-align:-.15em;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> طلبات الزبائن</span>
+          <div class="acc-header-actions">
+            <button class="btn" onclick="event.stopPropagation();openAccordion('accOrders');loadOrders()"><svg style="width:14px;height:14px;vertical-align:-.12em;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> تحديث</button>
+            <button class="btn" id="archiveToggleBtn" onclick="event.stopPropagation();toggleShowArchived()" style="background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1"><svg style="width:14px;height:14px;vertical-align:-.12em;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg> المؤرشفة</button>
+            <svg class="acc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
         </div>
-        <span class="admin-stat">عدد المنتجات: <b id="adminProductCount">0</b></span>
+        <div class="acc-body"><div class="acc-body-inner">
+          <div id="ordersPanel"><div style="color:var(--muted);font-size:13.5px">اضغط "تحديث" لعرض الطلبات الواردة.</div></div>
+        </div></div>
       </div>
+      <!-- Products accordion -->
+      <div class="acc-section" id="accProducts">
+        <div class="acc-header" onclick="toggleAccordion('accProducts')">
+          <span class="acc-header-title">📦 إدارة المنتجات <span id="adminProductCount" style="font-size:13px;font-weight:700;color:var(--muted)"></span> <span id="adminHiddenCount" style="font-size:12px;font-weight:700;color:#64748b"></span></span>
+          <div class="acc-header-actions">
+            <button class="btn primary" onclick="event.stopPropagation();openAccordion('accProducts');resetAdminForm()" data-i18n="btn_new_product">＋ منتج جديد</button>
+            <svg class="acc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+        <div class="acc-body"><div class="acc-body-inner">
+          <div class="admin-top-actions" style="margin-bottom:18px">
+            <div class="left">
+              <button class="btn" onclick="exportProductsJSON()" data-i18n="btn_export">تصدير المنتجات</button>
+              <button class="btn" onclick="document.getElementById('adminImportFile').click()" data-i18n="btn_import">استيراد المنتجات</button>
+              <input type="file" id="adminImportFile" accept="application/json" style="display:none" onchange="importProductsJSON(event)">
+              <button class="btn danger" onclick="resetProductsToDefault()" data-i18n="btn_reset">استرجاع الأصلية</button>
+            </div>
+          </div>
       <div class="admin-grid">
         <div>
           <div class="admin-form-title">
@@ -1102,19 +1156,25 @@ html{scroll-behavior:smooth}
             </div>
             <div class="bot-response" id="botResponse"></div>
           </div>
-          <h3 style="margin-bottom:6px;color:var(--navy);font-weight:900">المنتجات الحالية <span id="adminProductCount" style="color:var(--muted);font-size:14px;font-weight:700"></span> <span id="adminHiddenCount" style="color:#64748b;font-size:13px;font-weight:700"></span></h3>
+          <h3 style="margin-bottom:6px;color:var(--navy);font-weight:900">المنتجات الحالية</h3>
           <div class="admin-products" id="adminProductsList"></div>
         </div>
       </div>
+        </div></div>
+      </div><!-- /accProducts -->
     </div>
   </div>
 
     <!-- BLOG ADMIN SECTION -->
-    <div id="blogAdminSection" class="panel" style="margin-top:22px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
-        <h3 style="color:var(--navy);font-size:20px;font-weight:900">📖 إدارة المقالات</h3>
-        <button class="btn primary" onclick="resetBlogForm()" data-i18n="btn_new_article">＋ مقال جديد</button>
+    <div id="blogAdminSection" class="acc-section" style="margin-top:14px">
+      <div class="acc-header" onclick="toggleAccordion('blogAdminSection')">
+        <span class="acc-header-title">📖 إدارة المقالات</span>
+        <div class="acc-header-actions">
+          <button class="btn primary" onclick="event.stopPropagation();openAccordion('blogAdminSection');resetBlogForm()" data-i18n="btn_new_article">＋ مقال جديد</button>
+          <svg class="acc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
       </div>
+      <div class="acc-body"><div class="acc-body-inner">
       <div class="admin-grid">
         <div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
@@ -1140,17 +1200,20 @@ html{scroll-behavior:smooth}
           <div class="admin-products" id="adminBlogList"></div>
         </div>
       </div>
-    </div>
+      </div></div>
+    </div><!-- /blogAdminSection -->
 
     <!-- REFERENCE ADMIN SECTION -->
-    <div id="referenceAdminSection" class="panel" style="margin-top:22px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
-        <h3 style="color:var(--navy);font-size:20px;font-weight:900">📚 إدارة مرجع الأحواض البحرية</h3>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn primary" onclick="resetRefForm()">＋ موضوع جديد</button>
-          <button class="btn" style="background:#e8f4fd;color:#1a6fa8;border:1.5px solid #1a6fa8" onclick="seedRefTopics()">⬇ تحميل المواضيع الافتراضية</button>
+    <div id="referenceAdminSection" class="acc-section" style="margin-top:14px">
+      <div class="acc-header" onclick="toggleAccordion('referenceAdminSection')">
+        <span class="acc-header-title">📚 إدارة مرجع الأحواض البحرية</span>
+        <div class="acc-header-actions">
+          <button class="btn primary" onclick="event.stopPropagation();openAccordion('referenceAdminSection');resetRefForm()">＋ موضوع جديد</button>
+          <button class="btn" style="background:#e8f4fd;color:#1a6fa8;border:1.5px solid #1a6fa8" onclick="event.stopPropagation();openAccordion('referenceAdminSection');seedRefTopics()">⬇ تحميل الافتراضية</button>
+          <svg class="acc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
       </div>
+      <div class="acc-body"><div class="acc-body-inner">
       <div class="admin-grid">
         <div>
           <h4 id="refFormTitle" style="color:var(--navy);font-weight:900;margin-bottom:12px">موضوع جديد</h4>
@@ -1180,118 +1243,155 @@ html{scroll-behavior:smooth}
           <div class="admin-products" id="adminRefList"></div>
         </div>
       </div>
-    </div>
+      </div></div>
+    </div><!-- /referenceAdminSection -->
 
     <!-- EDUCATION ADMIN SECTION -->
-    <div id="educationAdminSection" class="panel" style="margin-top:22px">
-      <h3 style="color:var(--navy);font-size:20px;font-weight:900;margin-bottom:18px">🎓 إدارة قاعدة البيانات التعليمية</h3>
-
-      <!-- Fish Families -->
-      <div style="margin-bottom:30px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-          <h4 style="color:var(--navy);font-weight:900;font-size:16px">🐠 عائلات الأسماك</h4>
-          <button class="btn primary" style="font-size:13px;padding:8px 14px" onclick="resetFishFamilyForm()">＋ عائلة جديدة</button>
-        </div>
-        <div class="admin-grid">
-          <div class="admin-form" id="fishFamilyFormWrap">
-            <input type="hidden" id="fishFamilyId">
-            <input class="input" id="fishFamilyNameAr" placeholder="الاسم بالعربي *">
-            <input class="input" id="fishFamilyNameEn" placeholder="Name in English">
-            <input class="input" id="fishFamilyNameKu" placeholder="ناوی کوردی">
-            <button class="btn primary" onclick="saveFishFamily()"><svg style="width:14px;height:14px;vertical-align:-.12em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> حفظ العائلة</button>
-          </div>
-          <div><div class="admin-products" id="adminFishFamilyList"></div></div>
-        </div>
+    <div id="educationAdminSection" class="acc-section" style="margin-top:14px">
+      <div class="acc-header" onclick="toggleAccordion('educationAdminSection')">
+        <span class="acc-header-title">🎓 إدارة قاعدة البيانات التعليمية</span>
+        <svg class="acc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
+      <div class="acc-body"><div class="acc-body-inner">
 
-      <!-- Fish Cards -->
-      <div style="margin-bottom:30px;border-top:1px solid var(--line);padding-top:22px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-          <h4 style="color:var(--navy);font-weight:900;font-size:16px">🐟 بطاقات الأسماك</h4>
-          <button class="btn primary" style="font-size:13px;padding:8px 14px" onclick="resetFishCardForm()">＋ سمكة جديدة</button>
+      <!-- Fish Families sub-accordion -->
+      <div class="acc-sub" id="accFishFamilies">
+        <div class="acc-sub-header" onclick="toggleAccordion('accFishFamilies')">
+          <span class="acc-sub-header-title">🐠 عائلات الأسماك</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button class="btn primary" style="font-size:12px;padding:7px 12px" onclick="event.stopPropagation();openAccordion('accFishFamilies');resetFishFamilyForm()">＋ عائلة جديدة</button>
+            <svg class="acc-sub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
         </div>
-        <div class="admin-grid">
-          <div class="admin-form" id="fishCardFormWrap">
-            <input type="hidden" id="fishCardId">
-            <select class="input" id="fishCardFamily"><option value="">— بدون عائلة —</option></select>
-            <input class="input" id="fishCardNameAr" placeholder="الاسم الشائع بالعربي *">
-            <input class="input" id="fishCardNameEn" placeholder="Common Name in English">
-            <input class="input" id="fishCardNameKu" placeholder="ناوی کوردی">
-            <input class="input" id="fishCardSci" placeholder="الاسم العلمي (Scientific Name)">
-            <select class="input" id="fishCardCare">
-              <option value="easy">سهل الاعتناء</option>
-              <option value="medium" selected>متوسط</option>
-              <option value="hard">صعب</option>
-            </select>
-            <select class="input" id="fishCardDiet">
-              <option value="carnivore">لاحم (Carnivore)</option>
-              <option value="herbivore">عاشب (Herbivore)</option>
-              <option value="omnivore" selected>كلّي (Omnivore)</option>
-            </select>
-            <select class="input" id="fishCardReef">
-              <option value="reef_safe">آمن للمرجان ✅</option>
-              <option value="caution" selected>بحذر ⚠️</option>
-              <option value="with_caution">بحذر شديد 🟠</option>
-              <option value="no">غير آمن ❌</option>
-            </select>
-            <textarea class="textarea" id="fishCardNotes" placeholder="ملاحظات تفصيلية (اختياري)"></textarea>
-            <div>
-              <label style="font-size:12px;font-weight:800;color:var(--navy);display:block;margin-bottom:5px">رابط الصورة (image_url)</label>
-              <input class="input" id="fishCardImage" placeholder="https://..." oninput="previewFishCardImg()">
-              <div id="fishCardImgPreview" style="margin-top:8px;border-radius:10px;overflow:hidden;background:var(--pearl);height:120px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px">معاينة الصورة</div>
+        <div class="acc-sub-body"><div class="acc-sub-body-inner">
+          <div class="admin-grid">
+            <div class="admin-form" id="fishFamilyFormWrap">
+              <input type="hidden" id="fishFamilyId">
+              <input class="input" id="fishFamilyNameAr" placeholder="الاسم بالعربي *">
+              <button class="translate-btn" id="translateFishFamilyBtn" onclick="autoTranslateFishFamily()">
+                <span class="t-icon">🌐</span>
+                <div class="t-spin"></div>
+                ترجم تلقائياً
+              </button>
+              <input class="input" id="fishFamilyNameEn" placeholder="Name in English">
+              <input class="input" id="fishFamilyNameKu" placeholder="ناوی کوردی">
+              <button class="btn primary" onclick="saveFishFamily()"><svg style="width:14px;height:14px;vertical-align:-.12em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> حفظ العائلة</button>
             </div>
-            <button class="btn primary" onclick="saveFishCard()"><svg style="width:14px;height:14px;vertical-align:-.12em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> حفظ السمكة</button>
+            <div><div class="admin-products" id="adminFishFamilyList"></div></div>
           </div>
-          <div><div class="admin-products" id="adminFishCardList"></div></div>
-        </div>
-      </div>
+        </div></div>
+      </div><!-- /accFishFamilies -->
 
-      <!-- Coral Cards -->
-      <div style="border-top:1px solid var(--line);padding-top:22px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-          <h4 style="color:var(--navy);font-weight:900;font-size:16px">🪸 بطاقات المرجان</h4>
-          <button class="btn primary" style="font-size:13px;padding:8px 14px" onclick="resetCoralForm()">＋ مرجانة جديدة</button>
-        </div>
-        <div class="admin-grid">
-          <div class="admin-form" id="coralFormWrap">
-            <input type="hidden" id="coralId">
-            <input class="input" id="coralNameAr" placeholder="الاسم بالعربي *">
-            <input class="input" id="coralNameEn" placeholder="Name in English">
-            <input class="input" id="coralNameKu" placeholder="ناوی کوردی">
-            <input class="input" id="coralSci" placeholder="الاسم العلمي (Scientific Name)">
-            <select class="input" id="coralLight">
-              <option value="low">إضاءة منخفضة</option>
-              <option value="medium" selected>إضاءة متوسطة</option>
-              <option value="high">إضاءة عالية</option>
-            </select>
-            <select class="input" id="coralFlow">
-              <option value="low">تيار خفيف</option>
-              <option value="medium" selected>تيار متوسط</option>
-              <option value="high">تيار قوي</option>
-            </select>
-            <select class="input" id="coralPlacement">
-              <option value="bottom">قاع</option>
-              <option value="middle" selected>منتصف</option>
-              <option value="top">قمة</option>
-            </select>
-            <select class="input" id="coralDifficulty">
-              <option value="easy">سهل</option>
-              <option value="medium" selected>متوسط</option>
-              <option value="hard">صعب</option>
-            </select>
-            <input class="input" id="coralFeeding" placeholder="نوع التغذية (اختياري)">
-            <textarea class="textarea" id="coralNotes" placeholder="ملاحظات تفصيلية (اختياري)"></textarea>
-            <div>
-              <label style="font-size:12px;font-weight:800;color:var(--navy);display:block;margin-bottom:5px">رابط الصورة (image_url)</label>
-              <input class="input" id="coralImage" placeholder="https://..." oninput="previewCoralImg()">
-              <div id="coralImgPreview" style="margin-top:8px;border-radius:10px;overflow:hidden;background:var(--pearl);height:120px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px">معاينة الصورة</div>
-            </div>
-            <button class="btn primary" onclick="saveCoral()"><svg style="width:14px;height:14px;vertical-align:-.12em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> حفظ المرجانة</button>
+      <!-- Fish Cards sub-accordion -->
+      <div class="acc-sub" id="accFishCards">
+        <div class="acc-sub-header" onclick="toggleAccordion('accFishCards')">
+          <span class="acc-sub-header-title">🐟 بطاقات الأسماك</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button class="btn primary" style="font-size:12px;padding:7px 12px" onclick="event.stopPropagation();openAccordion('accFishCards');resetFishCardForm()">＋ سمكة جديدة</button>
+            <svg class="acc-sub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
-          <div><div class="admin-products" id="adminCoralList"></div></div>
         </div>
-      </div>
-    </div>
+        <div class="acc-sub-body"><div class="acc-sub-body-inner">
+          <div class="admin-grid">
+            <div class="admin-form" id="fishCardFormWrap">
+              <input type="hidden" id="fishCardId">
+              <select class="input" id="fishCardFamily"><option value="">— بدون عائلة —</option></select>
+              <input class="input" id="fishCardNameAr" placeholder="الاسم الشائع بالعربي *">
+              <button class="translate-btn" id="translateFishCardBtn" onclick="autoTranslateFishCard()">
+                <span class="t-icon">🌐</span>
+                <div class="t-spin"></div>
+                ترجم تلقائياً
+              </button>
+              <input class="input" id="fishCardNameEn" placeholder="Common Name in English">
+              <input class="input" id="fishCardNameKu" placeholder="ناوی کوردی">
+              <input class="input" id="fishCardSci" placeholder="الاسم العلمي (Scientific Name)">
+              <select class="input" id="fishCardCare">
+                <option value="easy">سهل الاعتناء</option>
+                <option value="medium" selected>متوسط</option>
+                <option value="hard">صعب</option>
+              </select>
+              <select class="input" id="fishCardDiet">
+                <option value="carnivore">لاحم (Carnivore)</option>
+                <option value="herbivore">عاشب (Herbivore)</option>
+                <option value="omnivore" selected>كلّي (Omnivore)</option>
+              </select>
+              <select class="input" id="fishCardReef">
+                <option value="reef_safe">آمن للمرجان ✅</option>
+                <option value="caution" selected>بحذر ⚠️</option>
+                <option value="with_caution">بحذر شديد 🟠</option>
+                <option value="no">غير آمن ❌</option>
+              </select>
+              <textarea class="textarea" id="fishCardNotes" placeholder="ملاحظات تفصيلية (اختياري)"></textarea>
+              <div>
+                <label style="font-size:12px;font-weight:800;color:var(--navy);display:block;margin-bottom:5px">رابط الصورة (image_url)</label>
+                <input class="input" id="fishCardImage" placeholder="https://..." oninput="previewFishCardImg()">
+                <div id="fishCardImgPreview" style="margin-top:8px;border-radius:10px;overflow:hidden;background:var(--pearl);height:120px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px">معاينة الصورة</div>
+              </div>
+              <button class="btn primary" onclick="saveFishCard()"><svg style="width:14px;height:14px;vertical-align:-.12em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> حفظ السمكة</button>
+            </div>
+            <div><div class="admin-products" id="adminFishCardList"></div></div>
+          </div>
+        </div></div>
+      </div><!-- /accFishCards -->
+
+      <!-- Coral Cards sub-accordion -->
+      <div class="acc-sub" id="accCorals">
+        <div class="acc-sub-header" onclick="toggleAccordion('accCorals')">
+          <span class="acc-sub-header-title">🪸 بطاقات المرجان</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button class="btn primary" style="font-size:12px;padding:7px 12px" onclick="event.stopPropagation();openAccordion('accCorals');resetCoralForm()">＋ مرجانة جديدة</button>
+            <svg class="acc-sub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+        <div class="acc-sub-body"><div class="acc-sub-body-inner">
+          <div class="admin-grid">
+            <div class="admin-form" id="coralFormWrap">
+              <input type="hidden" id="coralId">
+              <input class="input" id="coralNameAr" placeholder="الاسم بالعربي *">
+              <button class="translate-btn" id="translateCoralBtn" onclick="autoTranslateCoral()">
+                <span class="t-icon">🌐</span>
+                <div class="t-spin"></div>
+                ترجم تلقائياً
+              </button>
+              <input class="input" id="coralNameEn" placeholder="Name in English">
+              <input class="input" id="coralNameKu" placeholder="ناوی کوردی">
+              <input class="input" id="coralSci" placeholder="الاسم العلمي (Scientific Name)">
+              <select class="input" id="coralLight">
+                <option value="low">إضاءة منخفضة</option>
+                <option value="medium" selected>إضاءة متوسطة</option>
+                <option value="high">إضاءة عالية</option>
+              </select>
+              <select class="input" id="coralFlow">
+                <option value="low">تيار خفيف</option>
+                <option value="medium" selected>تيار متوسط</option>
+                <option value="high">تيار قوي</option>
+              </select>
+              <select class="input" id="coralPlacement">
+                <option value="bottom">قاع</option>
+                <option value="middle" selected>منتصف</option>
+                <option value="top">قمة</option>
+              </select>
+              <select class="input" id="coralDifficulty">
+                <option value="easy">سهل</option>
+                <option value="medium" selected>متوسط</option>
+                <option value="hard">صعب</option>
+              </select>
+              <input class="input" id="coralFeeding" placeholder="نوع التغذية (اختياري)">
+              <textarea class="textarea" id="coralNotes" placeholder="ملاحظات تفصيلية (اختياري)"></textarea>
+              <div>
+                <label style="font-size:12px;font-weight:800;color:var(--navy);display:block;margin-bottom:5px">رابط الصورة (image_url)</label>
+                <input class="input" id="coralImage" placeholder="https://..." oninput="previewCoralImg()">
+                <div id="coralImgPreview" style="margin-top:8px;border-radius:10px;overflow:hidden;background:var(--pearl);height:120px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px">معاينة الصورة</div>
+              </div>
+              <button class="btn primary" onclick="saveCoral()"><svg style="width:14px;height:14px;vertical-align:-.12em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> حفظ المرجانة</button>
+            </div>
+            <div><div class="admin-products" id="adminCoralList"></div></div>
+          </div>
+        </div></div>
+      </div><!-- /accCorals -->
+
+      </div></div>
+    </div><!-- /educationAdminSection -->
 
 </div><!-- /adminPageContent -->
 </section>
@@ -2926,7 +3026,7 @@ window.editBlogPost=function(id){
   blogImgData=p.image||'';
   document.getElementById('blogImgPreview').innerHTML=p.image?`<img src="${p.image}" alt="">`:' اختر صورة';
   document.getElementById('blogFormTitle').textContent='تعديل المقال';
-  document.getElementById('blogAdminSection').scrollIntoView({behavior:'smooth'});
+  openAccordion('blogAdminSection');document.getElementById('blogAdminSection').scrollIntoView({behavior:'smooth'});
 };
 window.deleteBlogPost=async function(id){
   if(!confirm('حذف المقال؟'))return;
@@ -3383,7 +3483,7 @@ window.editRefTopic=function(id){
   refImgData=t.image||'';
   document.getElementById('refImgPreview').innerHTML=t.image?'<img src="'+t.image+'" alt="">':'اختر صورة الموضوع';
   document.getElementById('refFormTitle').textContent='تعديل الموضوع';
-  document.getElementById('referenceAdminSection').scrollIntoView({behavior:'smooth'});
+  openAccordion('referenceAdminSection');document.getElementById('referenceAdminSection').scrollIntoView({behavior:'smooth'});
 };
 
 window.deleteRefTopic=async function(id){
@@ -3478,7 +3578,7 @@ window.editFishFamily=function(id){
   document.getElementById('fishFamilyNameAr').value=f.name_ar||'';
   document.getElementById('fishFamilyNameEn').value=f.name_en||'';
   document.getElementById('fishFamilyNameKu').value=f.name_ku||'';
-  document.getElementById('fishFamilyFormWrap')?.scrollIntoView({behavior:'smooth',block:'start'});
+  openAccordion('educationAdminSection');openAccordion('accFishFamilies');document.getElementById('fishFamilyFormWrap')?.scrollIntoView({behavior:'smooth',block:'start'});
 };
 window.deleteFishFamily=async function(id){
   if(!confirm('حذف العائلة؟'))return;
@@ -3552,7 +3652,7 @@ window.editFishCard=function(id){
   document.getElementById('fishCardNotes').value=c.notes||'';
   document.getElementById('fishCardImage').value=c.image_url||'';
   previewFishCardImg();
-  document.getElementById('fishCardFormWrap')?.scrollIntoView({behavior:'smooth',block:'start'});
+  openAccordion('educationAdminSection');openAccordion('accFishCards');document.getElementById('fishCardFormWrap')?.scrollIntoView({behavior:'smooth',block:'start'});
 };
 window.deleteFishCard=async function(id){
   if(!confirm('حذف السمكة؟'))return;
@@ -3635,7 +3735,7 @@ window.editCoral=function(id){
   document.getElementById('coralNotes').value=c.notes||'';
   document.getElementById('coralImage').value=c.image_url||'';
   previewCoralImg();
-  document.getElementById('coralFormWrap')?.scrollIntoView({behavior:'smooth',block:'start'});
+  openAccordion('educationAdminSection');openAccordion('accCorals');document.getElementById('coralFormWrap')?.scrollIntoView({behavior:'smooth',block:'start'});
 };
 window.deleteCoral=async function(id){
   if(!confirm('حذف المرجانة؟'))return;
@@ -3668,6 +3768,93 @@ function renderAdminEducation(){
   renderAdminFishCards();
   renderAdminCorals();
 }
+
+/* ════════════════════════════════
+   ACCORDION
+════════════════════════════════ */
+window.toggleAccordion=function(id){
+  var el=document.getElementById(id);
+  if(el) el.classList.toggle('open');
+};
+window.openAccordion=function(id){
+  var el=document.getElementById(id);
+  if(el&&!el.classList.contains('open')) el.classList.add('open');
+};
+
+/* ════════════════════════════════
+   AUTO-TRANSLATION
+════════════════════════════════ */
+async function callTranslate(fields, contextFields){
+  return apiCall('translate_fields',{fields,context_fields:contextFields||null},true);
+}
+
+window.autoTranslateFishFamily=async function(){
+  var nameAr=(document.getElementById('fishFamilyNameAr')?.value||'').trim();
+  if(!nameAr){toast('أدخل الاسم بالعربي أولاً');return;}
+  var btn=document.getElementById('translateFishFamilyBtn');
+  if(btn){btn.disabled=true;btn.classList.add('loading');}
+  try{
+    var result=await callTranslate({name:nameAr});
+    var tr=result.translations||{};
+    if(tr.en?.name) document.getElementById('fishFamilyNameEn').value=tr.en.name;
+    if(tr.ku?.name) document.getElementById('fishFamilyNameKu').value=tr.ku.name;
+    toast('تمت الترجمة ✓');
+  }catch(e){
+    toast('فشل الترجمة، حاول مجدداً');
+  }finally{
+    if(btn){btn.disabled=false;btn.classList.remove('loading');}
+  }
+};
+
+window.autoTranslateFishCard=async function(){
+  var nameAr=(document.getElementById('fishCardNameAr')?.value||'').trim();
+  if(!nameAr){toast('أدخل الاسم بالعربي أولاً');return;}
+  var btn=document.getElementById('translateFishCardBtn');
+  if(btn){btn.disabled=true;btn.classList.add('loading');}
+  var notes=(document.getElementById('fishCardNotes')?.value||'').trim();
+  try{
+    var result=await callTranslate(
+      {common_name:nameAr},
+      notes?{notes:notes,scientific_name:(document.getElementById('fishCardSci')?.value||'').trim()}:null
+    );
+    var tr=result.translations||{};
+    if(tr.en?.common_name) document.getElementById('fishCardNameEn').value=tr.en.common_name;
+    if(tr.ku?.common_name) document.getElementById('fishCardNameKu').value=tr.ku.common_name;
+    toast('تمت الترجمة ✓');
+  }catch(e){
+    toast('فشل الترجمة، حاول مجدداً');
+  }finally{
+    if(btn){btn.disabled=false;btn.classList.remove('loading');}
+  }
+};
+
+window.autoTranslateCoral=async function(){
+  var nameAr=(document.getElementById('coralNameAr')?.value||'').trim();
+  if(!nameAr){toast('أدخل الاسم بالعربي أولاً');return;}
+  var btn=document.getElementById('translateCoralBtn');
+  if(btn){btn.disabled=true;btn.classList.add('loading');}
+  var feeding=(document.getElementById('coralFeeding')?.value||'').trim();
+  var notes=(document.getElementById('coralNotes')?.value||'').trim();
+  var ctx={};
+  if(feeding) ctx.feeding=feeding;
+  if(notes) ctx.notes=notes;
+  var sci=(document.getElementById('coralSci')?.value||'').trim();
+  if(sci) ctx.scientific_name=sci;
+  try{
+    var result=await callTranslate(
+      {name:nameAr},
+      Object.keys(ctx).length?ctx:null
+    );
+    var tr=result.translations||{};
+    if(tr.en?.name) document.getElementById('coralNameEn').value=tr.en.name;
+    if(tr.ku?.name) document.getElementById('coralNameKu').value=tr.ku.name;
+    toast('تمت الترجمة ✓');
+  }catch(e){
+    toast('فشل الترجمة، حاول مجدداً');
+  }finally{
+    if(btn){btn.disabled=false;btn.classList.remove('loading');}
+  }
+};
 
 window.seedRefTopics=async function(){
   if(!adminIsLoggedIn()){toast('سجّل الدخول أولاً');return;}
