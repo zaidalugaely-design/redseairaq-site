@@ -401,29 +401,17 @@ exports.handler = async function(event) {
     const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
     if (!ANTHROPIC_KEY) return res(headers, 500, { error: 'ANTHROPIC_API_KEY غير مضبوط' });
 
-    const { fields, context_fields } = body;
+    const { fields } = body;
     if (!fields || typeof fields !== 'object' || !Object.keys(fields).length)
       return res(headers, 400, { error: 'fields مطلوب' });
 
-    const contextText = context_fields
-      ? '\n\nمعلومات سياقية (لا تُترجم — لتحسين الدقة فقط):\n' +
-        Object.entries(context_fields).map(([k, v]) => `${k}: ${v}`).join('\n')
-      : '';
-
     const fieldList = Object.entries(fields).map(([k, v]) => `${k}: ${v}`).join('\n');
 
-    const prompt = `أنت مترجم متخصص في علم الأحياء البحرية وأسماء الكائنات البحرية.
+    const prompt = `Translate ALL of the following fields into Arabic, English, and Kurdish (Sorani). Auto-detect the input language. Return ONLY a JSON object — no markdown, no extra text — with this structure:
+{"ar":{"field_name":"..."},"en":{"field_name":"..."},"ku":{"field_name":"..."}}
 
-ترجم الحقول التالية من العربية إلى الإنجليزية والكردية (سوراني) في آنٍ واحد.
-
-الحقول للترجمة:
-${fieldList}${contextText}
-
-أرجع الإجابة بصيغة JSON فقط، بدون أي نص إضافي أو markdown:
-{
-  "en": { "field_name": "translation", ... },
-  "ku": { "field_name": "translation", ... }
-}`;
+Fields:
+${fieldList}`;
 
     try {
       const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
@@ -435,8 +423,8 @@ ${fieldList}${contextText}
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 512,
-          system: 'You are a marine biology translator. Return ONLY valid JSON, no markdown, no extra text.',
+          max_tokens: 1024,
+          system: 'You are a marine biology translator. Auto-detect the input language and translate all provided fields into Arabic, English, and Kurdish (Sorani). scientific_name fields must never be translated. Return ONLY a JSON object with keys: ar, en, ku for each field. No extra text.',
           messages: [{ role: 'user', content: prompt }]
         })
       });
@@ -450,6 +438,42 @@ ${fieldList}${contextText}
       try { translations = JSON.parse(rawText); }
       catch { throw new Error('استجابة غير صالحة من الذكاء الاصطناعي'); }
       return res(headers, 200, { translations });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
+  /* UPLOAD EDU IMAGE — رفع صورة إلى Supabase Storage */
+  if (action === 'upload_edu_image') {
+    if (!adminJwt) return res(headers, 401, { error: 'Unauthorized' });
+    const { image_data, file_name, content_type } = body;
+    if (!image_data || !file_name) return res(headers, 400, { error: 'image_data and file_name required' });
+
+    const bucket = 'education-images';
+    const uploadPath = `${Date.now()}-${file_name}`;
+
+    // ensure bucket exists (idempotent)
+    await fetch(`${SB_URL}/storage/v1/bucket`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${SB_SERVICE_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: bucket, name: bucket, public: true })
+    }).catch(() => {});
+
+    try {
+      const buf = Buffer.from(image_data, 'base64');
+      const upRes = await fetch(`${SB_URL}/storage/v1/object/${bucket}/${uploadPath}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SB_SERVICE_KEY}`,
+          'Content-Type': content_type || 'image/webp',
+          'x-upsert': 'true'
+        },
+        body: buf
+      });
+      if (!upRes.ok) {
+        const err = await upRes.json().catch(() => ({}));
+        throw new Error(err?.error || err?.message || `Storage ${upRes.status}`);
+      }
+      const publicUrl = `${SB_URL}/storage/v1/object/public/${bucket}/${uploadPath}`;
+      return res(headers, 200, { url: publicUrl });
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }
 
