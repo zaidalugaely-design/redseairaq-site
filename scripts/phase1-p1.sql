@@ -19,6 +19,11 @@ ALTER TABLE fish_cards
   ALTER COLUMN diet       DROP NOT NULL,
   ALTER COLUMN reef_safe  DROP NOT NULL;
 
+-- Set defaults on translatable text columns so omitted values default to ''
+ALTER TABLE fish_cards
+  ALTER COLUMN common_name_ar SET DEFAULT '',
+  ALTER COLUMN common_name_ku SET DEFAULT '';
+
 -- ─────────────────────────────────────────────────────────────────────────
 -- STEP 2: Fish families (33 rows)
 -- ─────────────────────────────────────────────────────────────────────────
