@@ -640,6 +640,69 @@ html{scroll-behavior:smooth}
 /* ── Mobile tap targets ── */
 .bottom-nav a{min-height:44px;min-width:44px}
 .nav a{min-height:36px;display:inline-flex;align-items:center}
+
+/* ════════════════════════════════
+   EDUCATION PAGE
+════════════════════════════════ */
+/* ── Tabs ── */
+.edu-tabs{display:flex;gap:8px;margin-bottom:28px;border-bottom:2px solid var(--line);padding-bottom:0}
+.edu-tab{background:none;border:none;padding:12px 22px;font-size:15px;font-weight:900;color:var(--muted);cursor:pointer;position:relative;font-family:inherit;border-bottom:3px solid transparent;margin-bottom:-2px;transition:color .2s,border-color .2s;display:inline-flex;align-items:center;border-radius:10px 10px 0 0}
+.edu-tab:hover{color:var(--navy);background:var(--pearl)}
+.edu-tab.active{color:var(--red);border-bottom-color:var(--red);background:none}
+
+/* ── Family header ── */
+.edu-family-section{margin-bottom:40px}
+.edu-family-header{display:flex;align-items:center;gap:12px;margin-bottom:18px;padding-bottom:10px;border-bottom:2px solid var(--line)}
+.edu-family-header h3{font-size:19px;font-weight:900;color:var(--navy);margin:0}
+.edu-family-count{background:var(--pearl);border:1px solid var(--line);border-radius:20px;padding:3px 12px;font-size:12px;font-weight:900;color:var(--muted)}
+
+/* ── Bio card grid ── */
+.bio-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px}
+@media(max-width:600px){.bio-grid{grid-template-columns:repeat(2,1fr);gap:12px}}
+
+/* ── Bio card ── */
+.bio-card{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;transition:transform .25s cubic-bezier(.4,0,.2,1),box-shadow .25s cubic-bezier(.4,0,.2,1)}
+.bio-card:hover{transform:translateY(-5px);box-shadow:0 18px 48px rgba(10,22,40,.12)}
+
+/* ── Bio card image ── */
+.bio-img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
+.bio-img-placeholder{width:100%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--red) 0%,#8b0000 100%)}
+.bio-img-placeholder svg{width:52px;height:52px;color:#fff;opacity:.7}
+
+/* ── Bio card body ── */
+.bio-body{padding:14px 14px 16px}
+.bio-name{font-size:14.5px;font-weight:900;color:var(--navy);margin-bottom:3px;line-height:1.3}
+.bio-sci{font-size:12px;color:var(--muted);font-style:italic;margin-bottom:10px;line-height:1.4}
+.bio-badges{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.bio-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:900;border-radius:6px;padding:3px 8px;white-space:nowrap}
+.bio-badge-care-easy{background:#e4fff4;color:#0a7a46}
+.bio-badge-care-medium{background:#fff8e6;color:#7a5200}
+.bio-badge-care-hard{background:#fff2f2;color:#9f1218}
+.bio-badge-reef-safe{background:#e4fff4;color:#0a7a46}
+.bio-badge-reef-caution{background:#fff8e6;color:#7a5200}
+.bio-badge-reef-with_caution{background:#fff3e0;color:#8b4500}
+.bio-badge-reef-no{background:#fff2f2;color:#9f1218}
+.bio-badge-diet{background:#eef2ff;color:#1a3a8a}
+.bio-badge-light-low{background:#f0f4ff;color:#1e40af}
+.bio-badge-light-medium{background:#fefce8;color:#854d0e}
+.bio-badge-light-high{background:#fff8e6;color:#92400e}
+.bio-badge-flow-low{background:#f0f9ff;color:#0369a1}
+.bio-badge-flow-medium{background:#e0f2fe;color:#0369a1}
+.bio-badge-flow-high{background:#bfdbfe;color:#1e3a8a}
+.bio-badge-place{background:#f3e8ff;color:#6b21a8}
+
+/* ── Notes expand ── */
+.bio-notes{font-size:13px;color:#4a5568;line-height:1.65;margin-top:8px}
+.bio-notes-text{overflow:hidden;transition:max-height .35s cubic-bezier(.4,0,.2,1)}
+.bio-notes-text.collapsed{max-height:56px}
+.bio-notes-text.expanded{max-height:600px}
+.bio-read-more{background:none;border:none;color:var(--red);font-size:12px;font-weight:900;cursor:pointer;padding:4px 0;font-family:inherit;display:inline-flex;align-items:center;gap:4px}
+.bio-read-more:hover{text-decoration:underline}
+
+/* ── Empty state ── */
+.edu-empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.edu-empty svg{width:56px;height:56px;opacity:.3;margin:0 auto 14px;display:block}
+.edu-empty p{font-size:16px;font-weight:800}
 </style>
 
 <!-- Structured Data for Google -->
@@ -709,7 +772,7 @@ html{scroll-behavior:smooth}
         <a href="#/about" data-route="about" data-i18n="nav_about">عن Red Sea Iraq</a>
         <a href="#/contact" data-route="contact" data-i18n="nav_contact">تواصل</a>
         <a href="#/blog" data-route="blog" data-i18n="nav_blog">المقالات</a>
-        <a href="#/reference" data-route="reference" data-i18n="nav_reference">المرجع</a>
+        <a href="#/education" data-route="education" data-i18n="nav_education">تعليم</a>
       </nav>
     </div>
     <div class="actions">
@@ -734,7 +797,7 @@ html{scroll-behavior:smooth}
   <a href="#/contact" onclick="closeMenu()"><svg class="ico" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg><span data-i18n="nav_contact">تواصل</span></a>
   <a href="#/cart" onclick="closeMenu()"><svg class="ico" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg><span data-i18n="nav_cart">السلة</span></a>
   <a href="#/blog" onclick="closeMenu()"><svg class="ico" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><span data-i18n="nav_blog">المقالات</span></a>
-  <a href="#/reference" data-route="reference" onclick="closeMenu()"><svg class="ico" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><span>المرجع</span></a>
+  <a href="#/education" data-route="education" onclick="closeMenu()"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg><span data-i18n="nav_education">تعليم</span></a>
 </aside>
 
 <!-- BOTTOM NAV -->
@@ -1143,6 +1206,117 @@ html{scroll-behavior:smooth}
       </div>
     </div>
 
+    <!-- EDUCATION ADMIN SECTION -->
+    <div id="educationAdminSection" class="panel" style="margin-top:22px">
+      <h3 style="color:var(--navy);font-size:20px;font-weight:900;margin-bottom:18px">🎓 إدارة قاعدة البيانات التعليمية</h3>
+
+      <!-- Fish Families -->
+      <div style="margin-bottom:30px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+          <h4 style="color:var(--navy);font-weight:900;font-size:16px">🐠 عائلات الأسماك</h4>
+          <button class="btn primary" style="font-size:13px;padding:8px 14px" onclick="resetFishFamilyForm()">＋ عائلة جديدة</button>
+        </div>
+        <div class="admin-grid">
+          <div class="admin-form" id="fishFamilyFormWrap">
+            <input type="hidden" id="fishFamilyId">
+            <input class="input" id="fishFamilyNameAr" placeholder="الاسم بالعربي *">
+            <input class="input" id="fishFamilyNameEn" placeholder="Name in English">
+            <input class="input" id="fishFamilyNameKu" placeholder="ناوی کوردی">
+            <button class="btn primary" onclick="saveFishFamily()"><svg style="width:14px;height:14px;vertical-align:-.12em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> حفظ العائلة</button>
+          </div>
+          <div><div class="admin-products" id="adminFishFamilyList"></div></div>
+        </div>
+      </div>
+
+      <!-- Fish Cards -->
+      <div style="margin-bottom:30px;border-top:1px solid var(--line);padding-top:22px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+          <h4 style="color:var(--navy);font-weight:900;font-size:16px">🐟 بطاقات الأسماك</h4>
+          <button class="btn primary" style="font-size:13px;padding:8px 14px" onclick="resetFishCardForm()">＋ سمكة جديدة</button>
+        </div>
+        <div class="admin-grid">
+          <div class="admin-form" id="fishCardFormWrap">
+            <input type="hidden" id="fishCardId">
+            <select class="input" id="fishCardFamily"><option value="">— بدون عائلة —</option></select>
+            <input class="input" id="fishCardNameAr" placeholder="الاسم الشائع بالعربي *">
+            <input class="input" id="fishCardNameEn" placeholder="Common Name in English">
+            <input class="input" id="fishCardNameKu" placeholder="ناوی کوردی">
+            <input class="input" id="fishCardSci" placeholder="الاسم العلمي (Scientific Name)">
+            <select class="input" id="fishCardCare">
+              <option value="easy">سهل الاعتناء</option>
+              <option value="medium" selected>متوسط</option>
+              <option value="hard">صعب</option>
+            </select>
+            <select class="input" id="fishCardDiet">
+              <option value="carnivore">لاحم (Carnivore)</option>
+              <option value="herbivore">عاشب (Herbivore)</option>
+              <option value="omnivore" selected>كلّي (Omnivore)</option>
+            </select>
+            <select class="input" id="fishCardReef">
+              <option value="reef_safe">آمن للمرجان ✅</option>
+              <option value="caution" selected>بحذر ⚠️</option>
+              <option value="with_caution">بحذر شديد 🟠</option>
+              <option value="no">غير آمن ❌</option>
+            </select>
+            <textarea class="textarea" id="fishCardNotes" placeholder="ملاحظات تفصيلية (اختياري)"></textarea>
+            <div>
+              <label style="font-size:12px;font-weight:800;color:var(--navy);display:block;margin-bottom:5px">رابط الصورة (image_url)</label>
+              <input class="input" id="fishCardImage" placeholder="https://..." oninput="previewFishCardImg()">
+              <div id="fishCardImgPreview" style="margin-top:8px;border-radius:10px;overflow:hidden;background:var(--pearl);height:120px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px">معاينة الصورة</div>
+            </div>
+            <button class="btn primary" onclick="saveFishCard()"><svg style="width:14px;height:14px;vertical-align:-.12em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> حفظ السمكة</button>
+          </div>
+          <div><div class="admin-products" id="adminFishCardList"></div></div>
+        </div>
+      </div>
+
+      <!-- Coral Cards -->
+      <div style="border-top:1px solid var(--line);padding-top:22px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+          <h4 style="color:var(--navy);font-weight:900;font-size:16px">🪸 بطاقات المرجان</h4>
+          <button class="btn primary" style="font-size:13px;padding:8px 14px" onclick="resetCoralForm()">＋ مرجانة جديدة</button>
+        </div>
+        <div class="admin-grid">
+          <div class="admin-form" id="coralFormWrap">
+            <input type="hidden" id="coralId">
+            <input class="input" id="coralNameAr" placeholder="الاسم بالعربي *">
+            <input class="input" id="coralNameEn" placeholder="Name in English">
+            <input class="input" id="coralNameKu" placeholder="ناوی کوردی">
+            <input class="input" id="coralSci" placeholder="الاسم العلمي (Scientific Name)">
+            <select class="input" id="coralLight">
+              <option value="low">إضاءة منخفضة</option>
+              <option value="medium" selected>إضاءة متوسطة</option>
+              <option value="high">إضاءة عالية</option>
+            </select>
+            <select class="input" id="coralFlow">
+              <option value="low">تيار خفيف</option>
+              <option value="medium" selected>تيار متوسط</option>
+              <option value="high">تيار قوي</option>
+            </select>
+            <select class="input" id="coralPlacement">
+              <option value="bottom">قاع</option>
+              <option value="middle" selected>منتصف</option>
+              <option value="top">قمة</option>
+            </select>
+            <select class="input" id="coralDifficulty">
+              <option value="easy">سهل</option>
+              <option value="medium" selected>متوسط</option>
+              <option value="hard">صعب</option>
+            </select>
+            <input class="input" id="coralFeeding" placeholder="نوع التغذية (اختياري)">
+            <textarea class="textarea" id="coralNotes" placeholder="ملاحظات تفصيلية (اختياري)"></textarea>
+            <div>
+              <label style="font-size:12px;font-weight:800;color:var(--navy);display:block;margin-bottom:5px">رابط الصورة (image_url)</label>
+              <input class="input" id="coralImage" placeholder="https://..." oninput="previewCoralImg()">
+              <div id="coralImgPreview" style="margin-top:8px;border-radius:10px;overflow:hidden;background:var(--pearl);height:120px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px">معاينة الصورة</div>
+            </div>
+            <button class="btn primary" onclick="saveCoral()"><svg style="width:14px;height:14px;vertical-align:-.12em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> حفظ المرجانة</button>
+          </div>
+          <div><div class="admin-products" id="adminCoralList"></div></div>
+        </div>
+      </div>
+    </div>
+
 </div><!-- /adminPageContent -->
 </section>
 
@@ -1161,7 +1335,7 @@ html{scroll-behavior:smooth}
   <div id="blogPostView" style="display:none"></div>
 </section>
 
-<!-- REFERENCE PAGE -->
+<!-- REFERENCE PAGE (kept for admin / deep links) -->
 <section class="page section container" id="page-reference">
   <div class="section-head">
     <div class="section-title">
@@ -1173,6 +1347,31 @@ html{scroll-behavior:smooth}
   </div>
   <div id="refListView"></div>
   <div id="refTopicView" style="display:none"></div>
+</section>
+
+<!-- EDUCATION PAGE -->
+<section class="page section container" id="page-education">
+  <div class="section-head">
+    <div class="section-title">
+      <span class="section-kicker" data-i18n="nav_education">تعليم</span>
+      <h2>قاعدة بيانات الأحياء البحرية</h2>
+      <p>دليل الأسماك والمرجان لأحواض المياه المالحة</p>
+    </div>
+  </div>
+  <!-- Tab bar -->
+  <div class="edu-tabs" id="eduTabs">
+    <button class="edu-tab active" data-tab="fish" onclick="switchEduTab('fish')">
+      <svg style="width:16px;height:16px;vertical-align:-.2em;margin-left:6px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 12c.94-3.46 4.94-6 8.5-6 3.56 0 6.06 2.54 7 6-.94 3.46-3.44 6-7 6-3.56 0-7.56-2.54-8.5-6z"/><path d="M18 12h.01"/><path d="M2 12c1-2 2.5-3.5 4-4l-3 4 3 4c-1.5-.5-3-2-4-4z"/></svg>
+      <span data-i18n="edu_tab_fish">أسماك</span>
+    </button>
+    <button class="edu-tab" data-tab="coral" onclick="switchEduTab('coral')">
+      <svg style="width:16px;height:16px;vertical-align:-.2em;margin-left:6px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12"/><path d="M12 12C12 8 9 5 5 5"/><path d="M12 12c0-4 3-7 7-7"/><path d="M5 5c0 4 3 5 5 7"/><path d="M19 5c0 4-3 5-5 7"/><circle cx="5" cy="5" r="1.5" fill="currentColor"/><circle cx="19" cy="5" r="1.5" fill="currentColor"/></svg>
+      <span data-i18n="edu_tab_coral">مرجان</span>
+    </button>
+  </div>
+  <!-- Tab panels -->
+  <div id="eduFishPanel" class="edu-panel"></div>
+  <div id="eduCoralPanel" class="edu-panel" style="display:none"></div>
 </section>
 
 </main>
@@ -1409,7 +1608,17 @@ const T = {
     cart_title:'إتمام الطلب',
     nav_products:'المتجر',
     nav_categories:'الفئات',
-    nav_blog:'المقالات',
+    nav_blog:'المقالات', nav_education:'تعليم',
+    edu_tab_fish:'أسماك', edu_tab_coral:'مرجان',
+    edu_care_easy:'سهل', edu_care_medium:'متوسط', edu_care_hard:'صعب',
+    edu_diet_carnivore:'لاحم', edu_diet_herbivore:'عاشب', edu_diet_omnivore:'كلّي',
+    edu_reef_safe:'آمن للمرجان', edu_reef_caution:'بحذر', edu_reef_with_caution:'بحذر شديد', edu_reef_no:'غير آمن',
+    edu_light_low:'إضاءة منخفضة', edu_light_medium:'إضاءة متوسطة', edu_light_high:'إضاءة قوية',
+    edu_flow_low:'تيار خفيف', edu_flow_medium:'تيار متوسط', edu_flow_high:'تيار قوي',
+    edu_place_bottom:'قاع', edu_place_middle:'منتصف', edu_place_top:'قمة',
+    edu_read_more:'اقرأ المزيد', edu_read_less:'اقرأ أقل',
+    edu_no_fish:'لا توجد أسماك بعد', edu_no_coral:'لا يوجد مرجان بعد',
+    edu_family:'العائلة',
     ask_product:'اسأل عن المنتج',
     back_store:'رجوع للمتجر',
   },
@@ -1518,7 +1727,17 @@ const T = {
     cart_title:'Complete Order',
     nav_products:'Shop',
     nav_categories:'Categories',
-    nav_blog:'Blog',
+    nav_blog:'Blog', nav_education:'Education',
+    edu_tab_fish:'Fish', edu_tab_coral:'Corals',
+    edu_care_easy:'Easy', edu_care_medium:'Medium', edu_care_hard:'Hard',
+    edu_diet_carnivore:'Carnivore', edu_diet_herbivore:'Herbivore', edu_diet_omnivore:'Omnivore',
+    edu_reef_safe:'Reef Safe', edu_reef_caution:'Caution', edu_reef_with_caution:'With Caution', edu_reef_no:'Not Reef Safe',
+    edu_light_low:'Low Light', edu_light_medium:'Medium Light', edu_light_high:'High Light',
+    edu_flow_low:'Low Flow', edu_flow_medium:'Medium Flow', edu_flow_high:'High Flow',
+    edu_place_bottom:'Bottom', edu_place_middle:'Middle', edu_place_top:'Top',
+    edu_read_more:'Read More', edu_read_less:'Read Less',
+    edu_no_fish:'No fish added yet', edu_no_coral:'No corals added yet',
+    edu_family:'Family',
     ask_product:'Ask About Product',
     back_store:'Back to Store',
   },
@@ -1627,7 +1846,17 @@ const T = {
     cart_title:'داواکاری تەواو بکە',
     nav_products:'دوکان',
     nav_categories:'جۆرەکان',
-    nav_blog:'وتارەکان',
+    nav_blog:'وتارەکان', nav_education:'فێربوون',
+    edu_tab_fish:'ماسی', edu_tab_coral:'مەرجان',
+    edu_care_easy:'ئاسان', edu_care_medium:'ناوەند', edu_care_hard:'سەخت',
+    edu_diet_carnivore:'گۆشتخۆر', edu_diet_herbivore:'رووەکخۆر', edu_diet_omnivore:'هەموو خۆر',
+    edu_reef_safe:'بەخەم بۆ ریف', edu_reef_caution:'ئاگاداری', edu_reef_with_caution:'ئاگاداری زۆر', edu_reef_no:'نەخەم بۆ ریف',
+    edu_light_low:'ڕووناکی کەم', edu_light_medium:'ڕووناکی ناوەند', edu_light_high:'ڕووناکی بەرز',
+    edu_flow_low:'جەریان کەم', edu_flow_medium:'جەریان ناوەند', edu_flow_high:'جەریان بەرز',
+    edu_place_bottom:'خوارەوە', edu_place_middle:'ناوەند', edu_place_top:'سەرەوە',
+    edu_read_more:'زیاتر بخوێنەوە', edu_read_less:'کەمتر بخوێنەوە',
+    edu_no_fish:'هێشتا ماسی زیاد نەکراوە', edu_no_coral:'هێشتا مەرجان زیاد نەکراوە',
+    edu_family:'خێزان',
     ask_product:'پرسیار دەربارەی کاڵا',
     back_store:'گەڕانەوە بۆ دوکان',
   }
@@ -1645,7 +1874,8 @@ window.setLang=function(lang){
   if(activeRoute==='home')     { renderHome(); }
   if(activeRoute==='products') { renderProducts(); }
   if(activeRoute==='cart')     { renderCart(); }
-  if(activeRoute==='blog')     { renderBlogList(); }
+  if(activeRoute==='blog')      { renderBlogList(); }
+  if(activeRoute==='education') { renderEducation(); }
   applyI18n();
 };
 function applyI18n(){
@@ -1862,6 +2092,7 @@ function router(){
   if(route===ADMIN_ROUTE){ refreshAdminSession(); renderAdmin(); }
   if(route==='blog'){ renderBlogList(); }
   if(route==='reference'){ if(id)renderRefTopic(id);else renderReference(); }
+  if(route==='education'){ renderEducation(); }
   applyI18n();
 }
 
@@ -2489,6 +2720,7 @@ function renderAdmin(){
   refreshAdminSession();
   renderAdminBlog();
   renderAdminRef();
+  renderAdminEducation();
   renderCatManagerList();
   renderCatSelects();
   const cnt=document.getElementById('adminProductCount');
@@ -2771,6 +3003,174 @@ var refTopics=[];
 (function(){var s=localStorage.getItem('rsi_ref');if(s)try{refTopics=JSON.parse(s);}catch{}})();
 function saveRef(){localStorage.setItem('rsi_ref',JSON.stringify(refTopics));}
 
+/* ════════════════════════════════════════════════════
+   EDUCATION — تعليم  (fish & coral database)
+════════════════════════════════════════════════════ */
+var fishFamilies=[];
+var fishCards=[];
+var coralCards=[];
+(function(){
+  var ff=localStorage.getItem('rsi_fish_families');if(ff)try{fishFamilies=JSON.parse(ff);}catch{}
+  var fc=localStorage.getItem('rsi_fish_cards');if(fc)try{fishCards=JSON.parse(fc);}catch{}
+  var cc=localStorage.getItem('rsi_coral_cards');if(cc)try{coralCards=JSON.parse(cc);}catch{}
+})();
+function saveFishFamilies(){localStorage.setItem('rsi_fish_families',JSON.stringify(fishFamilies));}
+function saveFishCards(){localStorage.setItem('rsi_fish_cards',JSON.stringify(fishCards));}
+function saveCoralCards(){localStorage.setItem('rsi_coral_cards',JSON.stringify(coralCards));}
+
+var _eduActiveTab='fish';
+
+window.switchEduTab=function(tab){
+  _eduActiveTab=tab;
+  document.querySelectorAll('.edu-tab').forEach(function(b){b.classList.toggle('active',b.dataset.tab===tab);});
+  document.getElementById('eduFishPanel').style.display=tab==='fish'?'block':'none';
+  document.getElementById('eduCoralPanel').style.display=tab==='coral'?'block':'none';
+};
+
+function eduName(obj,arKey,enKey,kuKey){
+  if(currentLang==='en') return obj[enKey]||obj[arKey]||'';
+  if(currentLang==='ku') return obj[kuKey]||obj[arKey]||'';
+  return obj[arKey]||'';
+}
+
+function bioPlaceholder(iconPath){
+  return '<div class="bio-img-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">'+iconPath+'</svg></div>';
+}
+
+var FISH_ICON='<path d="M6.5 12c.94-3.46 4.94-6 8.5-6 3.56 0 6.06 2.54 7 6-.94 3.46-3.44 6-7 6-3.56 0-7.56-2.54-8.5-6z"/><path d="M18 12h.01"/><path d="M2 12c1-2 2.5-3.5 4-4l-3 4 3 4c-1.5-.5-3-2-4-4z"/>';
+var CORAL_ICON='<path d="M12 22V12"/><path d="M12 12C12 8 9 5 5 5"/><path d="M12 12c0-4 3-7 7-7"/><path d="M5 5c0 4 3 5 5 7"/><path d="M19 5c0 4-3 5-5 7"/><circle cx="5" cy="5" r="1.5" fill="currentColor"/><circle cx="19" cy="5" r="1.5" fill="currentColor"/>';
+
+function bioCard(item,type){
+  var cardId='bio-'+item.id;
+  var img=item.image_url
+    ?'<img class="bio-img" src="'+esc(item.image_url)+'" alt="'+esc(item.common_name_ar||item.name_ar||'')+'" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
+     +bioPlaceholder(type==='fish'?FISH_ICON:CORAL_ICON).replace('class="bio-img-placeholder"','class="bio-img-placeholder" style="display:none"')
+    :bioPlaceholder(type==='fish'?FISH_ICON:CORAL_ICON);
+
+  var name=type==='fish'
+    ?eduName(item,'common_name_ar','common_name_en','common_name_ku')
+    :eduName(item,'name_ar','name_en','name_ku');
+  var sci=esc(item.scientific_name||'');
+
+  /* badges */
+  var badges='';
+  if(type==='fish'){
+    var careKey=item.care_level||'easy';
+    var careLabel=t('edu_care_'+careKey)||careKey;
+    var dietKey=item.diet||'omnivore';
+    var dietLabel=t('edu_diet_'+dietKey)||dietKey;
+    var reefKey=(item.reef_safe||'reef_safe').replace('/','_');
+    var reefLabel=t('edu_reef_'+reefKey)||reefKey;
+    badges='<span class="bio-badge bio-badge-care-'+careKey+'">⭐ '+careLabel+'</span>'
+      +'<span class="bio-badge bio-badge-diet">'+dietLabel+'</span>'
+      +'<span class="bio-badge bio-badge-reef-'+reefKey+'">🪸 '+reefLabel+'</span>';
+  } else {
+    var lightKey=item.lighting||'medium';
+    var lightLabel=t('edu_light_'+lightKey)||lightKey;
+    var flowKey=item.flow||'medium';
+    var flowLabel=t('edu_flow_'+flowKey)||flowKey;
+    var placeKey=item.placement||'middle';
+    var placeLabel=t('edu_place_'+placeKey)||placeKey;
+    var diffKey=item.difficulty||'medium';
+    var diffLabel=t('edu_care_'+diffKey)||diffKey;
+    badges='<span class="bio-badge bio-badge-light-'+lightKey+'">💡 '+lightLabel+'</span>'
+      +'<span class="bio-badge bio-badge-flow-'+flowKey+'">🌊 '+flowLabel+'</span>'
+      +'<span class="bio-badge bio-badge-place">📍 '+placeLabel+'</span>'
+      +'<span class="bio-badge bio-badge-care-'+diffKey+'">⭐ '+diffLabel+'</span>';
+  }
+
+  /* notes with expand */
+  var notesHtml='';
+  var notes=item.notes||'';
+  if(notes){
+    var short=notes.length>100;
+    notesHtml='<div class="bio-notes">'
+      +'<div id="n-'+cardId+'" class="bio-notes-text '+(short?'collapsed':'expanded')+'">'
+      +esc(notes)
+      +'</div>'
+      +(short?'<button class="bio-read-more" id="rm-'+cardId+'" onclick="toggleBioNotes(\''+cardId+'\')">'
+        +'<svg style="width:11px;height:11px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>'
+        +'<span data-i18n="edu_read_more">اقرأ المزيد</span></button>':'')
+      +'</div>';
+  }
+
+  /* feeding for coral */
+  var feedingHtml='';
+  if(type==='coral'&&item.feeding){
+    feedingHtml='<div style="font-size:12.5px;color:#4a5568;margin-bottom:8px;line-height:1.5"><b style="color:var(--navy)">التغذية:</b> '+esc(item.feeding)+'</div>';
+  }
+
+  return '<article class="bio-card">'
+    +img
+    +'<div class="bio-body">'
+    +'<div class="bio-name">'+esc(name)+'</div>'
+    +(sci?'<div class="bio-sci">'+sci+'</div>':'')
+    +'<div class="bio-badges">'+badges+'</div>'
+    +feedingHtml
+    +notesHtml
+    +'</div>'
+    +'</article>';
+}
+
+window.toggleBioNotes=function(cardId){
+  var txt=document.getElementById('n-'+cardId);
+  var btn=document.getElementById('rm-'+cardId);
+  if(!txt||!btn)return;
+  var isCollapsed=txt.classList.contains('collapsed');
+  txt.classList.toggle('collapsed',!isCollapsed);
+  txt.classList.toggle('expanded',isCollapsed);
+  var span=btn.querySelector('span');
+  if(span) span.textContent=isCollapsed?t('edu_read_less'):t('edu_read_more');
+  var svg=btn.querySelector('svg polyline');
+  if(svg) svg.setAttribute('points',isCollapsed?'18 15 12 9 6 15':'6 9 12 15 18 9');
+};
+
+function renderEducation(){
+  var fishPanel=document.getElementById('eduFishPanel');
+  var coralPanel=document.getElementById('eduCoralPanel');
+  if(!fishPanel||!coralPanel)return;
+
+  /* Fish tab */
+  if(!fishFamilies.length&&!fishCards.length){
+    fishPanel.innerHTML='<div class="edu-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">'+FISH_ICON+'</svg><p>'+t('edu_no_fish')+'</p></div>';
+  } else {
+    var fishHtml='';
+    var usedFamilies=[];
+    fishCards.forEach(function(f){if(f.family_id&&!usedFamilies.includes(f.family_id))usedFamilies.push(f.family_id);});
+    /* Cards with a family */
+    fishFamilies.forEach(function(fam){
+      var members=fishCards.filter(function(f){return f.family_id===fam.id;});
+      if(!members.length)return;
+      var famName=eduName(fam,'name_ar','name_en','name_ku');
+      fishHtml+='<div class="edu-family-section">'
+        +'<div class="edu-family-header"><h3>'+esc(famName)+'</h3><span class="edu-family-count">'+members.length+'</span></div>'
+        +'<div class="bio-grid">'+members.map(function(f){return bioCard(f,'fish');}).join('')+'</div>'
+        +'</div>';
+    });
+    /* Cards without a family */
+    var orphans=fishCards.filter(function(f){return!f.family_id;});
+    if(orphans.length){
+      fishHtml+='<div class="edu-family-section">'
+        +'<div class="bio-grid">'+orphans.map(function(f){return bioCard(f,'fish');}).join('')+'</div>'
+        +'</div>';
+    }
+    fishPanel.innerHTML=fishHtml||'<div class="edu-empty"><p>'+t('edu_no_fish')+'</p></div>';
+  }
+
+  /* Coral tab */
+  if(!coralCards.length){
+    coralPanel.innerHTML='<div class="edu-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">'+CORAL_ICON+'</svg><p>'+t('edu_no_coral')+'</p></div>';
+  } else {
+    coralPanel.innerHTML='<div class="bio-grid">'+coralCards.map(function(c){return bioCard(c,'coral');}).join('')+'</div>';
+  }
+
+  /* Restore active tab state */
+  document.getElementById('eduFishPanel').style.display=_eduActiveTab==='fish'?'block':'none';
+  document.getElementById('eduCoralPanel').style.display=_eduActiveTab==='coral'?'block':'none';
+  document.querySelectorAll('.edu-tab').forEach(function(b){b.classList.toggle('active',b.dataset.tab===_eduActiveTab);});
+  setTimeout(function(){if(typeof imgFadeIn==='function')imgFadeIn();if(typeof initReveal==='function')initReveal();},20);
+}
+
 /* simple Markdown → HTML */
 function renderMarkdown(md){
   if(!md)return'';
@@ -3050,6 +3450,249 @@ function renderAdminRef(){
   }).join('');
 }
 
+/* ════════════════════════════════════════════════════
+   EDUCATION ADMIN — إدارة الأسماك والمرجان
+════════════════════════════════════════════════════ */
+
+/* ── Image preview helpers ── */
+window.previewFishCardImg=function(){
+  var url=document.getElementById('fishCardImage')?.value||'';
+  var box=document.getElementById('fishCardImgPreview');if(!box)return;
+  if(url){box.innerHTML='<img src="'+esc(url)+'" style="width:100%;height:120px;object-fit:cover" onerror="this.parentNode.textContent=\'رابط غير صالح\'">';}
+  else{box.textContent='معاينة الصورة';}
+};
+window.previewCoralImg=function(){
+  var url=document.getElementById('coralImage')?.value||'';
+  var box=document.getElementById('coralImgPreview');if(!box)return;
+  if(url){box.innerHTML='<img src="'+esc(url)+'" style="width:100%;height:120px;object-fit:cover" onerror="this.parentNode.textContent=\'رابط غير صالح\'">';}
+  else{box.textContent='معاينة الصورة';}
+};
+
+/* ── Populate fish family select in fish card form ── */
+function populateFishFamilySelect(){
+  var sel=document.getElementById('fishCardFamily');if(!sel)return;
+  var val=sel.value;
+  sel.innerHTML='<option value="">— بدون عائلة —</option>'
+    +fishFamilies.map(function(f){return'<option value="'+esc(f.id)+'">'+esc(f.name_ar)+'</option>';}).join('');
+  if(val) sel.value=val;
+}
+
+/* ── Fish Family CRUD ── */
+window.resetFishFamilyForm=function(){
+  document.getElementById('fishFamilyId').value='';
+  document.getElementById('fishFamilyNameAr').value='';
+  document.getElementById('fishFamilyNameEn').value='';
+  document.getElementById('fishFamilyNameKu').value='';
+};
+window.saveFishFamily=async function(){
+  var nameAr=(document.getElementById('fishFamilyNameAr')?.value||'').trim();
+  if(!nameAr){toast('اسم العائلة بالعربي مطلوب');return;}
+  var id=document.getElementById('fishFamilyId')?.value||('fam-'+Date.now());
+  var fam={id,name_ar:nameAr,name_en:(document.getElementById('fishFamilyNameEn')?.value||'').trim(),name_ku:(document.getElementById('fishFamilyNameKu')?.value||'').trim(),created_at:new Date().toISOString()};
+  var idx=fishFamilies.findIndex(function(f){return f.id===id;});
+  if(idx>=0) fishFamilies[idx]=fam; else fishFamilies.push(fam);
+  saveFishFamilies();
+  try{ await apiCall('save_fish_family',{family:fam},true); }catch(e){ console.warn('save_fish_family',e); }
+  renderAdminFishFamilies();populateFishFamilySelect();resetFishFamilyForm();
+  toast('تم حفظ العائلة ✓');
+};
+window.editFishFamily=function(id){
+  var f=fishFamilies.find(function(x){return x.id===id;});if(!f)return;
+  document.getElementById('fishFamilyId').value=f.id;
+  document.getElementById('fishFamilyNameAr').value=f.name_ar||'';
+  document.getElementById('fishFamilyNameEn').value=f.name_en||'';
+  document.getElementById('fishFamilyNameKu').value=f.name_ku||'';
+  document.getElementById('fishFamilyFormWrap')?.scrollIntoView({behavior:'smooth',block:'start'});
+};
+window.deleteFishFamily=async function(id){
+  if(!confirm('حذف العائلة؟'))return;
+  fishFamilies=fishFamilies.filter(function(f){return f.id!==id;});
+  saveFishFamilies();
+  try{ await apiCall('delete_fish_family',{id},true); }catch(e){ console.warn('delete_fish_family',e); }
+  renderAdminFishFamilies();populateFishFamilySelect();toast('تم الحذف ✓');
+};
+function renderAdminFishFamilies(){
+  var el=document.getElementById('adminFishFamilyList');if(!el)return;
+  if(!fishFamilies.length){el.innerHTML='<div class="admin-help">لا توجد عائلات بعد.</div>';return;}
+  el.innerHTML=fishFamilies.map(function(f){
+    return'<div class="admin-product-row">'
+      +'<div><b>'+esc(f.name_ar)+'</b>'+(f.name_en?'<div class="meta">'+esc(f.name_en)+'</div>':'')+'</div>'
+      +'<div class="actions">'
+      +'<button class="small-btn" onclick="editFishFamily(\''+f.id+'\')">تعديل</button>'
+      +'<button class="small-btn admin-danger" onclick="deleteFishFamily(\''+f.id+'\')">حذف</button>'
+      +'</div></div>';
+  }).join('');
+}
+
+/* ── Fish Card CRUD ── */
+window.resetFishCardForm=function(){
+  document.getElementById('fishCardId').value='';
+  document.getElementById('fishCardFamily').value='';
+  document.getElementById('fishCardNameAr').value='';
+  document.getElementById('fishCardNameEn').value='';
+  document.getElementById('fishCardNameKu').value='';
+  document.getElementById('fishCardSci').value='';
+  document.getElementById('fishCardCare').value='medium';
+  document.getElementById('fishCardDiet').value='omnivore';
+  document.getElementById('fishCardReef').value='caution';
+  document.getElementById('fishCardNotes').value='';
+  document.getElementById('fishCardImage').value='';
+  var box=document.getElementById('fishCardImgPreview');if(box)box.textContent='معاينة الصورة';
+};
+window.saveFishCard=async function(){
+  var nameAr=(document.getElementById('fishCardNameAr')?.value||'').trim();
+  if(!nameAr){toast('الاسم بالعربي مطلوب');return;}
+  var id=document.getElementById('fishCardId')?.value||('fish-'+Date.now());
+  var card={
+    id,family_id:document.getElementById('fishCardFamily')?.value||'',
+    common_name_ar:nameAr,
+    common_name_en:(document.getElementById('fishCardNameEn')?.value||'').trim(),
+    common_name_ku:(document.getElementById('fishCardNameKu')?.value||'').trim(),
+    scientific_name:(document.getElementById('fishCardSci')?.value||'').trim(),
+    care_level:document.getElementById('fishCardCare')?.value||'medium',
+    diet:document.getElementById('fishCardDiet')?.value||'omnivore',
+    reef_safe:document.getElementById('fishCardReef')?.value||'caution',
+    notes:(document.getElementById('fishCardNotes')?.value||'').trim(),
+    image_url:(document.getElementById('fishCardImage')?.value||'').trim(),
+    created_at:new Date().toISOString()
+  };
+  var idx=fishCards.findIndex(function(f){return f.id===id;});
+  if(idx>=0) fishCards[idx]=card; else fishCards.push(card);
+  saveFishCards();
+  try{ await apiCall('save_fish_card',{card},true); }catch(e){ console.warn('save_fish_card',e); }
+  renderAdminFishCards();resetFishCardForm();toast('تم حفظ السمكة ✓');
+};
+window.editFishCard=function(id){
+  var c=fishCards.find(function(x){return x.id===id;});if(!c)return;
+  document.getElementById('fishCardId').value=c.id;
+  document.getElementById('fishCardFamily').value=c.family_id||'';
+  document.getElementById('fishCardNameAr').value=c.common_name_ar||'';
+  document.getElementById('fishCardNameEn').value=c.common_name_en||'';
+  document.getElementById('fishCardNameKu').value=c.common_name_ku||'';
+  document.getElementById('fishCardSci').value=c.scientific_name||'';
+  document.getElementById('fishCardCare').value=c.care_level||'medium';
+  document.getElementById('fishCardDiet').value=c.diet||'omnivore';
+  document.getElementById('fishCardReef').value=c.reef_safe||'caution';
+  document.getElementById('fishCardNotes').value=c.notes||'';
+  document.getElementById('fishCardImage').value=c.image_url||'';
+  previewFishCardImg();
+  document.getElementById('fishCardFormWrap')?.scrollIntoView({behavior:'smooth',block:'start'});
+};
+window.deleteFishCard=async function(id){
+  if(!confirm('حذف السمكة؟'))return;
+  fishCards=fishCards.filter(function(f){return f.id!==id;});
+  saveFishCards();
+  try{ await apiCall('delete_fish_card',{id},true); }catch(e){ console.warn('delete_fish_card',e); }
+  renderAdminFishCards();toast('تم الحذف ✓');
+};
+function renderAdminFishCards(){
+  var el=document.getElementById('adminFishCardList');if(!el)return;
+  if(!fishCards.length){el.innerHTML='<div class="admin-help">لا توجد أسماك بعد.</div>';return;}
+  el.innerHTML=fishCards.map(function(c){
+    var fam=fishFamilies.find(function(f){return f.id===c.family_id;});
+    return'<div class="admin-product-row">'
+      +(c.image_url?'<img src="'+esc(c.image_url)+'" style="width:52px;height:52px;object-fit:cover;border-radius:10px" alt="">':'<div class="thumb-empty" style="display:grid;place-items:center;width:52px;height:52px;background:var(--pearl);border-radius:10px;color:var(--muted);font-size:18px">🐟</div>')
+      +'<div style="flex:1;min-width:0">'
+      +'<b style="display:block">'+esc(c.common_name_ar)+'</b>'
+      +(c.scientific_name?'<div class="meta" style="font-style:italic">'+esc(c.scientific_name)+'</div>':'')
+      +(fam?'<div class="meta">'+esc(fam.name_ar)+'</div>':'')
+      +'</div>'
+      +'<div class="actions">'
+      +'<button class="small-btn" onclick="editFishCard(\''+c.id+'\')">تعديل</button>'
+      +'<button class="small-btn admin-danger" onclick="deleteFishCard(\''+c.id+'\')">حذف</button>'
+      +'</div></div>';
+  }).join('');
+}
+
+/* ── Coral Card CRUD ── */
+window.resetCoralForm=function(){
+  document.getElementById('coralId').value='';
+  document.getElementById('coralNameAr').value='';
+  document.getElementById('coralNameEn').value='';
+  document.getElementById('coralNameKu').value='';
+  document.getElementById('coralSci').value='';
+  document.getElementById('coralLight').value='medium';
+  document.getElementById('coralFlow').value='medium';
+  document.getElementById('coralPlacement').value='middle';
+  document.getElementById('coralDifficulty').value='medium';
+  document.getElementById('coralFeeding').value='';
+  document.getElementById('coralNotes').value='';
+  document.getElementById('coralImage').value='';
+  var box=document.getElementById('coralImgPreview');if(box)box.textContent='معاينة الصورة';
+};
+window.saveCoral=async function(){
+  var nameAr=(document.getElementById('coralNameAr')?.value||'').trim();
+  if(!nameAr){toast('الاسم بالعربي مطلوب');return;}
+  var id=document.getElementById('coralId')?.value||('coral-'+Date.now());
+  var card={
+    id,name_ar:nameAr,
+    name_en:(document.getElementById('coralNameEn')?.value||'').trim(),
+    name_ku:(document.getElementById('coralNameKu')?.value||'').trim(),
+    scientific_name:(document.getElementById('coralSci')?.value||'').trim(),
+    lighting:document.getElementById('coralLight')?.value||'medium',
+    flow:document.getElementById('coralFlow')?.value||'medium',
+    placement:document.getElementById('coralPlacement')?.value||'middle',
+    difficulty:document.getElementById('coralDifficulty')?.value||'medium',
+    feeding:(document.getElementById('coralFeeding')?.value||'').trim(),
+    notes:(document.getElementById('coralNotes')?.value||'').trim(),
+    image_url:(document.getElementById('coralImage')?.value||'').trim(),
+    created_at:new Date().toISOString()
+  };
+  var idx=coralCards.findIndex(function(c){return c.id===id;});
+  if(idx>=0) coralCards[idx]=card; else coralCards.push(card);
+  saveCoralCards();
+  try{ await apiCall('save_coral_card',{card},true); }catch(e){ console.warn('save_coral_card',e); }
+  renderAdminCorals();resetCoralForm();toast('تم حفظ المرجانة ✓');
+};
+window.editCoral=function(id){
+  var c=coralCards.find(function(x){return x.id===id;});if(!c)return;
+  document.getElementById('coralId').value=c.id;
+  document.getElementById('coralNameAr').value=c.name_ar||'';
+  document.getElementById('coralNameEn').value=c.name_en||'';
+  document.getElementById('coralNameKu').value=c.name_ku||'';
+  document.getElementById('coralSci').value=c.scientific_name||'';
+  document.getElementById('coralLight').value=c.lighting||'medium';
+  document.getElementById('coralFlow').value=c.flow||'medium';
+  document.getElementById('coralPlacement').value=c.placement||'middle';
+  document.getElementById('coralDifficulty').value=c.difficulty||'medium';
+  document.getElementById('coralFeeding').value=c.feeding||'';
+  document.getElementById('coralNotes').value=c.notes||'';
+  document.getElementById('coralImage').value=c.image_url||'';
+  previewCoralImg();
+  document.getElementById('coralFormWrap')?.scrollIntoView({behavior:'smooth',block:'start'});
+};
+window.deleteCoral=async function(id){
+  if(!confirm('حذف المرجانة؟'))return;
+  coralCards=coralCards.filter(function(c){return c.id!==id;});
+  saveCoralCards();
+  try{ await apiCall('delete_coral_card',{id},true); }catch(e){ console.warn('delete_coral_card',e); }
+  renderAdminCorals();toast('تم الحذف ✓');
+};
+function renderAdminCorals(){
+  var el=document.getElementById('adminCoralList');if(!el)return;
+  if(!coralCards.length){el.innerHTML='<div class="admin-help">لا يوجد مرجان بعد.</div>';return;}
+  el.innerHTML=coralCards.map(function(c){
+    return'<div class="admin-product-row">'
+      +(c.image_url?'<img src="'+esc(c.image_url)+'" style="width:52px;height:52px;object-fit:cover;border-radius:10px" alt="">':'<div class="thumb-empty" style="display:grid;place-items:center;width:52px;height:52px;background:var(--pearl);border-radius:10px;color:var(--muted);font-size:18px">🪸</div>')
+      +'<div style="flex:1;min-width:0">'
+      +'<b style="display:block">'+esc(c.name_ar)+'</b>'
+      +(c.scientific_name?'<div class="meta" style="font-style:italic">'+esc(c.scientific_name)+'</div>':'')
+      +'</div>'
+      +'<div class="actions">'
+      +'<button class="small-btn" onclick="editCoral(\''+c.id+'\')">تعديل</button>'
+      +'<button class="small-btn admin-danger" onclick="deleteCoral(\''+c.id+'\')">حذف</button>'
+      +'</div></div>';
+  }).join('');
+}
+
+/* ── Init education admin when renderAdmin is called ── */
+function renderAdminEducation(){
+  populateFishFamilySelect();
+  renderAdminFishFamilies();
+  renderAdminFishCards();
+  renderAdminCorals();
+}
+
 window.seedRefTopics=async function(){
   if(!adminIsLoggedIn()){toast('سجّل الدخول أولاً');return;}
   if(!confirm('سيتم حذف المواضيع الحالية واستبدالها بالمواضيع الافتراضية (11 موضوع). هل أنت متأكد؟'))return;
@@ -3269,6 +3912,21 @@ async function syncFromSupabase(){
         created_at:r.created_at||''
       };});
       saveRef();
+    }
+    var ffData=await sbGet('/rest/v1/fish_families?order=created_at.asc&limit=200');
+    if(ffData&&ffData.length){
+      fishFamilies=ffData.map(function(r){return{id:r.id,name_ar:r.name_ar||'',name_en:r.name_en||'',name_ku:r.name_ku||'',created_at:r.created_at||''};});
+      saveFishFamilies();
+    }
+    var fcData=await sbGet('/rest/v1/fish_cards?order=created_at.asc&limit=500');
+    if(fcData&&fcData.length){
+      fishCards=fcData.map(function(r){return{id:r.id,family_id:r.family_id||'',common_name_ar:r.common_name_ar||'',common_name_en:r.common_name_en||'',common_name_ku:r.common_name_ku||'',scientific_name:r.scientific_name||'',care_level:r.care_level||'easy',diet:r.diet||'omnivore',reef_safe:r.reef_safe||'reef_safe',notes:r.notes||'',image_url:r.image_url||'',created_at:r.created_at||''};});
+      saveFishCards();
+    }
+    var ccData=await sbGet('/rest/v1/coral_cards?order=created_at.asc&limit=500');
+    if(ccData&&ccData.length){
+      coralCards=ccData.map(function(r){return{id:r.id,name_ar:r.name_ar||'',name_en:r.name_en||'',name_ku:r.name_ku||'',scientific_name:r.scientific_name||'',lighting:r.lighting||'medium',flow:r.flow||'medium',placement:r.placement||'middle',difficulty:r.difficulty||'medium',feeding:r.feeding||'',notes:r.notes||'',image_url:r.image_url||'',created_at:r.created_at||''};});
+      saveCoralCards();
     }
   }catch(e){console.warn('Supabase sync failed, using local:',e);}
   /* Enable search after data loaded */

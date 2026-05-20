@@ -316,6 +316,86 @@ exports.handler = async function(event) {
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }
 
+  /* SAVE FISH FAMILY */
+  if (action === 'save_fish_family') {
+    const { family } = body;
+    if (!family?.id || !family?.name_ar) return res(headers, 400, { error: 'بيانات العائلة ناقصة' });
+    try {
+      await sb('POST', '/fish_families', {
+        id: family.id, name_ar: family.name_ar,
+        name_en: family.name_en || '', name_ku: family.name_ku || '',
+        created_at: family.created_at || new Date().toISOString()
+      });
+      return res(headers, 200, { ok: true });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
+  /* DELETE FISH FAMILY */
+  if (action === 'delete_fish_family') {
+    const { id } = body;
+    if (!id) return res(headers, 400, { error: 'id مطلوب' });
+    try {
+      await sb('DELETE', `/fish_families?id=eq.${encodeURIComponent(id)}`, null);
+      return res(headers, 200, { ok: true });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
+  /* SAVE FISH CARD */
+  if (action === 'save_fish_card') {
+    const { card } = body;
+    if (!card?.id || !card?.common_name_ar) return res(headers, 400, { error: 'بيانات السمكة ناقصة' });
+    try {
+      await sb('POST', '/fish_cards', {
+        id: card.id, family_id: card.family_id || null,
+        common_name_ar: card.common_name_ar, common_name_en: card.common_name_en || '',
+        common_name_ku: card.common_name_ku || '', scientific_name: card.scientific_name || '',
+        care_level: card.care_level || 'medium', diet: card.diet || 'omnivore',
+        reef_safe: card.reef_safe || 'caution', notes: card.notes || '',
+        image_url: card.image_url || null,
+        created_at: card.created_at || new Date().toISOString()
+      });
+      return res(headers, 200, { ok: true });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
+  /* DELETE FISH CARD */
+  if (action === 'delete_fish_card') {
+    const { id } = body;
+    if (!id) return res(headers, 400, { error: 'id مطلوب' });
+    try {
+      await sb('DELETE', `/fish_cards?id=eq.${encodeURIComponent(id)}`, null);
+      return res(headers, 200, { ok: true });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
+  /* SAVE CORAL CARD */
+  if (action === 'save_coral_card') {
+    const { card } = body;
+    if (!card?.id || !card?.name_ar) return res(headers, 400, { error: 'بيانات المرجانة ناقصة' });
+    try {
+      await sb('POST', '/coral_cards', {
+        id: card.id, name_ar: card.name_ar, name_en: card.name_en || '',
+        name_ku: card.name_ku || '', scientific_name: card.scientific_name || '',
+        lighting: card.lighting || 'medium', flow: card.flow || 'medium',
+        placement: card.placement || 'middle', difficulty: card.difficulty || 'medium',
+        feeding: card.feeding || '', notes: card.notes || '',
+        image_url: card.image_url || null,
+        created_at: card.created_at || new Date().toISOString()
+      });
+      return res(headers, 200, { ok: true });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
+  /* DELETE CORAL CARD */
+  if (action === 'delete_coral_card') {
+    const { id } = body;
+    if (!id) return res(headers, 400, { error: 'id مطلوب' });
+    try {
+      await sb('DELETE', `/coral_cards?id=eq.${encodeURIComponent(id)}`, null);
+      return res(headers, 200, { ok: true });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
   return res(headers, 400, { error: `action غير معروف: ${action}` });
 };
 
