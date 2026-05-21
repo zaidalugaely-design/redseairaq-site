@@ -1288,7 +1288,7 @@ html{scroll-behavior:smooth}
             <div class="admin-form" id="fishCardFormWrap">
               <input type="hidden" id="fishCardId">
               <select class="input" id="fishCardFamily"><option value="">— بدون عائلة —</option></select>
-              <input class="input" id="fishCardNameAr" placeholder="الاسم الشائع بالعربي *">
+              <input class="input" id="fishCardNameAr" placeholder="الاسم الشائع بالعربي">
               <input class="input" id="fishCardNameEn" placeholder="Common Name in English">
               <input class="input" id="fishCardNameKu" placeholder="ناوی کوردی">
               <input class="input" id="fishCardSci" placeholder="الاسم العلمي (Scientific Name)">
@@ -1985,7 +1985,7 @@ async function apiCall(action, data={}, auth=false){
     if(!_adminToken) throw new Error('غير مصرح');
     headers['Authorization']='Bearer '+_adminToken;
   }
-  const r=await fetch(API,{method:'POST',headers,body:JSON.stringify({action,...data})});
+  const r=await fetch(API+'?t='+Date.now(),{method:'POST',headers,body:JSON.stringify({action,...data})});
   const json=await r.json().catch(()=>({}));
   if(!r.ok) throw new Error(json.error||'HTTP '+r.status);
   return json;
@@ -3092,14 +3092,8 @@ function saveRef(){localStorage.setItem('rsi_ref',JSON.stringify(refTopics));}
 var fishFamilies=[];
 var fishCards=[];
 var coralCards=[];
-(function(){
-  var ff=localStorage.getItem('rsi_fish_families');if(ff)try{fishFamilies=JSON.parse(ff);}catch{}
-  var fc=localStorage.getItem('rsi_fish_cards');if(fc)try{fishCards=JSON.parse(fc);}catch{}
-  var cc=localStorage.getItem('rsi_coral_cards');if(cc)try{coralCards=JSON.parse(cc);}catch{}
-})();
-function saveFishFamilies(){localStorage.setItem('rsi_fish_families',JSON.stringify(fishFamilies));}
-function saveFishCards(){localStorage.setItem('rsi_fish_cards',JSON.stringify(fishCards));}
-function saveCoralCards(){localStorage.setItem('rsi_coral_cards',JSON.stringify(coralCards));}
+/* Clear any stale education cache from older sessions */
+['rsi_fish_families','rsi_fish_cards','rsi_coral_cards'].forEach(function(k){localStorage.removeItem(k);});
 
 var _eduActiveTab='fish';
 
@@ -3139,6 +3133,26 @@ var FISH_ICON='<path d="M6.5 12c.94-3.46 4.94-6 8.5-6 3.56 0 6.06 2.54 7 6-.94 3
 var CORAL_ICON='<path d="M12 22V12"/><path d="M12 12C12 8 9 5 5 5"/><path d="M12 12c0-4 3-7 7-7"/><path d="M5 5c0 4 3 5 5 7"/><path d="M19 5c0 4-3 5-5 7"/><circle cx="5" cy="5" r="1.5" fill="currentColor"/><circle cx="19" cy="5" r="1.5" fill="currentColor"/>';
 
 var _bioItems={};
+function careBadge(key){
+  var stars={easy:'⭐',medium:'⭐⭐',hard:'⭐⭐⭐'};
+  var ar={easy:'العناية: سهل',medium:'العناية: متوسط',hard:'العناية: صعب'};
+  var en={easy:'Care: Easy',medium:'Care: Medium',hard:'Care: Hard'};
+  var ku={easy:'ئاگایەتی: ئاسان',medium:'ئاگایەتی: ناوەند',hard:'ئاگایەتی: سەخت'};
+  var lab=currentLang==='en'?en:currentLang==='ku'?ku:ar;
+  return (stars[key]||'⭐')+' '+(lab[key]||key);
+}
+function dietBadge(key){
+  var ar={carnivore:'🍖 تغذية: لاحم',herbivore:'🌿 تغذية: عاشب',omnivore:'🍽️ تغذية: آكل كل شيء'};
+  var en={carnivore:'🍖 Carnivore',herbivore:'🌿 Herbivore',omnivore:'🍽️ Omnivore'};
+  var ku={carnivore:'🍖 گۆشتخۆر',herbivore:'🌿 رووەکخۆر',omnivore:'🍽️ هەموو خۆر'};
+  return (currentLang==='en'?en:currentLang==='ku'?ku:ar)[key]||key;
+}
+function reefBadge(key){
+  var ar={reef_safe:'✅ آمن مع المرجان',caution:'⚠️ تحذير',with_caution:'⚠️ بحذر مع المرجان',no:'❌ غير آمن مع المرجان'};
+  var en={reef_safe:'✅ Reef Safe',caution:'⚠️ Caution',with_caution:'⚠️ With Caution',no:'❌ Not Reef Safe'};
+  var ku={reef_safe:'✅ بەخەم بۆ ریف',caution:'⚠️ ئاگاداری',with_caution:'⚠️ ئاگاداری زۆر',no:'❌ نەخەم بۆ ریف'};
+  return (currentLang==='en'?en:currentLang==='ku'?ku:ar)[key]||key;
+}
 function bioCard(item,type){
   _bioItems[item.id]=item;
   var cardId='bio-'+item.id;
@@ -3156,27 +3170,20 @@ function bioCard(item,type){
   var badges='';
   if(type==='fish'){
     var careKey=item.care_level||'easy';
-    var careLabel=t('edu_care_'+careKey)||careKey;
     var dietKey=item.diet||'omnivore';
-    var dietLabel=t('edu_diet_'+dietKey)||dietKey;
     var reefKey=(item.reef_safe||'reef_safe').replace('/','_');
-    var reefLabel=t('edu_reef_'+reefKey)||reefKey;
-    badges='<span class="bio-badge bio-badge-care-'+careKey+'">⭐ '+careLabel+'</span>'
-      +'<span class="bio-badge bio-badge-diet">'+dietLabel+'</span>'
-      +'<span class="bio-badge bio-badge-reef-'+reefKey+'">🪸 '+reefLabel+'</span>';
+    badges='<span class="bio-badge bio-badge-care-'+careKey+'">'+careBadge(careKey)+'</span>'
+      +'<span class="bio-badge bio-badge-diet">'+dietBadge(dietKey)+'</span>'
+      +'<span class="bio-badge bio-badge-reef-'+reefKey+'">'+reefBadge(reefKey)+'</span>';
   } else {
     var lightKey=item.lighting||'medium';
-    var lightLabel=t('edu_light_'+lightKey)||lightKey;
     var flowKey=item.flow||'medium';
-    var flowLabel=t('edu_flow_'+flowKey)||flowKey;
     var placeKey=item.placement||'middle';
-    var placeLabel=t('edu_place_'+placeKey)||placeKey;
     var diffKey=item.difficulty||'medium';
-    var diffLabel=t('edu_care_'+diffKey)||diffKey;
-    badges='<span class="bio-badge bio-badge-light-'+lightKey+'">💡 '+lightLabel+'</span>'
-      +'<span class="bio-badge bio-badge-flow-'+flowKey+'">🌊 '+flowLabel+'</span>'
-      +'<span class="bio-badge bio-badge-place">📍 '+placeLabel+'</span>'
-      +'<span class="bio-badge bio-badge-care-'+diffKey+'">⭐ '+diffLabel+'</span>';
+    badges='<span class="bio-badge bio-badge-light-'+lightKey+'">💡 '+(t('edu_light_'+lightKey)||lightKey)+'</span>'
+      +'<span class="bio-badge bio-badge-flow-'+flowKey+'">🌊 '+(t('edu_flow_'+flowKey)||flowKey)+'</span>'
+      +'<span class="bio-badge bio-badge-place">📍 '+(t('edu_place_'+placeKey)||placeKey)+'</span>'
+      +'<span class="bio-badge bio-badge-care-'+diffKey+'">'+careBadge(diffKey)+'</span>';
   }
 
   /* notes with expand */
@@ -3610,7 +3617,6 @@ window.saveFishFamily=async function(){
   var fam={id,name_ar:nameAr,name_en:nameEn,name_ku:nameKu,created_at:new Date().toISOString()};
   var idx=fishFamilies.findIndex(function(f){return f.id===id;});
   if(idx>=0) fishFamilies[idx]=fam; else fishFamilies.push(fam);
-  saveFishFamilies();
   try{ await apiCall('save_fish_family',{family:fam},true); }catch(e){ console.warn('save_fish_family',e); }
   renderAdminFishFamilies();populateFishFamilySelect();resetFishFamilyForm();
   toast('تم حفظ العائلة ✓');
@@ -3626,7 +3632,6 @@ window.editFishFamily=function(id){
 window.deleteFishFamily=async function(id){
   if(!confirm('حذف العائلة؟'))return;
   fishFamilies=fishFamilies.filter(function(f){return f.id!==id;});
-  saveFishFamilies();
   try{ await apiCall('delete_fish_family',{id},true); }catch(e){ console.warn('delete_fish_family',e); }
   renderAdminFishFamilies();populateFishFamilySelect();toast('تم الحذف ✓');
 };
@@ -3662,12 +3667,12 @@ window.resetFishCardForm=function(){
   switchImgTab('fish','url');
 };
 window.saveFishCard=async function(){
-  var nameInput=(document.getElementById('fishCardNameAr')?.value||'').trim();
-  if(!nameInput){toast('الاسم مطلوب');return;}
+  var nameAr=(document.getElementById('fishCardNameAr')?.value||'').trim();
+  var nameEn=(document.getElementById('fishCardNameEn')?.value||'').trim();
+  if(!nameAr&&!nameEn){toast('أدخل الاسم بالعربي أو الإنجليزي');return;}
   var id=document.getElementById('fishCardId')?.value||('fish-'+Date.now());
   toast('جاري الحفظ والترجمة...');
-  var nameAr=nameInput;
-  var nameEn=(document.getElementById('fishCardNameEn')?.value||'').trim();
+  var nameInput=nameAr||nameEn;
   var nameKu=(document.getElementById('fishCardNameKu')?.value||'').trim();
   var notesInput=(document.getElementById('fishCardNotes')?.value||'').trim();
   var notesStored=notesInput;
@@ -3700,7 +3705,6 @@ window.saveFishCard=async function(){
   };
   var idx=fishCards.findIndex(function(f){return f.id===id;});
   if(idx>=0) fishCards[idx]=card; else fishCards.push(card);
-  saveFishCards();
   try{ await apiCall('save_fish_card',{card},true); }catch(e){ console.warn('save_fish_card',e); }
   renderAdminFishCards();resetFishCardForm();toast('تم حفظ السمكة ✓');
 };
@@ -3723,7 +3727,6 @@ window.editFishCard=function(id){
 window.deleteFishCard=async function(id){
   if(!confirm('حذف السمكة؟'))return;
   fishCards=fishCards.filter(function(f){return f.id!==id;});
-  saveFishCards();
   try{ await apiCall('delete_fish_card',{id},true); }catch(e){ console.warn('delete_fish_card',e); }
   renderAdminFishCards();toast('تم الحذف ✓');
 };
@@ -3873,7 +3876,7 @@ window.bulkEnrichFishCards=async function(){
   for(var i=0;i<testResults.length;i++){
     await _saveEnrichResult(testResults[i],counters,prog,total);
   }
-  saveFishCards();
+  /* in-memory array already updated by _saveEnrichResult */
 
   /* ── Remaining cards in batches of 3 ── */
   var remaining=toEnrich.slice(3);
@@ -3884,30 +3887,53 @@ window.bulkEnrichFishCards=async function(){
     for(var j=0;j<results.length;j++){
       await _saveEnrichResult(results[j],counters,prog,total);
     }
-    saveFishCards();
+    /* in-memory array already updated by _saveEnrichResult */
   }
 
   renderAdminFishCards();
   prog.innerHTML='✅ اكتمل — تم إثراء: <b>'+counters.done+'</b> &nbsp;| يحتاج مراجعة يدوية: <b>'+counters.failed+'</b>';
 };
 
+function _fishCardRow(c){
+  return '<div class="admin-product-row" style="padding:9px 14px;border-bottom:1px solid var(--line)">'
+    +'<div style="flex:1;min-width:0">'
+    +'<b style="display:block;font-size:13px">'+esc(c.common_name_en||c.common_name_ar||'—')+'</b>'
+    +(c.scientific_name?'<div class="meta" style="font-style:italic;font-size:11.5px">'+esc(c.scientific_name)+'</div>':'')
+    +'</div>'
+    +'<div class="actions">'
+    +'<button class="small-btn" onclick="editFishCard(\''+c.id+'\')">تعديل</button>'
+    +'<button class="small-btn admin-danger" onclick="deleteFishCard(\''+c.id+'\')">حذف</button>'
+    +'</div></div>';
+}
 function renderAdminFishCards(){
   var el=document.getElementById('adminFishCardList');if(!el)return;
-  if(!fishCards.length){el.innerHTML='<div class="admin-help">لا توجد أسماك بعد.</div>';return;}
-  el.innerHTML=fishCards.map(function(c){
-    var fam=fishFamilies.find(function(f){return f.id===c.family_id;});
-    return'<div class="admin-product-row">'
-      +(c.image_url?'<img src="'+esc(c.image_url)+'" style="width:52px;height:52px;object-fit:cover;border-radius:10px" alt="">':'<div class="thumb-empty" style="display:grid;place-items:center;width:52px;height:52px;background:var(--pearl);border-radius:10px;color:var(--muted);font-size:18px">🐟</div>')
-      +'<div style="flex:1;min-width:0">'
-      +'<b style="display:block">'+esc(c.common_name_ar)+'</b>'
-      +(c.scientific_name?'<div class="meta" style="font-style:italic">'+esc(c.scientific_name)+'</div>':'')
-      +(fam?'<div class="meta">'+esc(fam.name_ar)+'</div>':'')
-      +'</div>'
-      +'<div class="actions">'
-      +'<button class="small-btn" onclick="editFishCard(\''+c.id+'\')">تعديل</button>'
-      +'<button class="small-btn admin-danger" onclick="deleteFishCard(\''+c.id+'\')">حذف</button>'
-      +'</div></div>';
-  }).join('');
+  if(!fishCards.length&&!fishFamilies.length){el.innerHTML='<div class="admin-help">لا توجد أسماك بعد.</div>';return;}
+  var html='';
+  fishFamilies.forEach(function(fam){
+    var cards=fishCards.filter(function(c){return c.family_id===fam.id;});
+    if(!cards.length)return;
+    var accId='admin-fam-'+fam.id;
+    html+='<div class="acc-section" id="'+accId+'">'
+      +'<div class="acc-header" onclick="toggleAccordion(\''+accId+'\')">'
+      +'<span class="acc-header-title">'+esc(fam.name_en||fam.name_ar||fam.id)
+      +' <span style="font-size:12px;font-weight:400;color:var(--muted)">('+cards.length+')</span></span>'
+      +CHEVRON_SVG+'</div>'
+      +'<div class="acc-body"><div style="padding:0">'
+      +cards.map(_fishCardRow).join('')
+      +'<div style="padding:8px 14px">'
+      +'<button class="btn" style="font-size:11px;padding:5px 10px" onclick="openAccordion(\'accFishCards\');resetFishCardForm();setTimeout(function(){document.getElementById(\'fishCardFamily\').value=\''+fam.id+'\';},0);document.getElementById(\'fishCardFormWrap\')?.scrollIntoView({behavior:\'smooth\'})">＋ إضافة لهذه العائلة</button>'
+      +'</div></div></div></div>';
+  });
+  var orphans=fishCards.filter(function(c){return!c.family_id;});
+  if(orphans.length){
+    var oid='admin-fam-orphans';
+    html+='<div class="acc-section" id="'+oid+'">'
+      +'<div class="acc-header" onclick="toggleAccordion(\''+oid+'\')">'
+      +'<span class="acc-header-title">بدون عائلة <span style="font-size:12px;font-weight:400;color:var(--muted)">('+orphans.length+')</span></span>'
+      +CHEVRON_SVG+'</div>'
+      +'<div class="acc-body"><div style="padding:0">'+orphans.map(_fishCardRow).join('')+'</div></div></div>';
+  }
+  el.innerHTML=html||'<div class="admin-help">لا توجد أسماك بعد.</div>';
 }
 
 /* ── Coral Card CRUD ── */
@@ -3930,12 +3956,12 @@ window.resetCoralForm=function(){
   switchImgTab('coral','url');
 };
 window.saveCoral=async function(){
-  var nameInput=(document.getElementById('coralNameAr')?.value||'').trim();
-  if(!nameInput){toast('الاسم مطلوب');return;}
+  var nameAr=(document.getElementById('coralNameAr')?.value||'').trim();
+  var nameEn=(document.getElementById('coralNameEn')?.value||'').trim();
+  if(!nameAr&&!nameEn){toast('أدخل الاسم بالعربي أو الإنجليزي');return;}
+  var nameInput=nameAr||nameEn;
   var id=document.getElementById('coralId')?.value||('coral-'+Date.now());
   toast('جاري الحفظ والترجمة...');
-  var nameAr=nameInput;
-  var nameEn=(document.getElementById('coralNameEn')?.value||'').trim();
   var nameKu=(document.getElementById('coralNameKu')?.value||'').trim();
   var feedingInput=(document.getElementById('coralFeeding')?.value||'').trim();
   var notesInput=(document.getElementById('coralNotes')?.value||'').trim();
@@ -3979,7 +4005,6 @@ window.saveCoral=async function(){
   };
   var idx=coralCards.findIndex(function(c){return c.id===id;});
   if(idx>=0) coralCards[idx]=card; else coralCards.push(card);
-  saveCoralCards();
   try{ await apiCall('save_coral_card',{card},true); }catch(e){ console.warn('save_coral_card',e); }
   renderAdminCorals();resetCoralForm();toast('تم حفظ المرجانة ✓');
 };
@@ -4003,7 +4028,6 @@ window.editCoral=function(id){
 window.deleteCoral=async function(id){
   if(!confirm('حذف المرجانة؟'))return;
   coralCards=coralCards.filter(function(c){return c.id!==id;});
-  saveCoralCards();
   try{ await apiCall('delete_coral_card',{id},true); }catch(e){ console.warn('delete_coral_card',e); }
   renderAdminCorals();toast('تم الحذف ✓');
 };
@@ -4323,17 +4347,14 @@ async function syncFromSupabase(){
     var ffData=await sbGet('/rest/v1/fish_families?order=created_at.asc&limit=200');
     if(ffData&&ffData.length){
       fishFamilies=ffData.map(function(r){return{id:r.id,name_ar:r.name_ar||'',name_en:r.name_en||'',name_ku:r.name_ku||'',created_at:r.created_at||''};});
-      saveFishFamilies();
     }
     var fcData=await sbGet('/rest/v1/fish_cards?is_visible=eq.true&order=created_at.asc&limit=600');
     if(fcData&&fcData.length){
-      fishCards=fcData.map(function(r){return{id:r.id,family_id:r.family_id||'',common_name_ar:r.common_name_ar||'',common_name_en:r.common_name_en||'',common_name_ku:r.common_name_ku||'',scientific_name:r.scientific_name||'',care_level:r.care_level||'easy',diet:r.diet||'omnivore',reef_safe:r.reef_safe||'reef_safe',notes:r.notes||'',image_url:r.image_url||'',needs_review:r.needs_review===undefined?null:r.needs_review,created_at:r.created_at||''};});
-      saveFishCards();
+      fishCards=fcData.map(function(r){return{id:r.id,family_id:r.family_id||'',common_name_ar:r.common_name_ar||'',common_name_en:r.common_name_en||'',common_name_ku:r.common_name_ku||'',scientific_name:r.scientific_name||'',care_level:r.care_level||null,diet:r.diet||null,reef_safe:r.reef_safe||null,notes:r.notes||null,image_url:r.image_url||null,needs_review:r.needs_review===undefined?null:r.needs_review,created_at:r.created_at||''};});
     }
     var ccData=await sbGet('/rest/v1/coral_cards?order=created_at.asc&limit=500');
     if(ccData&&ccData.length){
-      coralCards=ccData.map(function(r){return{id:r.id,name_ar:r.name_ar||'',name_en:r.name_en||'',name_ku:r.name_ku||'',scientific_name:r.scientific_name||'',lighting:r.lighting||'medium',flow:r.flow||'medium',placement:r.placement||'middle',difficulty:r.difficulty||'medium',feeding:r.feeding||'',notes:r.notes||'',image_url:r.image_url||'',created_at:r.created_at||''};});
-      saveCoralCards();
+      coralCards=ccData.map(function(r){return{id:r.id,name_ar:r.name_ar||'',name_en:r.name_en||'',name_ku:r.name_ku||'',scientific_name:r.scientific_name||'',lighting:r.lighting||'medium',flow:r.flow||'medium',placement:r.placement||'middle',difficulty:r.difficulty||'medium',feeding:r.feeding||null,notes:r.notes||null,image_url:r.image_url||null,created_at:r.created_at||''};});
     }
   }catch(e){console.warn('Supabase sync failed, using local:',e);}
   /* Enable search after data loaded */
@@ -4573,14 +4594,15 @@ window.openBioModal=function(id,type){
     var careKey=item.care_level||'easy';
     var dietKey=item.diet||'omnivore';
     var reefKey=(item.reef_safe||'reef_safe').replace('/','_');
-    badges='<span class="bio-badge bio-badge-care-'+careKey+'">⭐ '+(t('edu_care_'+careKey)||careKey)+'</span>'
-      +'<span class="bio-badge bio-badge-diet">'+(t('edu_diet_'+dietKey)||dietKey)+'</span>'
-      +'<span class="bio-badge bio-badge-reef-'+reefKey+'">🪸 '+(t('edu_reef_'+reefKey)||reefKey)+'</span>';
+    badges='<span class="bio-badge bio-badge-care-'+careKey+'">'+careBadge(careKey)+'</span>'
+      +'<span class="bio-badge bio-badge-diet">'+dietBadge(dietKey)+'</span>'
+      +'<span class="bio-badge bio-badge-reef-'+reefKey+'">'+reefBadge(reefKey)+'</span>';
   } else {
-    badges='<span class="bio-badge bio-badge-light-'+(item.lighting||'medium')+'">💡 '+(t('edu_light_'+(item.lighting||'medium'))||item.lighting||'')+'</span>'
-      +'<span class="bio-badge bio-badge-flow-'+(item.flow||'medium')+'">🌊 '+(t('edu_flow_'+(item.flow||'medium'))||item.flow||'')+'</span>'
-      +'<span class="bio-badge bio-badge-place">📍 '+(t('edu_place_'+(item.placement||'middle'))||item.placement||'')+'</span>'
-      +'<span class="bio-badge bio-badge-care-'+(item.difficulty||'medium')+'">⭐ '+(t('edu_care_'+(item.difficulty||'medium'))||item.difficulty||'')+'</span>';
+    var lk=item.lighting||'medium',fk=item.flow||'medium',pk=item.placement||'middle',dk=item.difficulty||'medium';
+    badges='<span class="bio-badge bio-badge-light-'+lk+'">💡 '+(t('edu_light_'+lk)||lk)+'</span>'
+      +'<span class="bio-badge bio-badge-flow-'+fk+'">🌊 '+(t('edu_flow_'+fk)||fk)+'</span>'
+      +'<span class="bio-badge bio-badge-place">📍 '+(t('edu_place_'+pk)||pk)+'</span>'
+      +'<span class="bio-badge bio-badge-care-'+dk+'">'+careBadge(dk)+'</span>';
   }
 
   var m=document.getElementById('bioModal');
