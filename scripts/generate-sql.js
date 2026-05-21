@@ -58,11 +58,16 @@ lines.push(``);
 lines.push(`ALTER TABLE fish_cards`);
 lines.push(`  ADD COLUMN IF NOT EXISTS is_visible boolean NOT NULL DEFAULT true;`);
 lines.push(``);
-lines.push(`-- Also drop NOT NULL from optional columns if they were created with it`);
+lines.push(`-- Drop NOT NULL from optional columns if they were created with it`);
 lines.push(`ALTER TABLE fish_cards`);
 lines.push(`  ALTER COLUMN care_level DROP NOT NULL,`);
 lines.push(`  ALTER COLUMN diet       DROP NOT NULL,`);
 lines.push(`  ALTER COLUMN reef_safe  DROP NOT NULL;`);
+lines.push(``);
+lines.push(`-- Set default '' on translation columns so omitted values don't violate NOT NULL`);
+lines.push(`ALTER TABLE fish_cards`);
+lines.push(`  ALTER COLUMN common_name_ar SET DEFAULT '',`);
+lines.push(`  ALTER COLUMN common_name_ku SET DEFAULT '';`);
 lines.push(``);
 
 // ── Step 2: Families ──────────────────────────────────────────────────────────
@@ -92,13 +97,13 @@ for (const f of DATA) {
   const famId = makeFamilyId(f.family);
   lines.push(`-- ${f.family} (${f.cards.length} cards)`);
   lines.push(`INSERT INTO fish_cards`);
-  lines.push(`  (id, family_id, common_name_en, scientific_name, is_visible, created_at)`);
+  lines.push(`  (id, family_id, common_name_en, common_name_ar, scientific_name, is_visible, created_at)`);
   lines.push(`VALUES`);
 
   f.cards.forEach((c, i) => {
     const id    = makeCardId(f.family, c.common_name);
     const comma = i < f.cards.length - 1 ? ',' : '';
-    lines.push(`  ('${esc(id)}', '${esc(famId)}', '${esc(c.common_name)}', '${esc(c.scientific_name)}', true, '${now}')${comma}`);
+    lines.push(`  ('${esc(id)}', '${esc(famId)}', '${esc(c.common_name)}', '', '${esc(c.scientific_name)}', true, '${now}')${comma}`);
   });
 
   lines.push(`ON CONFLICT (id) DO NOTHING;`);
