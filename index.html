@@ -7,7 +7,7 @@
 <meta http-equiv="X-Frame-Options" content="DENY">
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://glhmmrovxyijtzjaldtf.supabase.co https://api.openai.com https://source.unsplash.com https://en.wikipedia.org; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://glhmmrovxyijtzjaldtf.supabase.co https://api.openai.com https://source.unsplash.com https://en.wikipedia.org https://commons.wikimedia.org; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'none'">
 <title>Red Sea Iraq | الوكيل الحصري والوحيد في العراق</title>
 <meta name="description" content="منتجات Red Sea الأصلية للأحواض البحرية والمرجانية في العراق. الوكيل الحصري والوحيد. توصيل لجميع المحافظات، دفع عند الاستلام.">
 <meta name="keywords" content="Red Sea Iraq, ريد سي العراق, أحواض بحرية, مرجان, ملح بحري, مكملات مرجان">
@@ -4049,7 +4049,19 @@ window.clearFishCardImages=async function(){
 /* ── Wikipedia bulk image fetcher ── */
 async function _wikiImage(title){
   try{
-    var r=await fetch('https://en.wikipedia.org/w/api.php?action=query&titles='+encodeURIComponent(title)+'&prop=pageimages&pithumbsize=500&format=json&origin=*');
+    var r=await fetch('https://en.wikipedia.org/w/api.php?action=query&titles='+encodeURIComponent(title)+'&prop=pageimages&pithumbsize=500&format=json&redirects=1&origin=*');
+    if(!r.ok)return null;
+    var data=await r.json();
+    var pages=data.query&&data.query.pages;
+    if(!pages)return null;
+    var pageId=Object.keys(pages)[0];
+    if(pageId==='-1')return null;
+    return (pages[pageId].thumbnail&&pages[pageId].thumbnail.source)||null;
+  }catch(e){return null;}
+}
+async function _commonsImage(title){
+  try{
+    var r=await fetch('https://commons.wikimedia.org/w/api.php?action=query&titles='+encodeURIComponent(title)+'&prop=pageimages&pithumbsize=500&format=json&redirects=1&origin=*');
     if(!r.ok)return null;
     var data=await r.json();
     var pages=data.query&&data.query.pages;
@@ -4094,14 +4106,23 @@ window.bulkFetchWikipediaImages=async function(){
           renderProgress();return;
         }
         var searched=sciName;
+        /* Step 1 — Wikipedia with redirects */
         var url=await _wikiImage(sciName);
+        if(url){ searched=sciName+' [Wikipedia +redirects]'; }
+        /* Step 2 — Wikipedia genus only */
         if(!url){
           var genus=sciName.split('_')[0];
           if(genus&&genus!==sciName){
             url=await _wikiImage(genus);
-            if(url) searched=sciName+' (genus: '+genus+')';
-            else searched=sciName+' + '+genus;
+            if(url) searched=sciName+' → genus: '+genus+' [Wikipedia]';
+            else searched=sciName+' [genus tried]';
           }
+        }
+        /* Step 3 — Wikimedia Commons by scientific name */
+        if(!url){
+          url=await _commonsImage(sciName);
+          if(url) searched=sciName+' [Commons]';
+          else searched=sciName+' [all 3 failed]';
         }
         if(debugLog.length<3) debugLog.push({searched:searched,found:!!url});
         if(url){
