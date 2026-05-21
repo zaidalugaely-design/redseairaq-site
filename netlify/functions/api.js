@@ -578,36 +578,61 @@ Return ONLY valid JSON: {"care_level":"...","diet":"...","reef_safe":"...","imag
     const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
     if (!ANTHROPIC_KEY) return res(headers, 500, { error: 'ANTHROPIC_API_KEY غير مضبوط' });
 
-    const { id, common_name_en, scientific_name, care_level, diet, reef_safe, notes_en } = body;
-    if (!id) return res(headers, 400, { error: 'id مطلوب' });
+    const { id, scientific_name, care_level, diet, reef_safe, notes_en, dry_run } = body;
+    if (!id && !dry_run) return res(headers, 400, { error: 'id مطلوب' });
+    if (!scientific_name)  return res(headers, 400, { error: 'scientific_name مطلوب' });
 
-    const sysPr = `أنت خبير بأسماك وكائنات الزينة البحرية.
-اكتب نبذة قصيرة (3-4 جمل) باللهجة العراقية العامية.
-اذكر: الحجم التقريبي، طبيعة السلوك، متطلبات الحوض، والتوافق مع الكائنات الأخرى.
-لا تذكر أسعار. كن دقيقاً وعملياً.
-أجب بالنص العربي مباشرة بدون أي تنسيق أو عناوين.`;
+    const sysPr =
+`You are a marine biology expert. Write a short Arabic description about the given marine creature based ONLY on verified scientific information found for that EXACT scientific name.
 
-    const userPr = `اسم الكائن: ${common_name_en || ''}
-الاسم العلمي: ${scientific_name || ''}
-مستوى العناية: ${care_level || ''}
-التغذية: ${diet || ''}
-التوافق مع المرجان: ${reef_safe || ''}
-معلومات إضافية: ${notes_en || ''}`;
+STRICT RULES:
+- Write in simple formal Arabic (فصحى بسيطة)
+- Structure: exactly 3-4 bullet points in this order:
+  • الحجم والصعوبة — size and care difficulty
+  • التغذية — feeding requirements
+  • التوافق — reef and fish compatibility
+  • ملاحظة — only if there is a genuinely unique fact
+- Each bullet: 1-2 sentences only, no padding
+- No prices, no sources, no intro, no conclusion
+- Start directly with the bullet points
+
+EXAMPLE of required style:
+• الحجم والصعوبة — توصل تقريباً 25 سم، وتحتاج حوض كبير 100–125 غالون عالأقل. من الأسماك الحساسة والصعبة بالتأقلم، لذلك تحتاج خبرة وصبر بالبداية.
+• التغذية — لازم أكل متنوع 2–3 مرات يومياً: ميسس، سبيرولينا، أعشاب بحرية. إذا امتنعت عن الأكل بالبداية غالباً وضعها يصير صعب.
+• التوافق — مقبولة نسبياً مع SPS، لكن بحذر مع الزوا وLPS والمحار لأنها ممكن تنقرهم.
+• ملاحظة — نسخ البحر الأحمر والمحيط الهندي غالباً تتأقلم أفضل من نسخ المحيط الهادي.
+
+CRITICAL: If you are not confident about the information for this EXACT scientific name, return exactly this string and nothing else: NOT_FOUND
+Never guess. Never use info from a similar species.`;
+
+    const userPr =
+`Scientific name: ${scientific_name}
+Care level: ${care_level || ''}
+Diet: ${diet || ''}
+Reef safe: ${reef_safe || ''}
+Additional info: ${notes_en || ''}`;
 
     try {
       const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 512, system: sysPr, messages: [{ role: 'user', content: userPr }] })
+        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, system: sysPr, messages: [{ role: 'user', content: userPr }] })
       });
       if (!aiRes.ok) throw new Error(`Anthropic HTTP ${aiRes.status}`);
       const aiData = await aiRes.json();
-      const notesAr = (aiData.content?.[0]?.text || '').trim();
-      if (!notesAr) return res(headers, 200, { ok: false, error: 'empty response' });
+      const rawText = (aiData.content?.[0]?.text || '').trim();
 
-      // Merge with existing notes: preserve notes_en, set ar
-      const notesObj = { ar: notesAr, en: notes_en || '', ku: '' };
-      await sb('PATCH', `/fish_cards?id=eq.${encodeURIComponent(id)}`, { notes: notesObj });
+      if (!rawText || rawText === 'NOT_FOUND') {
+        console.log(`[write_arabic_notes] NOT_FOUND: ${scientific_name}`);
+        return res(headers, 200, { ok: false, not_found: true });
+      }
+
+      const notesAr = rawText + '\n— تحرير: زيد العكيلي | Red Sea Iraq 🐠';
+
+      if (!dry_run) {
+        const notesObj = { ar: notesAr, en: notes_en || '', ku: '' };
+        await sb('PATCH', `/fish_cards?id=eq.${encodeURIComponent(id)}`, { notes: notesObj });
+      }
       return res(headers, 200, { ok: true, notes_ar: notesAr });
     } catch (e) { return res(headers, 502, { error: e.message }); }
   }

@@ -1280,6 +1280,7 @@ html{scroll-behavior:smooth}
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
             <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');bulkEnrichFishCards()">🔍 إثراء للكل</button>
             <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');bulkFixFishImages()">🖼️ إصلاح الصور</button>
+            <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');testArabicNotes()">🧪 اختبار النبذات</button>
             <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');bulkWriteArabicNotes()">✍️ كتابة النبذات</button>
             <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');bulkFetchWikipediaImages()">🌐 جلب صور Wikipedia</button>
             <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');cleanDuplicateImages()">🔄 تنظيف الصور المكررة</button>
@@ -3997,44 +3998,91 @@ window.bulkFixFishImages=async function(){
 };
 
 /* ── P6: Bulk write Arabic notes for cards missing them ── */
+function _notesEn(card){
+  if(!card.notes)return'';
+  var o=typeof card.notes==='object'?card.notes:null;
+  if(!o&&typeof card.notes==='string'&&card.notes.charAt(0)==='{'){try{o=JSON.parse(card.notes);}catch(e){}}
+  return(o?o.en:'')||'';
+}
+function _notesAr(card){
+  if(!card.notes)return'';
+  var o=typeof card.notes==='object'?card.notes:null;
+  if(!o&&typeof card.notes==='string'&&card.notes.charAt(0)==='{'){try{o=JSON.parse(card.notes);}catch(e){}}
+  return(o?o.ar:'')||'';
+}
+
+/* ── Test Arabic notes writer on 3 known species (dry_run — no DB write) ── */
+window.testArabicNotes=async function(){
+  if(!_adminToken){toast('غير مصرح — سجل الدخول');return;}
+  var TEST=['Pygoplites diacanthus','Amphiprion ocellaris','Paracanthurus hepatus'];
+  var prog=document.getElementById('bulkEnrichProgress');
+  prog.style.display='block';
+  prog.innerHTML='🧪 جاري الاختبار على 3 بطاقات...';
+  var results=[];
+  for(var i=0;i<TEST.length;i++){
+    var sciName=TEST[i];
+    var card=fishCards.find(function(c){return c.scientific_name===sciName;});
+    if(!card){results.push({name:sciName,text:'❌ البطاقة غير موجودة في قاعدة البيانات',ok:false});continue;}
+    try{
+      var r=await apiCall('write_arabic_notes',{
+        id:card.id,scientific_name:card.scientific_name,
+        care_level:card.care_level,diet:card.diet,reef_safe:card.reef_safe,
+        notes_en:_notesEn(card),dry_run:true
+      },true);
+      if(r.not_found) results.push({name:sciName,text:'⏭️ NOT_FOUND — لا توجد معلومات كافية',ok:false,skipped:true});
+      else if(r.ok&&r.notes_ar) results.push({name:sciName,text:r.notes_ar,ok:true});
+      else results.push({name:sciName,text:'❌ خطأ: '+(r.error||'unknown'),ok:false});
+    }catch(e){results.push({name:sciName,text:'❌ استثناء: '+e.message,ok:false});}
+  }
+  var html='<div style="text-align:right">'
+    +'<div style="font-weight:800;font-size:15px;margin-bottom:16px">🧪 نتائج الاختبار — راجع ثم اضغط تأكيد</div>';
+  results.forEach(function(r){
+    var bg=r.ok?'#eafaf1':r.skipped?'#fef9e7':'#fdf2f2';
+    var brd=r.ok?'#a9dfbf':r.skipped?'#f9e79f':'#f5c6cb';
+    html+='<div style="margin-bottom:16px;background:'+bg+';border:1px solid '+brd+';border-radius:10px;padding:14px">'
+      +'<div style="font-weight:700;font-family:monospace;font-size:11px;color:var(--muted);margin-bottom:8px">'+esc(r.name)+'</div>'
+      +'<div style="line-height:2;white-space:pre-wrap;font-size:13px">'+esc(r.text)+'</div>'
+      +'</div>';
+  });
+  html+='<div style="margin-top:16px;padding:14px;background:#f0f4ff;border-radius:10px;text-align:center">'
+    +'<p style="font-size:12px;color:var(--muted);margin-bottom:12px">إذا كانت النتائج صحيحة، اضغط لتشغيل الكل:</p>'
+    +'<button class="btn primary" onclick="bulkWriteArabicNotes()" style="font-size:13px;padding:10px 22px">✅ تأكيد — تشغيل الكل</button>'
+    +'</div></div>';
+  prog.innerHTML=html;
+};
+
+/* ── Bulk write Arabic notes — skips cards already having Arabic notes ── */
 window.bulkWriteArabicNotes=async function(){
   if(!_adminToken){toast('غير مصرح — سجل الدخول');return;}
-  var toWrite=fishCards.filter(function(c){
-    if(!c.care_level)return false;
-    var ar='';
-    if(c.notes){
-      var o=typeof c.notes==='object'?c.notes:null;
-      if(!o&&typeof c.notes==='string'&&c.notes.charAt(0)==='{'){try{o=JSON.parse(c.notes);}catch(e){}}
-      if(o) ar=o.ar||'';
-    }
-    return !ar;
-  });
+  var toWrite=fishCards.filter(function(c){return c.care_level&&!_notesAr(c);});
   if(!toWrite.length){toast('كل البطاقات لديها نبذات عربية ✓');return;}
   var prog=document.getElementById('bulkEnrichProgress');
   prog.style.display='block';
-  var done=0,failed=0,total=toWrite.length;
-  prog.innerHTML='✍️ جاري الكتابة... 0 / '+total;
+  var done=0,skipped=0,failed=0,total=toWrite.length;
+  function renderProg(){
+    var pct=total?Math.round((done+skipped+failed)/total*100):0;
+    prog.innerHTML=
+      '<div style="font-weight:700;margin-bottom:8px;text-align:right">✍️ جاري الكتابة... '+(done+skipped+failed)+' / '+total+'</div>'
+      +'<div style="background:#dde;border-radius:6px;height:10px;overflow:hidden;margin-bottom:8px">'
+      +'<div style="background:#27ae60;height:10px;width:'+pct+'%;transition:width 0.25s;border-radius:6px"></div>'
+      +'</div>'
+      +'<div style="font-size:12px;color:var(--muted);text-align:right">✅ '+done+' &nbsp;|&nbsp; ⏭️ '+skipped+' &nbsp;|&nbsp; ❌ '+failed+'</div>';
+  }
+  renderProg();
   var BATCH=5;
   for(var i=0;i<toWrite.length;i+=BATCH){
     var batch=toWrite.slice(i,i+BATCH);
     await Promise.all(batch.map(async function(card){
       try{
-        var notesEn='';
-        if(card.notes){
-          var o=typeof card.notes==='object'?card.notes:null;
-          if(!o&&typeof card.notes==='string'&&card.notes.charAt(0)==='{'){try{o=JSON.parse(card.notes);}catch(e){}}
-          notesEn=(o?o.en:'')||'';
-        }
         var r=await apiCall('write_arabic_notes',{
-          id:card.id,
-          common_name_en:card.common_name_en,
-          scientific_name:card.scientific_name,
-          care_level:card.care_level,
-          diet:card.diet,
-          reef_safe:card.reef_safe,
-          notes_en:notesEn
+          id:card.id,scientific_name:card.scientific_name,
+          care_level:card.care_level,diet:card.diet,reef_safe:card.reef_safe,
+          notes_en:_notesEn(card)
         },true);
-        if(r.ok){
+        if(r.not_found){
+          skipped++;
+          console.log('[notes] skipped (NOT_FOUND):',card.scientific_name);
+        }else if(r.ok&&r.notes_ar){
           var idx=fishCards.findIndex(function(f){return f.id===card.id;});
           if(idx>=0){
             var cur=fishCards[idx].notes;
@@ -4044,12 +4092,24 @@ window.bulkWriteArabicNotes=async function(){
           }
           done++;
         }else{ failed++; }
-      }catch(e){ failed++; console.warn('write_arabic_notes',card.id,e); }
+      }catch(e){ failed++;console.warn('[notes]',card.scientific_name,e.message); }
+      renderProg();
     }));
-    prog.innerHTML='✍️ جاري الكتابة... '+(done+failed)+' / '+total+' &nbsp;— ✅ '+done+' | ⚠️ '+failed;
     if(i+BATCH<toWrite.length) await new Promise(function(res){setTimeout(res,1000);});
   }
-  prog.innerHTML='✅ اكتمل — تمت الكتابة: <b>'+done+'</b> | فشل: <b>'+failed+'</b>';
+  prog.innerHTML=
+    '<div style="font-weight:800;font-size:15px;margin-bottom:14px;text-align:right">اكتملت الكتابة</div>'
+    +'<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">'
+    +'<div style="background:#eafaf1;border:1px solid #a9dfbf;border-radius:10px;padding:12px 22px;text-align:center;min-width:80px">'
+    +'<div style="font-size:26px;font-weight:800;color:#27ae60">'+done+'</div>'
+    +'<div style="font-size:12px;font-weight:600;color:#27ae60">✅ كُتبت</div></div>'
+    +'<div style="background:#fef9e7;border:1px solid #f9e79f;border-radius:10px;padding:12px 22px;text-align:center;min-width:80px">'
+    +'<div style="font-size:26px;font-weight:800;color:#d4ac0d">'+skipped+'</div>'
+    +'<div style="font-size:12px;font-weight:600;color:#d4ac0d">⏭️ تخطى</div></div>'
+    +'<div style="background:#fdf2f2;border:1px solid #f5c6cb;border-radius:10px;padding:12px 22px;text-align:center;min-width:80px">'
+    +'<div style="font-size:26px;font-weight:800;color:#c0392b">'+failed+'</div>'
+    +'<div style="font-size:12px;font-weight:600;color:#c0392b">❌ فشل</div></div>'
+    +'</div>';
 };
 
 /* ── Find and clear duplicate images (same URL on 3+ cards) ── */
