@@ -330,6 +330,20 @@ exports.handler = async function(event) {
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }
 
+  /* PATCH FISH FAMILY — update only name_ar / name_ku */
+  if (action === 'patch_fish_family') {
+    const { id, name_ar, name_ku } = body;
+    if (!id) return res(headers, 400, { error: 'id مطلوب' });
+    const patch = {};
+    if (name_ar !== undefined) patch.name_ar = name_ar;
+    if (name_ku !== undefined) patch.name_ku = name_ku;
+    if (!Object.keys(patch).length) return res(headers, 400, { error: 'لا توجد حقول للتحديث' });
+    try {
+      await sb('PATCH', `/fish_families?id=eq.${encodeURIComponent(id)}`, patch);
+      return res(headers, 200, { ok: true });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
   /* DELETE FISH FAMILY */
   if (action === 'delete_fish_family') {
     const { id } = body;

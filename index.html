@@ -3112,8 +3112,8 @@ window.switchEduTab=function(tab){
 
 function eduName(obj,arKey,enKey,kuKey){
   if(currentLang==='en') return obj[enKey]||obj[arKey]||'';
-  if(currentLang==='ku') return obj[kuKey]||obj[arKey]||'';
-  return obj[arKey]||'';
+  if(currentLang==='ku') return obj[kuKey]||obj[arKey]||obj[enKey]||'';
+  return obj[arKey]||obj[enKey]||'';
 }
 
 function parseMultiLangField(val,lang){
@@ -3223,34 +3223,39 @@ window.toggleBioNotes=function(cardId){
   if(svg) svg.setAttribute('points',isCollapsed?'18 15 12 9 6 15':'6 9 12 15 18 9');
 };
 
+var CHEVRON_SVG='<svg class="acc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+
 function renderEducation(){
   var fishPanel=document.getElementById('eduFishPanel');
   var coralPanel=document.getElementById('eduCoralPanel');
   if(!fishPanel||!coralPanel)return;
 
-  /* Fish tab */
-  if(!fishFamilies.length&&!fishCards.length){
+  /* Fish tab — grouped by family, each family in a collapsed accordion */
+  var visibleCards=fishCards.filter(function(f){return f.is_visible!==false;});
+  if(!fishFamilies.length&&!visibleCards.length){
     fishPanel.innerHTML='<div class="edu-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">'+FISH_ICON+'</svg><p>'+t('edu_no_fish')+'</p></div>';
   } else {
     var fishHtml='';
-    var usedFamilies=[];
-    fishCards.forEach(function(f){if(f.family_id&&!usedFamilies.includes(f.family_id))usedFamilies.push(f.family_id);});
-    /* Cards with a family */
     fishFamilies.forEach(function(fam){
-      var members=fishCards.filter(function(f){return f.family_id===fam.id;});
+      var members=visibleCards.filter(function(f){return f.family_id===fam.id;});
       if(!members.length)return;
       var famName=eduName(fam,'name_ar','name_en','name_ku');
-      fishHtml+='<div class="edu-family-section">'
-        +'<div class="edu-family-header"><h3>'+esc(famName)+'</h3><span class="edu-family-count">'+members.length+'</span></div>'
+      var accId='edu-fam-'+fam.id;
+      fishHtml+='<div class="acc-section" id="'+accId+'">'
+        +'<div class="acc-header" onclick="toggleAccordion(\''+accId+'\')">'
+        +'<span class="acc-header-title">'+esc(famName)
+        +'<span style="font-size:12px;font-weight:500;color:var(--muted);margin-right:8px"> ('+members.length+')</span></span>'
+        +CHEVRON_SVG
+        +'</div>'
+        +'<div class="acc-body"><div class="acc-body-inner">'
         +'<div class="bio-grid">'+members.map(function(f){return bioCard(f,'fish');}).join('')+'</div>'
+        +'</div></div>'
         +'</div>';
     });
-    /* Cards without a family */
-    var orphans=fishCards.filter(function(f){return!f.family_id;});
+    /* Orphan cards (no family) shown flat */
+    var orphans=visibleCards.filter(function(f){return!f.family_id;});
     if(orphans.length){
-      fishHtml+='<div class="edu-family-section">'
-        +'<div class="bio-grid">'+orphans.map(function(f){return bioCard(f,'fish');}).join('')+'</div>'
-        +'</div>';
+      fishHtml+='<div class="bio-grid" style="margin-top:20px">'+orphans.map(function(f){return bioCard(f,'fish');}).join('')+'</div>';
     }
     fishPanel.innerHTML=fishHtml||'<div class="edu-empty"><p>'+t('edu_no_fish')+'</p></div>';
   }
@@ -4318,7 +4323,7 @@ async function syncFromSupabase(){
       fishFamilies=ffData.map(function(r){return{id:r.id,name_ar:r.name_ar||'',name_en:r.name_en||'',name_ku:r.name_ku||'',created_at:r.created_at||''};});
       saveFishFamilies();
     }
-    var fcData=await sbGet('/rest/v1/fish_cards?order=created_at.asc&limit=500');
+    var fcData=await sbGet('/rest/v1/fish_cards?is_visible=eq.true&order=created_at.asc&limit=600');
     if(fcData&&fcData.length){
       fishCards=fcData.map(function(r){return{id:r.id,family_id:r.family_id||'',common_name_ar:r.common_name_ar||'',common_name_en:r.common_name_en||'',common_name_ku:r.common_name_ku||'',scientific_name:r.scientific_name||'',care_level:r.care_level||'easy',diet:r.diet||'omnivore',reef_safe:r.reef_safe||'reef_safe',notes:r.notes||'',image_url:r.image_url||'',needs_review:r.needs_review===undefined?null:r.needs_review,created_at:r.created_at||''};});
       saveFishCards();
