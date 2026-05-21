@@ -1282,6 +1282,7 @@ html{scroll-behavior:smooth}
             <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');bulkFixFishImages()">🖼️ إصلاح الصور</button>
             <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');bulkWriteArabicNotes()">✍️ كتابة النبذات</button>
             <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');bulkFetchWikipediaImages()">🌐 جلب صور Wikipedia</button>
+            <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');cleanDuplicateImages()">🔄 تنظيف الصور المكررة</button>
             <button class="btn" style="font-size:11px;padding:6px 10px;background:var(--danger,#c0392b)" onclick="event.stopPropagation();openAccordion('accFishCards');clearFishCardImages()">🗑️ مسح صور FishBase فقط</button>
             <button class="btn primary" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');resetFishCardForm()">＋ سمكة جديدة</button>
             <svg class="acc-sub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -4024,6 +4025,31 @@ window.bulkWriteArabicNotes=async function(){
   prog.innerHTML='✅ اكتمل — تمت الكتابة: <b>'+done+'</b> | فشل: <b>'+failed+'</b>';
 };
 
+/* ── Find and clear duplicate images (same URL on 3+ cards) ── */
+window.cleanDuplicateImages=async function(){
+  if(!_adminToken){toast('غير مصرح — سجل الدخول');return;}
+  var urlCount={};
+  fishCards.forEach(function(c){if(c.image_url)urlCount[c.image_url]=(urlCount[c.image_url]||0)+1;});
+  var dupUrls=Object.keys(urlCount).filter(function(u){return urlCount[u]>=3;});
+  if(!dupUrls.length){toast('لا توجد صور مكررة ✓');return;}
+  var affectedCards=fishCards.filter(function(c){return c.image_url&&dupUrls.indexOf(c.image_url)>=0;});
+  if(!confirm('تم العثور على '+dupUrls.length+' صورة مكررة تشمل '+affectedCards.length+' بطاقة.\nسيتم مسحها والبحث عن بدائل عبر Wikipedia. هل تريد المتابعة؟'))return;
+  var prog=document.getElementById('bulkEnrichProgress');
+  prog.style.display='block';
+  prog.innerHTML='🔄 جاري مسح الصور المكررة...';
+  try{
+    var r=await apiCall('clear_duplicate_images',{urls:dupUrls},true);
+    if(r&&!r.error){
+      fishCards.forEach(function(c){if(c.image_url&&dupUrls.indexOf(c.image_url)>=0)c.image_url=null;});
+      prog.innerHTML='✅ تم مسح '+affectedCards.length+' صورة مكررة من '+dupUrls.length+' رابط. جاري البحث عن بدائل...';
+      await new Promise(function(res){setTimeout(res,800);});
+      await window.bulkFetchWikipediaImages();
+    }else{
+      prog.innerHTML='❌ فشل: '+(r&&r.error||'خطأ غير معروف');
+    }
+  }catch(e){ prog.innerHTML='❌ خطأ: '+e.message; }
+};
+
 /* ── Clear all fish card images (before re-running Wikipedia fetcher) ── */
 window.clearFishCardImages=async function(){
   if(!_adminToken){toast('غير مصرح — سجل الدخول');return;}
@@ -4107,24 +4133,13 @@ window.bulkFetchWikipediaImages=async function(){
           if(failedCards.length<50) failedCards.push({name:displayName,searched:'(لا يوجد اسم علمي)'});
           renderProgress();return;
         }
-        var searched=sciName;
-        /* Step 1 — Wikipedia with redirects */
+        /* Step 1 — Wikipedia + redirects */
         var url=await _wikiImage(sciName);
-        if(url){ searched=sciName+' [Wikipedia +redirects]'; }
-        /* Step 2 — Wikipedia genus only */
-        if(!url){
-          var genus=sciName.split('_')[0];
-          if(genus&&genus!==sciName){
-            url=await _wikiImage(genus);
-            if(url) searched=sciName+' → genus: '+genus+' [Wikipedia]';
-            else searched=sciName+' [genus tried]';
-          }
-        }
-        /* Step 3 — Wikimedia Commons by scientific name */
+        var searched=url?sciName+' [Wikipedia+redirects]':sciName;
+        /* Step 2 — Wikimedia Commons */
         if(!url){
           url=await _commonsImage(sciName);
-          if(url) searched=sciName+' [Commons]';
-          else searched=sciName+' [all 3 failed]';
+          searched=url?sciName+' [Commons]':sciName+' [not found]';
         }
         if(debugLog.length<3) debugLog.push({searched:searched,found:!!url});
         if(url){

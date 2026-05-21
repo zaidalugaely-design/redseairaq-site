@@ -513,6 +513,20 @@ Return ONLY valid JSON: {"care_level":"...","diet":"...","reef_safe":"...","imag
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }
 
+  /* CLEAR DUPLICATE IMAGES — null out image_url for cards sharing the same URL on 3+ cards */
+  if (action === 'clear_duplicate_images') {
+    const { urls } = body;
+    if (!Array.isArray(urls) || !urls.length) return res(headers, 400, { error: 'urls مطلوب' });
+    try {
+      for (const url of urls) {
+        if (typeof url === 'string' && url.startsWith('http')) {
+          await sb('PATCH', '/fish_cards?image_url=eq.' + encodeURIComponent(url), { image_url: null });
+        }
+      }
+      return res(headers, 200, { ok: true, cleared: urls.length });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
   /* FIX FISH IMAGE — fetch Wikimedia/iNaturalist image for one card */
   if (action === 'fix_fish_image') {
     const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
