@@ -430,7 +430,7 @@ Return ONLY valid JSON: {"care_level":"...","diet":"...","reef_safe":"...","imag
         'anthropic-beta'   : 'web-search-2025-03-05'
       },
       body: JSON.stringify({
-        model     : 'claude-sonnet-4-20250514',
+        model     : 'claude-sonnet-4-6',
         max_tokens: 2048,
         system    : systemPrompt,
         tools     : [{ type: 'web_search_20250305', name: 'web_search' }],
@@ -540,7 +540,7 @@ ${fieldList}`;
           'content-type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-6',
           max_tokens: 1024,
           system: 'You are a marine biology translator. Auto-detect the input language and translate all provided fields into Arabic, English, and Kurdish (Sorani). scientific_name fields must never be translated. Return ONLY a JSON object with keys: ar, en, ku for each field. No extra text.',
           messages: [{ role: 'user', content: prompt }]
