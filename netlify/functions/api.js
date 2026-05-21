@@ -596,6 +596,7 @@ RULES:
 - Write in simple formal Arabic (فصحى بسيطة)
 - Each bullet: 2-3 sentences, practical and specific
 - Every species must have DIFFERENT and SPECIFIC information
+- Focus on aquarium care, not wild habitat — do NOT mention البرية (the wild) or natural habitat unless it directly explains a critical care requirement
 - If you don't have confident knowledge about this exact scientific name, return only: NOT_FOUND
 - Never invent facts — if unsure, return NOT_FOUND
 - No intro, no conclusion, start directly with bullet points
