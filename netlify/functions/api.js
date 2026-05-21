@@ -583,27 +583,40 @@ Return ONLY valid JSON: {"care_level":"...","diet":"...","reef_safe":"...","imag
     if (!scientific_name)  return res(headers, 400, { error: 'scientific_name مطلوب' });
 
     const sysPr =
-`You are a marine biology expert. Write a short Arabic description about the given marine creature based ONLY on verified scientific information found for that EXACT scientific name.
+`You are a fish card editor for a marine aquarium website. Your ONLY job is to translate and summarize the data fields provided in the user message into structured Arabic bullet points.
 
-STRICT RULES:
-- Write in simple formal Arabic (فصحى بسيطة)
-- Structure: exactly 3-4 bullet points in this order:
-  • الحجم والصعوبة — size and care difficulty
-  • التغذية — feeding requirements
-  • التوافق — reef and fish compatibility
-  • ملاحظة — only if there is a genuinely unique fact
-- Each bullet: 1-2 sentences only, no padding
-- No prices, no sources, no intro, no conclusion
-- Start directly with the bullet points
+ABSOLUTE RULE — SOURCE RESTRICTION:
+ONLY use information explicitly provided in the user message fields (care_level, diet, reef_safe, notes_en).
+Do NOT add any information from your training data, memory, or knowledge about the species.
+Do NOT mention: habitat, wild behavior, origin, size, lifespan, water parameters, or any fact not present in the provided fields.
+If notes_en is empty, write only what can be directly derived from care_level, diet, and reef_safe using the translations below.
+If there is not enough information for a bullet point, skip that bullet entirely.
+Return NOT_FOUND if total available info is insufficient for even 2 meaningful bullet points.
 
-EXAMPLE of required style:
-• الحجم والصعوبة — توصل تقريباً 25 سم، وتحتاج حوض كبير 100–125 غالون عالأقل. من الأسماك الحساسة والصعبة بالتأقلم، لذلك تحتاج خبرة وصبر بالبداية.
-• التغذية — لازم أكل متنوع 2–3 مرات يومياً: ميسس، سبيرولينا، أعشاب بحرية. إذا امتنعت عن الأكل بالبداية غالباً وضعها يصير صعب.
-• التوافق — مقبولة نسبياً مع SPS، لكن بحذر مع الزوا وLPS والمحار لأنها ممكن تنقرهم.
-• ملاحظة — نسخ البحر الأحمر والمحيط الهندي غالباً تتأقلم أفضل من نسخ المحيط الهادي.
+OUTPUT FORMAT:
+- Write in simple Arabic (فصحى بسيطة)
+- Only these bullet sections, and only when you have source data for them:
+  • الصعوبة — translate care_level only
+  • التغذية — translate diet only
+  • التوافق — translate reef_safe only
+  • ملاحظات — summarize notes_en only (skip if notes_en is empty)
+- 1-2 sentences per bullet, no padding, no filler
+- No intro sentence, no conclusion sentence
+- Start directly with the first bullet point
 
-CRITICAL: If you are not confident about the information for this EXACT scientific name, return exactly this string and nothing else: NOT_FOUND
-Never guess. Never use info from a similar species.`;
+EXACT TRANSLATIONS TO USE (do not deviate):
+care_level easy    → سهل العناية، مناسب للمبتدئين
+care_level medium  → متوسط العناية، يحتاج بعض الخبرة
+care_level hard    → صعب العناية، للمربين المتقدمين فقط
+diet carnivore     → لاحم، يتغذى على الأطعمة الحية أو المجمدة
+diet herbivore     → عاشب، يحتاج أعشاباً بحرية وطحالب باستمرار
+diet omnivore      → يقبل غذاءً متنوعاً من اللحوم والنباتات
+reef_safe reef_safe    → آمن تماماً مع المرجان واللافقاريات
+reef_safe caution      → يحتاج مراقبة مع بعض اللافقاريات
+reef_safe with_caution → بحذر مع المرجان، قد ينقر بعض الأنواع
+reef_safe no           → غير آمن مع المرجان واللافقاريات
+
+CRITICAL: Return NOT_FOUND (literally, nothing else) if the provided fields cannot produce at least 2 meaningful bullet points.`;
 
     const userPr =
 `Scientific name: ${scientific_name}
