@@ -7,8 +7,7 @@
 
 const crypto = require('crypto');
 
-const JWT_SECRET        = process.env.JWT_SECRET;
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const ALLOWED_ORIGINS = [
   'https://redseairaq.com',
@@ -68,8 +67,9 @@ exports.handler = async function(event) {
   if (!common_name_en && !scientific_name)
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'common_name_en أو scientific_name مطلوب' }) };
 
+  const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
   if (!ANTHROPIC_API_KEY) {
-    console.error('[enrich] ANTHROPIC_API_KEY not set');
+    console.error('[enrich] ANTHROPIC_API_KEY not set in Netlify environment variables');
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Anthropic API key not configured' }) };
   }
 
