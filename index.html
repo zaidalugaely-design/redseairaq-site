@@ -2005,8 +2005,12 @@ async function sbGet(path){
       headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
       cache:'no-store'
     });
+    if(!r.ok) console.error('[sbGet]',r.status,r.statusText,path.split('?')[0]);
     return r.ok?await r.json():null;
-  }catch(e){return null;}
+  }catch(e){
+    console.error('[sbGet] fetch error:',e.message,'→',path.split('?')[0]);
+    return null;
+  }
 }
 
 /* ════════════════════════
@@ -3242,6 +3246,13 @@ window.toggleBioNotes=function(cardId){
 
 var CHEVRON_SVG='<svg class="acc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
 
+window.retryEducationLoad=async function(){
+  var fp=document.getElementById('eduFishPanel');
+  if(fp)fp.innerHTML='<div style="text-align:center;padding:60px 20px;color:var(--muted)">⏳ جاري التحميل...</div>';
+  await syncEducationData();
+  renderEducation();
+};
+
 function renderEducation(){
   var fishPanel=document.getElementById('eduFishPanel');
   var coralPanel=document.getElementById('eduCoralPanel');
@@ -3249,6 +3260,22 @@ function renderEducation(){
 
   /* Fish tab — grouped by family, each family in a collapsed accordion */
   var visibleCards=fishCards.filter(function(f){return f.is_visible!==false;});
+
+  /* Data failed to load — show visible Arabic error with retry */
+  if(!fishFamilies.length&&!fishCards.length){
+    fishPanel.innerHTML=
+      '<div style="text-align:center;padding:60px 20px">'
+      +'<div style="font-size:42px;margin-bottom:16px">⚠️</div>'
+      +'<p style="font-size:16px;font-weight:700;color:#c0392b;margin-bottom:8px">خطأ في تحميل البيانات</p>'
+      +'<p style="color:var(--muted);margin-bottom:24px;font-size:14px">اسحب للأسفل للمحاولة مجدداً</p>'
+      +'<button class="btn primary" onclick="retryEducationLoad()" style="font-size:14px;padding:12px 24px">🔄 إعادة التحميل</button>'
+      +'</div>';
+    coralPanel.innerHTML='';
+    fishPanel.style.display=_eduActiveTab==='fish'?'block':'none';
+    coralPanel.style.display=_eduActiveTab==='coral'?'block':'none';
+    return;
+  }
+
   if(!fishFamilies.length&&!visibleCards.length){
     fishPanel.innerHTML='<div class="edu-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">'+FISH_ICON+'</svg><p>'+t('edu_no_fish')+'</p></div>';
   } else {
@@ -4601,25 +4628,36 @@ async function syncFromSupabase(){
       };});
       saveRef();
     }
-    var ffData=await sbGet('/rest/v1/fish_families?order=created_at.asc&limit=200');
-    if(ffData&&ffData.length){
-      fishFamilies=ffData.map(function(r){return{id:r.id,name_ar:r.name_ar||'',name_en:r.name_en||'',name_ku:r.name_ku||'',created_at:r.created_at||''};});
-    }
-    var fcData=await sbGet('/rest/v1/fish_cards?order=created_at.asc&limit=600');
-    if(fcData&&fcData.length){
-      fishCards=fcData.map(function(r){return{id:r.id,family_id:r.family_id||'',common_name_ar:r.common_name_ar||'',common_name_en:r.common_name_en||'',common_name_ku:r.common_name_ku||'',scientific_name:r.scientific_name||'',care_level:r.care_level||null,diet:r.diet||null,reef_safe:r.reef_safe||null,notes:r.notes||null,image_url:r.image_url||null,needs_review:r.needs_review===undefined?null:r.needs_review,created_at:r.created_at||''};});
-    }
-    var ccData=await sbGet('/rest/v1/coral_cards?order=created_at.asc&limit=500');
-    if(ccData&&ccData.length){
-      coralCards=ccData.map(function(r){return{id:r.id,name_ar:r.name_ar||'',name_en:r.name_en||'',name_ku:r.name_ku||'',scientific_name:r.scientific_name||'',lighting:r.lighting||'medium',flow:r.flow||'medium',placement:r.placement||'middle',difficulty:r.difficulty||'medium',feeding:r.feeding||null,notes:r.notes||null,image_url:r.image_url||null,created_at:r.created_at||''};});
-    }
-  }catch(e){console.warn('Supabase sync failed, using local:',e);}
+  }catch(e){console.warn('Supabase sync failed:',e.message);}
   /* Enable search after data loaded */
   var si = document.getElementById('searchInput');
+
   if(si){ si.disabled=false; si.placeholder='ابحث عن منتج...'; }
   var pl = document.getElementById('productsLoading');
   if(pl){ pl.style.display='none'; }
 }
+
+/* ── Education data — isolated from shop sync so a shop error can't kill it ── */
+async function syncEducationData(){
+  try{
+    var ffData=await sbGet('/rest/v1/fish_families?select=*&order=created_at.asc&limit=200');
+    if(ffData&&ffData.length){
+      fishFamilies=ffData.map(function(r){return{id:r.id,name_ar:r.name_ar||'',name_en:r.name_en||'',name_ku:r.name_ku||'',created_at:r.created_at||''};});
+    }
+    var fcData=await sbGet('/rest/v1/fish_cards?select=*&order=created_at.asc&limit=600');
+    if(fcData&&fcData.length){
+      fishCards=fcData.map(function(r){return{id:r.id,family_id:r.family_id||'',common_name_ar:r.common_name_ar||'',common_name_en:r.common_name_en||'',common_name_ku:r.common_name_ku||'',scientific_name:r.scientific_name||'',care_level:r.care_level||null,diet:r.diet||null,reef_safe:r.reef_safe||null,notes:r.notes||null,image_url:r.image_url||null,needs_review:r.needs_review===undefined?null:r.needs_review,created_at:r.created_at||''};});
+    }
+    var ccData=await sbGet('/rest/v1/coral_cards?select=*&order=created_at.asc&limit=500');
+    if(ccData&&ccData.length){
+      coralCards=ccData.map(function(r){return{id:r.id,name_ar:r.name_ar||'',name_en:r.name_en||'',name_ku:r.name_ku||'',scientific_name:r.scientific_name||'',lighting:r.lighting||'medium',flow:r.flow||'medium',placement:r.placement||'middle',difficulty:r.difficulty||'medium',feeding:r.feeding||null,notes:r.notes||null,image_url:r.image_url||null,created_at:r.created_at||''};});
+    }
+    console.log('[edu] families:'+fishFamilies.length+' cards:'+fishCards.length+' coral:'+coralCards.length);
+  }catch(e){
+    console.error('[edu] syncEducationData failed:',e.message);
+  }
+}
+
 async function sbSaveProduct(item){
   try{ await apiCall('save_product',{item},true); }
   catch(e){ console.error('save_product:',e); }
@@ -4670,7 +4708,7 @@ async function boot(){
     setPage('product');
   }
 
-  await syncFromSupabase(); /* انتظر البيانات كاملة */
+  await Promise.all([syncFromSupabase(), syncEducationData()]); /* انتظر البيانات كاملة */
 
   renderCatSelects();
   updateCartBadge();
