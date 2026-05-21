@@ -3118,13 +3118,15 @@ function eduName(obj,arKey,enKey,kuKey){
 
 function parseMultiLangField(val,lang){
   if(!val) return '';
-  if(typeof val==='string'&&val.charAt(0)==='{'){
-    try{
-      var o=JSON.parse(val);
-      if(lang==='en') return o.en||o.ar||val;
-      if(lang==='ku') return o.ku||o.ar||val;
-      return o.ar||val;
-    }catch(e){}
+  var o=null;
+  if(typeof val==='object') o=val;
+  else if(typeof val==='string'&&val.charAt(0)==='{'){
+    try{ o=JSON.parse(val); }catch(e){}
+  }
+  if(o){
+    if(lang==='en') return o.en||o.ar||'';
+    if(lang==='ku') return o.ku||o.ar||o.en||'';
+    return o.ar||o.en||'';
   }
   return val;
 }
@@ -3136,10 +3138,12 @@ function bioPlaceholder(iconPath){
 var FISH_ICON='<path d="M6.5 12c.94-3.46 4.94-6 8.5-6 3.56 0 6.06 2.54 7 6-.94 3.46-3.44 6-7 6-3.56 0-7.56-2.54-8.5-6z"/><path d="M18 12h.01"/><path d="M2 12c1-2 2.5-3.5 4-4l-3 4 3 4c-1.5-.5-3-2-4-4z"/>';
 var CORAL_ICON='<path d="M12 22V12"/><path d="M12 12C12 8 9 5 5 5"/><path d="M12 12c0-4 3-7 7-7"/><path d="M5 5c0 4 3 5 5 7"/><path d="M19 5c0 4-3 5-5 7"/><circle cx="5" cy="5" r="1.5" fill="currentColor"/><circle cx="19" cy="5" r="1.5" fill="currentColor"/>';
 
+var _bioItems={};
 function bioCard(item,type){
+  _bioItems[item.id]=item;
   var cardId='bio-'+item.id;
   var img=item.image_url
-    ?'<img class="bio-img" src="'+esc(item.image_url)+'" alt="'+esc(item.common_name_ar||item.name_ar||'')+'" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
+    ?'<img class="bio-img" src="'+esc(item.image_url)+'" alt="'+esc(item.common_name_ar||item.name_ar||'')+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
      +bioPlaceholder(type==='fish'?FISH_ICON:CORAL_ICON).replace('class="bio-img-placeholder"','class="bio-img-placeholder" style="display:none"')
     :bioPlaceholder(type==='fish'?FISH_ICON:CORAL_ICON);
 
@@ -3198,14 +3202,12 @@ function bioCard(item,type){
     feedingHtml='<div style="font-size:12.5px;color:#4a5568;margin-bottom:8px;line-height:1.5"><b style="color:var(--navy)">'+feedingLabel+'</b> '+esc(feedingText)+'</div>';
   }
 
-  return '<article class="bio-card">'
+  return '<article class="bio-card" onclick="openBioModal(\''+item.id+'\',\''+type+'\')" style="cursor:pointer">'
     +img
     +'<div class="bio-body">'
     +'<div class="bio-name">'+esc(name)+'</div>'
     +(sci?'<div class="bio-sci">'+sci+'</div>':'')
     +'<div class="bio-badges">'+badges+'</div>'
-    +feedingHtml
-    +notesHtml
     +'</div>'
     +'</article>';
 }
@@ -4548,6 +4550,66 @@ if(_origRenderProducts){
   });
 })();
 
+/* ── Bio card modal ── */
+window.openBioModal=function(id,type){
+  var item=_bioItems[id];
+  if(!item)return;
+  var name=type==='fish'
+    ?eduName(item,'common_name_ar','common_name_en','common_name_ku')
+    :eduName(item,'name_ar','name_en','name_ku');
+  var sci=item.scientific_name||'';
+  var notes=parseMultiLangField(item.notes,currentLang);
+  var feeding=type==='coral'?parseMultiLangField(item.feeding,currentLang):'';
+
+  var imgHtml=item.image_url
+    ?'<div style="position:relative;width:100%;aspect-ratio:4/3;background:linear-gradient(135deg,var(--red) 0%,#8b0000 100%);overflow:hidden">'
+      +'<img src="'+esc(item.image_url)+'" alt="'+esc(name)+'" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.parentElement.querySelector(\'.bm-ph\').style.display=\'flex\';this.style.display=\'none\'">'
+      +'<div class="bm-ph" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="width:64px;height:64px;opacity:.7">'+( type==='fish'?FISH_ICON:CORAL_ICON)+'</svg></div>'
+      +'</div>'
+    :'<div style="width:100%;aspect-ratio:4/3;background:linear-gradient(135deg,var(--red) 0%,#8b0000 100%);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="width:64px;height:64px;opacity:.7">'+( type==='fish'?FISH_ICON:CORAL_ICON)+'</svg></div>';
+
+  var badges='';
+  if(type==='fish'){
+    var careKey=item.care_level||'easy';
+    var dietKey=item.diet||'omnivore';
+    var reefKey=(item.reef_safe||'reef_safe').replace('/','_');
+    badges='<span class="bio-badge bio-badge-care-'+careKey+'">⭐ '+(t('edu_care_'+careKey)||careKey)+'</span>'
+      +'<span class="bio-badge bio-badge-diet">'+(t('edu_diet_'+dietKey)||dietKey)+'</span>'
+      +'<span class="bio-badge bio-badge-reef-'+reefKey+'">🪸 '+(t('edu_reef_'+reefKey)||reefKey)+'</span>';
+  } else {
+    badges='<span class="bio-badge bio-badge-light-'+(item.lighting||'medium')+'">💡 '+(t('edu_light_'+(item.lighting||'medium'))||item.lighting||'')+'</span>'
+      +'<span class="bio-badge bio-badge-flow-'+(item.flow||'medium')+'">🌊 '+(t('edu_flow_'+(item.flow||'medium'))||item.flow||'')+'</span>'
+      +'<span class="bio-badge bio-badge-place">📍 '+(t('edu_place_'+(item.placement||'middle'))||item.placement||'')+'</span>'
+      +'<span class="bio-badge bio-badge-care-'+(item.difficulty||'medium')+'">⭐ '+(t('edu_care_'+(item.difficulty||'medium'))||item.difficulty||'')+'</span>';
+  }
+
+  var m=document.getElementById('bioModal');
+  var mc=document.getElementById('bioModalContent');
+  mc.innerHTML=imgHtml
+    +'<div style="padding:20px 20px 24px;direction:rtl">'
+    +'<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">'
+    +'<div>'
+    +'<div style="font-size:20px;font-weight:900;color:var(--navy);line-height:1.2">'+esc(name)+'</div>'
+    +(sci?'<div style="font-size:13px;color:var(--muted);font-style:italic;margin-top:3px">'+esc(sci)+'</div>':'')
+    +'</div>'
+    +'<button onclick="closeBioModal()" style="background:var(--pearl);border:none;border-radius:50%;width:34px;height:34px;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--navy);margin-right:4px" aria-label="إغلاق">✕</button>'
+    +'</div>'
+    +'<div class="bio-badges" style="margin-bottom:14px">'+badges+'</div>'
+    +(feeding?'<div style="font-size:13.5px;color:#4a5568;line-height:1.7;margin-bottom:10px"><b style="color:var(--navy)">'+(currentLang==='en'?'Feeding:':currentLang==='ku'?'خواردن:':'التغذية:')+' </b>'+esc(feeding)+'</div>':'')
+    +(notes?'<div style="font-size:13.5px;color:#4a5568;line-height:1.7">'+esc(notes)+'</div>':'')
+    +'</div>';
+  m.style.display='flex';
+  document.body.style.overflow='hidden';
+};
+window.closeBioModal=function(){
+  document.getElementById('bioModal').style.display='none';
+  document.body.style.overflow='';
+};
+
 </script>
+
+<div id="bioModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9998;align-items:flex-start;justify-content:center;padding:16px 16px 40px;box-sizing:border-box;overflow-y:auto" onclick="if(event.target===this)closeBioModal()">
+  <div id="bioModalContent" style="background:#fff;border-radius:20px;max-width:480px;width:100%;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.35);margin:auto"></div>
+</div>
 </body>
 </html>
