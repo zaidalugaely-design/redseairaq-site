@@ -1334,7 +1334,7 @@ html{scroll-behavior:smooth}
             </div>
             <div><div class="admin-products" id="adminFishCardList"></div></div>
           </div>
-          <div id="bulkEnrichProgress" style="display:none;margin-top:12px;padding:14px 16px;background:var(--pearl);border-radius:12px;font-size:13px;text-align:center;color:var(--navy);line-height:1.7"></div>
+          <div id="bulkEnrichProgress" style="display:none;margin-top:14px;padding:18px 20px;background:var(--pearl);border-radius:14px;font-size:13px;color:var(--navy);line-height:1.7;max-width:600px"></div>
         </div></div>
       </div><!-- /accFishCards -->
 
@@ -4069,33 +4069,90 @@ window.bulkFetchWikipediaImages=async function(){
   var prog=document.getElementById('bulkEnrichProgress');
   prog.style.display='block';
   var done=0,failed=0,total=toFix.length;
-  prog.innerHTML='🌐 جاري جلب الصور... 0 / '+total;
+  var failedCards=[];
+  var debugLog=[];
+  function renderProgress(){
+    var pct=total?Math.round((done+failed)/total*100):0;
+    prog.innerHTML=
+      '<div style="font-weight:700;margin-bottom:8px;text-align:right">🌐 جاري المعالجة... '+(done+failed)+' / '+total+'</div>'
+      +'<div style="background:#dde;border-radius:6px;height:10px;overflow:hidden;margin-bottom:8px">'
+      +'<div style="background:#27ae60;height:10px;width:'+pct+'%;transition:width 0.25s;border-radius:6px"></div>'
+      +'</div>'
+      +'<div style="font-size:12px;color:var(--muted);text-align:right">✅ '+done+' &nbsp;|&nbsp; ❌ '+failed+'</div>';
+  }
+  renderProgress();
   var BATCH=10;
   for(var i=0;i<toFix.length;i+=BATCH){
     var batch=toFix.slice(i,i+BATCH);
     await Promise.all(batch.map(async function(card){
       try{
         var sciName=(card.scientific_name||'').trim().replace(/ /g,'_');
-        if(!sciName){failed++;return;}
+        var displayName=card.common_name_en||card.common_name_ar||card.scientific_name||card.id;
+        if(!sciName){
+          failed++;
+          if(failedCards.length<50) failedCards.push({name:displayName,searched:'(لا يوجد اسم علمي)'});
+          renderProgress();return;
+        }
+        var searched=sciName;
         var url=await _wikiImage(sciName);
         if(!url){
           var genus=sciName.split('_')[0];
-          if(genus&&genus!==sciName) url=await _wikiImage(genus);
+          if(genus&&genus!==sciName){
+            url=await _wikiImage(genus);
+            if(url) searched=sciName+' (genus: '+genus+')';
+            else searched=sciName+' + '+genus;
+          }
         }
+        if(debugLog.length<3) debugLog.push({searched:searched,found:!!url});
         if(url){
           var r=await apiCall('enrich_fish_card',{id:card.id,image_url:url},true);
           if(r&&!r.error){
             var idx=fishCards.findIndex(function(f){return f.id===card.id;});
             if(idx>=0) fishCards[idx].image_url=url;
             done++;
-          }else{ failed++; }
-        }else{ failed++; }
+          }else{ failed++;if(failedCards.length<50)failedCards.push({name:displayName,searched:searched}); }
+        }else{
+          failed++;if(failedCards.length<50)failedCards.push({name:displayName,searched:searched});
+        }
       }catch(e){ failed++;console.warn('[wikiImages]',card.id,e); }
-      prog.innerHTML='🌐 جاري جلب الصور... '+(done+failed)+' / '+total+' &nbsp;— ✅ '+done+' | ❌ '+failed;
+      renderProgress();
     }));
     if(i+BATCH<toFix.length) await new Promise(function(res){setTimeout(res,1000);});
   }
-  prog.innerHTML='✅ اكتمل — تم: <b>'+done+'</b> | لم يُعثر: <b>'+failed+'</b>';
+  /* ── Final summary ── */
+  var failedHtml='';
+  if(failedCards.length){
+    var shown=failedCards.slice(0,10);
+    failedHtml='<div style="margin-top:14px;text-align:right">'
+      +'<div style="font-weight:700;margin-bottom:6px;color:#c0392b">أمثلة على الفاشلة (أول '+(Math.min(failedCards.length,10))+')</div>'
+      +'<div style="background:#fff3f3;border:1px solid #f5c6cb;border-radius:8px;padding:10px 14px;font-size:12px;line-height:2.1">'
+      +shown.map(function(f){return'❌ <b>'+esc(f.name)+'</b> — لم يُعثر على صورة';}).join('<br>')
+      +(failedCards.length>10?'<br><span style="color:var(--muted)">... و '+(failedCards.length-10)+' أخرى</span>':'')
+      +'</div></div>';
+  }
+  var debugHtml='';
+  if(debugLog.length){
+    debugHtml='<div style="margin-top:14px;text-align:right">'
+      +'<div style="font-weight:700;margin-bottom:6px;color:var(--muted)">🔍 تحقق: أول '+debugLog.length+' بطاقات تم البحث عنها</div>'
+      +'<div style="background:#f0f4ff;border:1px solid #c5d5f5;border-radius:8px;padding:10px 14px;font-size:12px;line-height:2.1;font-family:monospace;direction:ltr;text-align:left">'
+      +debugLog.map(function(d){return'Searched: <b>'+esc(d.searched)+'</b> → '+(d.found?'✅ found':'❌ not found');}).join('<br>')
+      +'</div></div>';
+  }
+  prog.innerHTML=
+    '<div style="font-weight:800;font-size:15px;margin-bottom:14px;text-align:right">اكتمل البحث</div>'
+    +'<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:4px">'
+    +'<div style="background:#eafaf1;border:1px solid #a9dfbf;border-radius:10px;padding:12px 22px;text-align:center;min-width:80px">'
+    +'<div style="font-size:26px;font-weight:800;color:#27ae60">'+done+'</div>'
+    +'<div style="font-size:12px;font-weight:600;color:#27ae60">✅ نجح</div></div>'
+    +'<div style="background:#fdf2f2;border:1px solid #f5c6cb;border-radius:10px;padding:12px 22px;text-align:center;min-width:80px">'
+    +'<div style="font-size:26px;font-weight:800;color:#c0392b">'+failed+'</div>'
+    +'<div style="font-size:12px;font-weight:600;color:#c0392b">❌ فشل</div></div>'
+    +'<div style="background:#eaf1fb;border:1px solid #aed6f1;border-radius:10px;padding:12px 22px;text-align:center;min-width:80px">'
+    +'<div style="font-size:26px;font-weight:800;color:#2980b9">'+total+'</div>'
+    +'<div style="font-size:12px;font-weight:600;color:#2980b9">🔄 إجمالي</div></div>'
+    +'</div>'
+    +failedHtml
+    +debugHtml;
 };
 
 /* ── Coral Card CRUD ── */
