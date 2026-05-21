@@ -386,6 +386,106 @@ exports.handler = async function(event) {
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }
 
+  /* ENRICH FISH CARD AI — Claude + web_search to extract care data */
+  if (action === 'enrich_fish_card_ai') {
+    const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+    if (!ANTHROPIC_KEY) return res(headers, 500, { error: 'ANTHROPIC_API_KEY غير مضبوط' });
+
+    const { common_name_en, scientific_name } = body;
+    if (!common_name_en && !scientific_name)
+      return res(headers, 400, { error: 'common_name_en أو scientific_name مطلوب' });
+
+    const VALID_CARE = new Set(['easy', 'medium', 'hard']);
+    const VALID_DIET = new Set(['carnivore', 'herbivore', 'omnivore']);
+    const VALID_REEF = new Set(['reef_safe', 'caution', 'with_caution', 'no']);
+
+    const systemPrompt =
+`You are a marine biology and aquarium expert with deep knowledge of reef fish care.
+
+SEARCH STRATEGY (search by scientific name, not common name):
+1. First search: "fishbase.se ${scientific_name || common_name_en}" — get biological facts (size, habitat, natural diet)
+2. Second search: "${scientific_name || common_name_en} aquarium care reef safe" — get hobbyist care requirements
+
+CLASSIFICATION RULES:
+- care_level: "easy" = hardy and forgiving for beginners | "medium" = needs some experience | "hard" = expert only
+- diet: "carnivore" = eats live/frozen meaty foods | "herbivore" = primarily algae/plant-based | "omnivore" = accepts both
+- reef_safe: "reef_safe" = completely safe with corals and invertebrates | "caution" = generally ok but watch inverts | "with_caution" = known to nip corals | "no" = will destroy corals or eat invertebrates
+- image_url: a direct URL to a clear species photo from fishbase.se or similar scientific source, or null
+- notes_en: 3-5 sentences covering max adult size, minimum tank size, behavior, feeding, and reef compatibility notes
+
+CRITICAL: Use your expert marine biology knowledge to fill in values you are confident about, even when web search results are not perfectly formatted. You know the care requirements of common reef fish well — use that knowledge. Only return {"not_found":true} for species so obscure you have no information at all.
+
+Return ONLY valid JSON: {"care_level":"...","diet":"...","reef_safe":"...","image_url":"...or null","notes_en":"..."}`;
+
+    const userContent = scientific_name
+      ? `Scientific name: ${scientific_name}${common_name_en ? `\nCommon name: ${common_name_en}` : ''}\n\nSearch FishBase for this species by scientific name, then search for aquarium care info. Return JSON.`
+      : `Common name: ${common_name_en}\n\nSearch for aquarium care info for this species. Return JSON.`;
+
+    const callClaude = (msgs, forceSearch) => fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type'     : 'application/json',
+        'x-api-key'        : ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta'   : 'web-search-2025-03-05'
+      },
+      body: JSON.stringify({
+        model     : 'claude-sonnet-4-20250514',
+        max_tokens: 2048,
+        system    : systemPrompt,
+        tools     : [{ type: 'web_search_20250305', name: 'web_search' }],
+        ...(forceSearch ? { tool_choice: { type: 'tool', name: 'web_search' } } : {}),
+        messages  : msgs
+      })
+    });
+
+    try {
+      let messages = [{ role: 'user', content: userContent }];
+      let r2 = await callClaude(messages, true);
+      if (!r2.ok) {
+        const errText = await r2.text();
+        throw new Error(errText);
+      }
+      let data = await r2.json();
+
+      let loops = 0;
+      while (data.stop_reason === 'tool_use' && loops++ < 5) {
+        const toolCalls = data.content.filter(c => c.type === 'tool_use');
+        const toolResults = toolCalls.map(tc => {
+          const resultBlock = data.content.find(c => c.type === 'tool_result' && c.tool_use_id === tc.id);
+          return { type: 'tool_result', tool_use_id: tc.id, content: resultBlock?.content ?? [] };
+        });
+        messages = [...messages, { role: 'assistant', content: data.content }, { role: 'user', content: toolResults }];
+        r2 = await callClaude(messages, false);
+        if (!r2.ok) { const errText = await r2.text(); throw new Error(errText); }
+        data = await r2.json();
+      }
+
+      const text = (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim();
+      if (!text) return res(headers, 200, { not_found: true });
+
+      let parsed;
+      try {
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
+      } catch { return res(headers, 200, { not_found: true }); }
+
+      if (parsed.not_found) return res(headers, 200, { not_found: true });
+
+      const careOk = VALID_CARE.has(parsed.care_level);
+      const dietOk = VALID_DIET.has(parsed.diet);
+      const reefOk = VALID_REEF.has(parsed.reef_safe);
+
+      return res(headers, 200, {
+        care_level: careOk ? parsed.care_level : null,
+        diet      : dietOk ? parsed.diet       : null,
+        reef_safe : reefOk ? parsed.reef_safe  : null,
+        image_url : (typeof parsed.image_url === 'string' && parsed.image_url.startsWith('http')) ? parsed.image_url : null,
+        notes_en  : (typeof parsed.notes_en === 'string' && parsed.notes_en.length > 10) ? parsed.notes_en : null
+      });
+    } catch (e) { return res(headers, 502, { error: 'API error: ' + e.message }); }
+  }
+
   /* SAVE CORAL CARD */
   if (action === 'save_coral_card') {
     const { card } = body;

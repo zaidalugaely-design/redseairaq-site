@@ -3731,10 +3731,10 @@ window.enrichFishCard=async function(){
   btn.lastChild.textContent=' جارٍ البحث...';
   try{
     if(!_adminToken)throw new Error('غير مصرح — سجل الدخول أولاً');
-    var r=await fetch('/.netlify/functions/enrich-fish-card',{
+    var r=await fetch('/.netlify/functions/api',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+_adminToken},
-      body:JSON.stringify({common_name_en:nameEn,scientific_name:sci})
+      body:JSON.stringify({action:'enrich_fish_card_ai',common_name_en:nameEn,scientific_name:sci})
     });
     var data=await r.json().catch(function(){return{};});
     if(!r.ok)throw new Error(data.error||'HTTP '+r.status);
@@ -3759,10 +3759,10 @@ window.enrichFishCard=async function(){
 /* helper: fetch enrichment data for one card (no side effects) */
 async function _fetchEnrich(card){
   try{
-    var r=await fetch('/.netlify/functions/enrich-fish-card',{
+    var r=await fetch('/.netlify/functions/api',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+_adminToken},
-      body:JSON.stringify({common_name_en:card.common_name_en,scientific_name:card.scientific_name})
+      body:JSON.stringify({action:'enrich_fish_card_ai',common_name_en:card.common_name_en,scientific_name:card.scientific_name})
     });
     var data=await r.json().catch(function(){return{};});
     return{card,data:(!r.ok||data.not_found)?null:data,not_found:!r.ok||!!data.not_found};
