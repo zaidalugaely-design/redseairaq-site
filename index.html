@@ -1277,9 +1277,11 @@ html{scroll-behavior:smooth}
       <div class="acc-sub" id="accFishCards">
         <div class="acc-sub-header" onclick="toggleAccordion('accFishCards')">
           <span class="acc-sub-header-title">🐟 بطاقات الأسماك</span>
-          <div style="display:flex;align-items:center;gap:8px">
-            <button class="btn" style="font-size:12px;padding:7px 12px" onclick="event.stopPropagation();openAccordion('accFishCards');bulkEnrichFishCards()">🔍 إثراء للكل</button>
-            <button class="btn primary" style="font-size:12px;padding:7px 12px" onclick="event.stopPropagation();openAccordion('accFishCards');resetFishCardForm()">＋ سمكة جديدة</button>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');bulkEnrichFishCards()">🔍 إثراء للكل</button>
+            <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');bulkFixFishImages()">🖼️ إصلاح الصور</button>
+            <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');bulkWriteArabicNotes()">✍️ كتابة النبذات</button>
+            <button class="btn primary" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');resetFishCardForm()">＋ سمكة جديدة</button>
             <svg class="acc-sub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
         </div>
@@ -3935,6 +3937,87 @@ function renderAdminFishCards(){
   }
   el.innerHTML=html||'<div class="admin-help">لا توجد أسماك بعد.</div>';
 }
+
+/* ── P5: Bulk fix FishBase images → Wikimedia/iNaturalist ── */
+window.bulkFixFishImages=async function(){
+  if(!_adminToken){toast('غير مصرح — سجل الدخول');return;}
+  var broken=fishCards.filter(function(c){return c.image_url&&c.image_url.includes('fishbase.se');});
+  if(!broken.length){toast('لا توجد صور fishbase.se تحتاج إصلاح ✓');return;}
+  var prog=document.getElementById('bulkEnrichProgress');
+  prog.style.display='block';
+  var done=0,total=broken.length;
+  prog.innerHTML='🖼️ جاري إصلاح الصور... 0 / '+total;
+  for(var i=0;i<broken.length;i++){
+    var card=broken[i];
+    try{
+      var r=await apiCall('fix_fish_image',{id:card.id,scientific_name:card.scientific_name,common_name_en:card.common_name_en},true);
+      if(r.image_url){
+        var idx=fishCards.findIndex(function(f){return f.id===card.id;});
+        if(idx>=0) fishCards[idx].image_url=r.image_url;
+      }
+    }catch(e){ console.warn('fix_fish_image',card.id,e); }
+    done++;
+    prog.innerHTML='🖼️ جاري إصلاح الصور... '+done+' / '+total;
+  }
+  renderAdminFishCards();
+  prog.innerHTML='✅ اكتملت إصلاحات الصور — تمت معالجة: <b>'+total+'</b> صورة';
+};
+
+/* ── P6: Bulk write Arabic notes for cards missing them ── */
+window.bulkWriteArabicNotes=async function(){
+  if(!_adminToken){toast('غير مصرح — سجل الدخول');return;}
+  var toWrite=fishCards.filter(function(c){
+    if(!c.care_level)return false;
+    var ar='';
+    if(c.notes){
+      var o=typeof c.notes==='object'?c.notes:null;
+      if(!o&&typeof c.notes==='string'&&c.notes.charAt(0)==='{'){try{o=JSON.parse(c.notes);}catch(e){}}
+      if(o) ar=o.ar||'';
+    }
+    return !ar;
+  });
+  if(!toWrite.length){toast('كل البطاقات لديها نبذات عربية ✓');return;}
+  var prog=document.getElementById('bulkEnrichProgress');
+  prog.style.display='block';
+  var done=0,failed=0,total=toWrite.length;
+  prog.innerHTML='✍️ جاري الكتابة... 0 / '+total;
+  var BATCH=5;
+  for(var i=0;i<toWrite.length;i+=BATCH){
+    var batch=toWrite.slice(i,i+BATCH);
+    await Promise.all(batch.map(async function(card){
+      try{
+        var notesEn='';
+        if(card.notes){
+          var o=typeof card.notes==='object'?card.notes:null;
+          if(!o&&typeof card.notes==='string'&&card.notes.charAt(0)==='{'){try{o=JSON.parse(card.notes);}catch(e){}}
+          notesEn=(o?o.en:'')||'';
+        }
+        var r=await apiCall('write_arabic_notes',{
+          id:card.id,
+          common_name_en:card.common_name_en,
+          scientific_name:card.scientific_name,
+          care_level:card.care_level,
+          diet:card.diet,
+          reef_safe:card.reef_safe,
+          notes_en:notesEn
+        },true);
+        if(r.ok){
+          var idx=fishCards.findIndex(function(f){return f.id===card.id;});
+          if(idx>=0){
+            var cur=fishCards[idx].notes;
+            var curObj=typeof cur==='object'&&cur?cur:null;
+            if(!curObj&&typeof cur==='string'&&cur.charAt(0)==='{'){try{curObj=JSON.parse(cur);}catch(e){}}
+            fishCards[idx].notes=JSON.stringify({ar:r.notes_ar,en:(curObj?curObj.en:'')||'',ku:(curObj?curObj.ku:'')||''});
+          }
+          done++;
+        }else{ failed++; }
+      }catch(e){ failed++; console.warn('write_arabic_notes',card.id,e); }
+    }));
+    prog.innerHTML='✍️ جاري الكتابة... '+(done+failed)+' / '+total+' &nbsp;— ✅ '+done+' | ⚠️ '+failed;
+    if(i+BATCH<toWrite.length) await new Promise(function(res){setTimeout(res,1000);});
+  }
+  prog.innerHTML='✅ اكتمل — تمت الكتابة: <b>'+done+'</b> | فشل: <b>'+failed+'</b>';
+};
 
 /* ── Coral Card CRUD ── */
 window.resetCoralForm=function(){

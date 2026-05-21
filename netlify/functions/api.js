@@ -416,18 +416,23 @@ exports.handler = async function(event) {
     const systemPrompt =
 `You are a marine biology and aquarium expert with deep knowledge of reef fish care.
 
-SEARCH STRATEGY (search by scientific name, not common name):
-1. First search: "fishbase.se ${scientific_name || common_name_en}" — get biological facts (size, habitat, natural diet)
-2. Second search: "${scientific_name || common_name_en} aquarium care reef safe" — get hobbyist care requirements
+SEARCH STRATEGY (search by scientific name for accuracy):
+1. Search Wikimedia Commons for a species image: "site:commons.wikimedia.org ${scientific_name || common_name_en}" — find a direct image URL (must end in .jpg, .jpeg, or .png from upload.wikimedia.org)
+2. If no Wikimedia image found, try iNaturalist: "${scientific_name || common_name_en} site:inaturalist.org" — get a photo URL
+3. Search for care info: "${scientific_name || common_name_en} aquarium care reef safe" — get hobbyist requirements
+
+IMAGE RULES:
+- image_url must be a direct hotlink-friendly URL (upload.wikimedia.org preferred, or inaturalist.org)
+- DO NOT use fishbase.se image URLs — they block hotlinking
+- If no reliable direct image URL found, return null for image_url
 
 CLASSIFICATION RULES:
 - care_level: "easy" = hardy and forgiving for beginners | "medium" = needs some experience | "hard" = expert only
 - diet: "carnivore" = eats live/frozen meaty foods | "herbivore" = primarily algae/plant-based | "omnivore" = accepts both
 - reef_safe: "reef_safe" = completely safe with corals and invertebrates | "caution" = generally ok but watch inverts | "with_caution" = known to nip corals | "no" = will destroy corals or eat invertebrates
-- image_url: a direct URL to a clear species photo from fishbase.se or similar scientific source, or null
 - notes_en: 3-5 sentences covering max adult size, minimum tank size, behavior, feeding, and reef compatibility notes
 
-CRITICAL: Use your expert marine biology knowledge to fill in values you are confident about, even when web search results are not perfectly formatted. You know the care requirements of common reef fish well — use that knowledge. Only return {"not_found":true} for species so obscure you have no information at all.
+CRITICAL: Use your expert marine biology knowledge to fill in values you are confident about. Only return {"not_found":true} for species so obscure you have no information at all.
 
 Return ONLY valid JSON: {"care_level":"...","diet":"...","reef_safe":"...","image_url":"...or null","notes_en":"..."}`;
 
@@ -498,6 +503,91 @@ Return ONLY valid JSON: {"care_level":"...","diet":"...","reef_safe":"...","imag
         notes_en  : (typeof parsed.notes_en === 'string' && parsed.notes_en.length > 10) ? parsed.notes_en : null
       });
     } catch (e) { return res(headers, 502, { error: 'API error: ' + e.message }); }
+  }
+
+  /* FIX FISH IMAGE — fetch Wikimedia/iNaturalist image for one card */
+  if (action === 'fix_fish_image') {
+    const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+    if (!ANTHROPIC_KEY) return res(headers, 500, { error: 'ANTHROPIC_API_KEY غير مضبوط' });
+
+    const { id, scientific_name, common_name_en } = body;
+    if (!id) return res(headers, 400, { error: 'id مطلوب' });
+
+    const searchName = scientific_name || common_name_en || '';
+    const sysPr = 'You are a marine biology image finder. Search for a species photo on Wikimedia Commons or iNaturalist. Return ONLY a JSON object: {"image_url":"direct_url_here"} or {"image_url":null} if no hotlink-friendly image found. The URL must be a direct image URL (ending in .jpg, .jpeg, or .png). Never use fishbase.se URLs.';
+    const userPr = `Find a direct hotlink-friendly image URL for: ${searchName}\n1. Search: "site:commons.wikimedia.org ${searchName}" — get upload.wikimedia.org URL\n2. Fallback: "${searchName} inaturalist.org photo"\nReturn JSON only.`;
+
+    try {
+      const callClaude = (msgs, force) => fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'web-search-2025-03-05' },
+        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 512, system: sysPr, tools: [{ type: 'web_search_20250305', name: 'web_search' }], ...(force ? { tool_choice: { type: 'tool', name: 'web_search' } } : {}), messages: msgs })
+      });
+      let msgs2 = [{ role: 'user', content: userPr }];
+      let r2 = await callClaude(msgs2, true);
+      if (!r2.ok) throw new Error(await r2.text());
+      let data = await r2.json();
+      let loops = 0;
+      while (data.stop_reason === 'tool_use' && loops++ < 3) {
+        const tcs = data.content.filter(c => c.type === 'tool_use');
+        const trs = tcs.map(tc => ({ type: 'tool_result', tool_use_id: tc.id, content: data.content.find(c => c.type === 'tool_result' && c.tool_use_id === tc.id)?.content ?? [] }));
+        msgs2 = [...msgs2, { role: 'assistant', content: data.content }, { role: 'user', content: trs }];
+        r2 = await callClaude(msgs2, false);
+        if (!r2.ok) throw new Error(await r2.text());
+        data = await r2.json();
+      }
+      const text = (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim();
+      let image_url = null;
+      try {
+        const m = text.match(/\{[\s\S]*\}/);
+        const parsed = JSON.parse(m ? m[0] : text);
+        if (typeof parsed.image_url === 'string' && parsed.image_url.startsWith('http') && !parsed.image_url.includes('fishbase.se'))
+          image_url = parsed.image_url;
+      } catch { /* no valid image */ }
+      if (image_url) {
+        await sb('PATCH', `/fish_cards?id=eq.${encodeURIComponent(id)}`, { image_url });
+      }
+      return res(headers, 200, { image_url });
+    } catch (e) { return res(headers, 502, { error: e.message }); }
+  }
+
+  /* WRITE ARABIC NOTES — generate Arabic notes for one card using Claude */
+  if (action === 'write_arabic_notes') {
+    const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+    if (!ANTHROPIC_KEY) return res(headers, 500, { error: 'ANTHROPIC_API_KEY غير مضبوط' });
+
+    const { id, common_name_en, scientific_name, care_level, diet, reef_safe, notes_en } = body;
+    if (!id) return res(headers, 400, { error: 'id مطلوب' });
+
+    const sysPr = `أنت خبير بأسماك وكائنات الزينة البحرية.
+اكتب نبذة قصيرة (3-4 جمل) باللهجة العراقية العامية.
+اذكر: الحجم التقريبي، طبيعة السلوك، متطلبات الحوض، والتوافق مع الكائنات الأخرى.
+لا تذكر أسعار. كن دقيقاً وعملياً.
+أجب بالنص العربي مباشرة بدون أي تنسيق أو عناوين.`;
+
+    const userPr = `اسم الكائن: ${common_name_en || ''}
+الاسم العلمي: ${scientific_name || ''}
+مستوى العناية: ${care_level || ''}
+التغذية: ${diet || ''}
+التوافق مع المرجان: ${reef_safe || ''}
+معلومات إضافية: ${notes_en || ''}`;
+
+    try {
+      const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 512, system: sysPr, messages: [{ role: 'user', content: userPr }] })
+      });
+      if (!aiRes.ok) throw new Error(`Anthropic HTTP ${aiRes.status}`);
+      const aiData = await aiRes.json();
+      const notesAr = (aiData.content?.[0]?.text || '').trim();
+      if (!notesAr) return res(headers, 200, { ok: false, error: 'empty response' });
+
+      // Merge with existing notes: preserve notes_en, set ar
+      const notesObj = { ar: notesAr, en: notes_en || '', ku: '' };
+      await sb('PATCH', `/fish_cards?id=eq.${encodeURIComponent(id)}`, { notes: notesObj });
+      return res(headers, 200, { ok: true, notes_ar: notesAr });
+    } catch (e) { return res(headers, 502, { error: e.message }); }
   }
 
   /* SAVE CORAL CARD */
