@@ -7,7 +7,7 @@
 <meta http-equiv="X-Frame-Options" content="DENY">
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://glhmmrovxyijtzjaldtf.supabase.co https://api.openai.com https://source.unsplash.com; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://glhmmrovxyijtzjaldtf.supabase.co https://api.openai.com https://source.unsplash.com https://en.wikipedia.org; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'none'">
 <title>Red Sea Iraq | الوكيل الحصري والوحيد في العراق</title>
 <meta name="description" content="منتجات Red Sea الأصلية للأحواض البحرية والمرجانية في العراق. الوكيل الحصري والوحيد. توصيل لجميع المحافظات، دفع عند الاستلام.">
 <meta name="keywords" content="Red Sea Iraq, ريد سي العراق, أحواض بحرية, مرجان, ملح بحري, مكملات مرجان">
@@ -1281,6 +1281,7 @@ html{scroll-behavior:smooth}
             <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');bulkEnrichFishCards()">🔍 إثراء للكل</button>
             <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');bulkFixFishImages()">🖼️ إصلاح الصور</button>
             <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');bulkWriteArabicNotes()">✍️ كتابة النبذات</button>
+            <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');bulkFetchWikipediaImages()">🌐 جلب صور Wikipedia</button>
             <button class="btn primary" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');resetFishCardForm()">＋ سمكة جديدة</button>
             <svg class="acc-sub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
@@ -4017,6 +4018,58 @@ window.bulkWriteArabicNotes=async function(){
     if(i+BATCH<toWrite.length) await new Promise(function(res){setTimeout(res,1000);});
   }
   prog.innerHTML='✅ اكتمل — تمت الكتابة: <b>'+done+'</b> | فشل: <b>'+failed+'</b>';
+};
+
+/* ── Wikipedia bulk image fetcher ── */
+async function _wikiImage(title){
+  try{
+    var r=await fetch('https://en.wikipedia.org/w/api.php?action=query&titles='+encodeURIComponent(title)+'&prop=pageimages&pithumbsize=500&format=json&origin=*');
+    if(!r.ok)return null;
+    var data=await r.json();
+    var pages=data.query&&data.query.pages;
+    if(!pages)return null;
+    var pageId=Object.keys(pages)[0];
+    if(pageId==='-1')return null;
+    return (pages[pageId].thumbnail&&pages[pageId].thumbnail.source)||null;
+  }catch(e){return null;}
+}
+
+window.bulkFetchWikipediaImages=async function(){
+  if(!_adminToken){toast('غير مصرح — سجل الدخول');return;}
+  var toFix=fishCards.filter(function(c){
+    return !c.image_url||c.image_url===''||c.image_url.includes('fishbase.se');
+  });
+  if(!toFix.length){toast('لا توجد بطاقات تحتاج إلى صور ✓');return;}
+  var prog=document.getElementById('bulkEnrichProgress');
+  prog.style.display='block';
+  var done=0,failed=0,total=toFix.length;
+  prog.innerHTML='🌐 جاري جلب الصور... 0 / '+total;
+  var BATCH=10;
+  for(var i=0;i<toFix.length;i+=BATCH){
+    var batch=toFix.slice(i,i+BATCH);
+    await Promise.all(batch.map(async function(card){
+      try{
+        var sciName=(card.scientific_name||'').trim().replace(/ /g,'_');
+        if(!sciName){failed++;return;}
+        var url=await _wikiImage(sciName);
+        if(!url){
+          var genus=sciName.split('_')[0];
+          if(genus&&genus!==sciName) url=await _wikiImage(genus);
+        }
+        if(url){
+          var r=await apiCall('enrich_fish_card',{id:card.id,image_url:url},true);
+          if(r&&!r.error){
+            var idx=fishCards.findIndex(function(f){return f.id===card.id;});
+            if(idx>=0) fishCards[idx].image_url=url;
+            done++;
+          }else{ failed++; }
+        }else{ failed++; }
+      }catch(e){ failed++;console.warn('[wikiImages]',card.id,e); }
+      prog.innerHTML='🌐 جاري جلب الصور... '+(done+failed)+' / '+total+' &nbsp;— ✅ '+done+' | ❌ '+failed;
+    }));
+    if(i+BATCH<toFix.length) await new Promise(function(res){setTimeout(res,1000);});
+  }
+  prog.innerHTML='✅ اكتمل — تم: <b>'+done+'</b> | لم يُعثر: <b>'+failed+'</b>';
 };
 
 /* ── Coral Card CRUD ── */
