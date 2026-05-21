@@ -3161,7 +3161,7 @@ function dietBadge(key){
   return (currentLang==='en'?en:currentLang==='ku'?ku:ar)[key]||key;
 }
 function reefBadge(key){
-  var ar={reef_safe:'✅ آمن مع المرجان',caution:'⚠️ تحذير',with_caution:'⚠️ بحذر مع المرجان',no:'❌ غير آمن مع المرجان'};
+  var ar={reef_safe:'✅ آمن مع المرجان',caution:'⚠️ يحتاج مراقبة مع المرجان',with_caution:'⚠️ مقبول بحذر مع المرجان',no:'❌ غير آمن مع المرجان'};
   var en={reef_safe:'✅ Reef Safe',caution:'⚠️ Caution',with_caution:'⚠️ With Caution',no:'❌ Not Reef Safe'};
   var ku={reef_safe:'✅ بەخەم بۆ ریف',caution:'⚠️ ئاگاداری',with_caution:'⚠️ ئاگاداری زۆر',no:'❌ نەخەم بۆ ریف'};
   return (currentLang==='en'?en:currentLang==='ku'?ku:ar)[key]||key;
@@ -3846,7 +3846,7 @@ function _showEnrichPreview(testResults){
   return new Promise(function(resolve){
     var careL={easy:'سهل',medium:'متوسط',hard:'صعب'};
     var dietL={carnivore:'لاحم',herbivore:'عاشب',omnivore:'كلّي'};
-    var reefL={reef_safe:'آمن ✅',caution:'بحذر ⚠️',with_caution:'بحذر شديد 🟠',no:'غير آمن ❌'};
+    var reefL={reef_safe:'آمن ✅',caution:'يحتاج مراقبة ⚠️',with_caution:'مقبول بحذر ⚠️',no:'غير آمن ❌'};
     var rows=testResults.map(function(r){
       var name=esc(r.card.common_name_en||r.card.common_name_ar||r.card.id);
       if(r.not_found){
