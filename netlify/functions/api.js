@@ -368,6 +368,24 @@ exports.handler = async function(event) {
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }
 
+  /* ENRICH FISH CARD — patch only enriched fields, preserves all others */
+  if (action === 'enrich_fish_card') {
+    const { id, care_level, diet, reef_safe, image_url, notes, needs_review } = body;
+    if (!id) return res(headers, 400, { error: 'id مطلوب' });
+    try {
+      const patch = {};
+      if (care_level   !== undefined) patch.care_level   = care_level;
+      if (diet         !== undefined) patch.diet         = diet;
+      if (reef_safe    !== undefined) patch.reef_safe    = reef_safe;
+      if (image_url    !== undefined) patch.image_url    = image_url;
+      if (notes        !== undefined) patch.notes        = notes;
+      if (needs_review !== undefined) patch.needs_review = needs_review;
+      if (!Object.keys(patch).length) return res(headers, 400, { error: 'لا توجد حقول للتحديث' });
+      await sb('PATCH', `/fish_cards?id=eq.${encodeURIComponent(id)}`, patch);
+      return res(headers, 200, { ok: true });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
   /* SAVE CORAL CARD */
   if (action === 'save_coral_card') {
     const { card } = body;

@@ -1278,6 +1278,7 @@ html{scroll-behavior:smooth}
         <div class="acc-sub-header" onclick="toggleAccordion('accFishCards')">
           <span class="acc-sub-header-title">🐟 بطاقات الأسماك</span>
           <div style="display:flex;align-items:center;gap:8px">
+            <button class="btn" style="font-size:12px;padding:7px 12px" onclick="event.stopPropagation();openAccordion('accFishCards');bulkEnrichFishCards()">🔍 إثراء للكل</button>
             <button class="btn primary" style="font-size:12px;padding:7px 12px" onclick="event.stopPropagation();openAccordion('accFishCards');resetFishCardForm()">＋ سمكة جديدة</button>
             <svg class="acc-sub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
@@ -1324,10 +1325,12 @@ html{scroll-behavior:smooth}
                 </div>
                 <div id="fishCardImgPreview" style="margin-top:8px;border-radius:10px;overflow:hidden;background:var(--pearl);height:120px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px">معاينة الصورة</div>
               </div>
+              <button class="btn" id="enrichCardBtn" onclick="enrichFishCard()" style="font-size:12px;padding:7px 14px;gap:5px;display:flex;align-items:center"><span>🔍</span><span> بحث تلقائي</span></button>
               <button class="btn primary" onclick="saveFishCard()"><svg style="width:14px;height:14px;vertical-align:-.12em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> حفظ السمكة</button>
             </div>
             <div><div class="admin-products" id="adminFishCardList"></div></div>
           </div>
+          <div id="bulkEnrichProgress" style="display:none;margin-top:12px;padding:14px 16px;background:var(--pearl);border-radius:12px;font-size:13px;text-align:center;color:var(--navy);line-height:1.7"></div>
         </div></div>
       </div><!-- /accFishCards -->
 
@@ -3717,6 +3720,170 @@ window.deleteFishCard=async function(id){
   try{ await apiCall('delete_fish_card',{id},true); }catch(e){ console.warn('delete_fish_card',e); }
   renderAdminFishCards();toast('تم الحذف ✓');
 };
+
+/* ── Phase 2: Single card enrichment ── */
+window.enrichFishCard=async function(){
+  var nameEn=(document.getElementById('fishCardNameEn')?.value||'').trim();
+  var sci=(document.getElementById('fishCardSci')?.value||'').trim();
+  if(!nameEn&&!sci){toast('أدخل الاسم الإنجليزي أو الاسم العلمي أولاً');return;}
+  var btn=document.getElementById('enrichCardBtn');
+  btn.disabled=true;
+  btn.lastChild.textContent=' جارٍ البحث...';
+  try{
+    if(!_adminToken)throw new Error('غير مصرح — سجل الدخول أولاً');
+    var r=await fetch('/.netlify/functions/enrich-fish-card',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+_adminToken},
+      body:JSON.stringify({common_name_en:nameEn,scientific_name:sci})
+    });
+    var data=await r.json().catch(function(){return{};});
+    if(!r.ok)throw new Error(data.error||'HTTP '+r.status);
+    if(data.not_found){
+      toast('لم يُعثر على بيانات هذه السمكة ⚠️');
+      var cardId=document.getElementById('fishCardId')?.value;
+      if(cardId) apiCall('enrich_fish_card',{id:cardId,needs_review:true},true).catch(function(){});
+      return;
+    }
+    if(data.care_level) document.getElementById('fishCardCare').value=data.care_level;
+    if(data.diet)       document.getElementById('fishCardDiet').value=data.diet;
+    if(data.reef_safe)  document.getElementById('fishCardReef').value=data.reef_safe;
+    if(data.image_url){ document.getElementById('fishCardImage').value=data.image_url; if(typeof previewFishCardImg==='function')previewFishCardImg(); }
+    if(data.notes_en)   document.getElementById('fishCardNotes').value=data.notes_en;
+    var cardId=document.getElementById('fishCardId')?.value;
+    if(cardId) apiCall('enrich_fish_card',{id:cardId,needs_review:false},true).catch(function(){});
+    toast('تم الاستخراج ✓ — راجع البيانات ثم احفظ');
+  }catch(e){ toast('خطأ: '+e.message); }
+  finally{ btn.disabled=false; btn.lastChild.textContent=' بحث تلقائي'; }
+};
+
+/* helper: fetch enrichment data for one card (no side effects) */
+async function _fetchEnrich(card){
+  try{
+    var r=await fetch('/.netlify/functions/enrich-fish-card',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+_adminToken},
+      body:JSON.stringify({common_name_en:card.common_name_en,scientific_name:card.scientific_name})
+    });
+    var data=await r.json().catch(function(){return{};});
+    return{card,data:(!r.ok||data.not_found)?null:data,not_found:!r.ok||!!data.not_found};
+  }catch(e){ return{card,data:null,not_found:true}; }
+}
+
+/* helper: translate notes_en + save patch to DB */
+async function _saveEnrichResult(result,counters,prog,total){
+  var card=result.card,data=result.data;
+  if(result.not_found){
+    await apiCall('enrich_fish_card',{id:card.id,needs_review:true},true);
+    var idx=fishCards.findIndex(function(f){return f.id===card.id;});
+    if(idx>=0) fishCards[idx].needs_review=true;
+    counters.failed++;
+  }else{
+    var notesStored='';
+    if(data.notes_en){
+      try{
+        var tr=await apiCall('translate_fields',{fields:{notes:data.notes_en}},true);
+        var t=tr.translations||{};
+        notesStored=JSON.stringify({ar:t.ar?.notes||'',en:t.en?.notes||data.notes_en,ku:t.ku?.notes||''});
+      }catch(e){ notesStored=JSON.stringify({ar:'',en:data.notes_en,ku:''}); }
+    }
+    var patch={id:card.id,care_level:data.care_level||card.care_level,diet:data.diet||card.diet,reef_safe:data.reef_safe||card.reef_safe,image_url:data.image_url||card.image_url||'',notes:notesStored,needs_review:false};
+    await apiCall('enrich_fish_card',patch,true);
+    var idx=fishCards.findIndex(function(f){return f.id===card.id;});
+    if(idx>=0) fishCards[idx]={...fishCards[idx],...patch};
+    counters.done++;
+  }
+  if(prog) prog.innerHTML='🔍 جاري البحث... '+(counters.done+counters.failed)+' / '+total+' &nbsp;— ✅ '+counters.done+' | ⚠️ '+counters.failed;
+}
+
+/* helper: show test-batch preview modal — returns Promise<boolean> */
+function _showEnrichPreview(testResults){
+  return new Promise(function(resolve){
+    var careL={easy:'سهل',medium:'متوسط',hard:'صعب'};
+    var dietL={carnivore:'لاحم',herbivore:'عاشب',omnivore:'كلّي'};
+    var reefL={reef_safe:'آمن ✅',caution:'بحذر ⚠️',with_caution:'بحذر شديد 🟠',no:'غير آمن ❌'};
+    var rows=testResults.map(function(r){
+      var name=esc(r.card.common_name_en||r.card.common_name_ar||r.card.id);
+      if(r.not_found){
+        return'<div style="padding:12px;background:#fff5f5;border:1px solid #fed7d7;border-radius:10px;margin-bottom:10px">'
+          +'<b style="display:block;margin-bottom:4px">'+name+'</b>'
+          +'<span style="color:#c53030;font-size:12px">⚠️ لم يُعثر على بيانات — سيُصنَّف يحتاج مراجعة</span>'
+          +'</div>';
+      }
+      var d=r.data;
+      return'<div style="padding:12px;background:var(--pearl);border-radius:10px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start">'
+        +(d.image_url?'<img src="'+esc(d.image_url)+'" style="width:56px;height:56px;object-fit:cover;border-radius:8px;flex-shrink:0" onerror="this.style.display=\'none\'">':'')
+        +'<div style="flex:1;min-width:0">'
+        +'<b style="display:block;margin-bottom:6px;font-size:14px">'+name+'</b>'
+        +'<div style="font-size:12px;display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px">'
+        +'<span style="background:white;padding:2px 9px;border-radius:20px;border:1px solid #e2e8f0">🧪 '+(careL[d.care_level]||d.care_level||'—')+'</span>'
+        +'<span style="background:white;padding:2px 9px;border-radius:20px;border:1px solid #e2e8f0">🍽️ '+(dietL[d.diet]||d.diet||'—')+'</span>'
+        +'<span style="background:white;padding:2px 9px;border-radius:20px;border:1px solid #e2e8f0">'+(reefL[d.reef_safe]||d.reef_safe||'—')+'</span>'
+        +'</div>'
+        +(d.notes_en?'<div style="font-size:11px;color:var(--muted);line-height:1.5">'+esc(d.notes_en.slice(0,130))+'…</div>':'')
+        +'</div></div>';
+    }).join('');
+    var overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box';
+    overlay.innerHTML='<div style="background:white;border-radius:18px;padding:24px;max-width:500px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);direction:rtl">'
+      +'<h3 style="margin:0 0 4px;font-size:17px;color:var(--navy)">🔍 معاينة نتائج البحث التجريبي</h3>'
+      +'<p style="margin:0 0 16px;font-size:13px;color:var(--muted)">تم البحث عن أول 3 أسماك ولم يُحفظ شيء بعد — هل النتائج منطقية؟</p>'
+      +rows
+      +'<div style="display:flex;gap:10px;margin-top:16px">'
+      +'<button id="_enrichConfirm" style="flex:1;padding:13px;background:var(--navy);color:white;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer">✅ يبدو صحيح — شغّل الكل</button>'
+      +'<button id="_enrichCancel" style="flex:1;padding:13px;background:var(--pearl);color:var(--navy);border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer">❌ إيقاف</button>'
+      +'</div></div>';
+    document.body.appendChild(overlay);
+    overlay.querySelector('#_enrichConfirm').onclick=function(){overlay.remove();resolve(true);};
+    overlay.querySelector('#_enrichCancel').onclick=function(){overlay.remove();resolve(false);};
+  });
+}
+
+/* ── Phase 2: Bulk enrichment with test-batch preview ── */
+window.bulkEnrichFishCards=async function(){
+  if(!_adminToken){toast('سجل الدخول أولاً');return;}
+  var toEnrich=fishCards.filter(function(c){return c.needs_review===null||c.needs_review===undefined;});
+  if(!toEnrich.length){toast('جميع البطاقات تمت معالجتها مسبقاً ✓');return;}
+  var prog=document.getElementById('bulkEnrichProgress');
+  prog.style.display='block';
+  var total=toEnrich.length;
+
+  /* ── TEST BATCH: fetch first 3 without saving ── */
+  prog.innerHTML='🔍 جاري تجربة أول 3 أسماك (بدون حفظ)...';
+  var testBatch=toEnrich.slice(0,3);
+  var testResults=await Promise.all(testBatch.map(_fetchEnrich));
+
+  /* ── Preview modal — nothing saved yet ── */
+  var confirmed=await _showEnrichPreview(testResults);
+  if(!confirmed){
+    prog.innerHTML='❌ تم الإيقاف — لم يُحفظ شيء';
+    return;
+  }
+
+  /* ── Confirmed: save test batch first, then process the rest ── */
+  var counters={done:0,failed:0};
+  prog.innerHTML='🔍 جاري البحث... 0 / '+total+' &nbsp;— ✅ 0 | ⚠️ 0';
+
+  for(var i=0;i<testResults.length;i++){
+    await _saveEnrichResult(testResults[i],counters,prog,total);
+  }
+  saveFishCards();
+
+  /* ── Remaining cards in batches of 3 ── */
+  var remaining=toEnrich.slice(3);
+  var BATCH=3;
+  for(var i=0;i<remaining.length;i+=BATCH){
+    var batch=remaining.slice(i,i+BATCH);
+    var results=await Promise.all(batch.map(_fetchEnrich));
+    for(var j=0;j<results.length;j++){
+      await _saveEnrichResult(results[j],counters,prog,total);
+    }
+    saveFishCards();
+  }
+
+  renderAdminFishCards();
+  prog.innerHTML='✅ اكتمل — تم إثراء: <b>'+counters.done+'</b> &nbsp;| يحتاج مراجعة يدوية: <b>'+counters.failed+'</b>';
+};
+
 function renderAdminFishCards(){
   var el=document.getElementById('adminFishCardList');if(!el)return;
   if(!fishCards.length){el.innerHTML='<div class="admin-help">لا توجد أسماك بعد.</div>';return;}
@@ -4153,7 +4320,7 @@ async function syncFromSupabase(){
     }
     var fcData=await sbGet('/rest/v1/fish_cards?order=created_at.asc&limit=500');
     if(fcData&&fcData.length){
-      fishCards=fcData.map(function(r){return{id:r.id,family_id:r.family_id||'',common_name_ar:r.common_name_ar||'',common_name_en:r.common_name_en||'',common_name_ku:r.common_name_ku||'',scientific_name:r.scientific_name||'',care_level:r.care_level||'easy',diet:r.diet||'omnivore',reef_safe:r.reef_safe||'reef_safe',notes:r.notes||'',image_url:r.image_url||'',created_at:r.created_at||''};});
+      fishCards=fcData.map(function(r){return{id:r.id,family_id:r.family_id||'',common_name_ar:r.common_name_ar||'',common_name_en:r.common_name_en||'',common_name_ku:r.common_name_ku||'',scientific_name:r.scientific_name||'',care_level:r.care_level||'easy',diet:r.diet||'omnivore',reef_safe:r.reef_safe||'reef_safe',notes:r.notes||'',image_url:r.image_url||'',needs_review:r.needs_review===undefined?null:r.needs_review,created_at:r.created_at||''};});
       saveFishCards();
     }
     var ccData=await sbGet('/rest/v1/coral_cards?order=created_at.asc&limit=500');
