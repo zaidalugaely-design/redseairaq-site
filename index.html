@@ -40,7 +40,7 @@
 <meta name="theme-color" content="#c8202a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&family=Montserrat:wght@400;600;700;800;900&family=EB+Garamond:wght@700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&family=Montserrat:wght@400;600;700;800;900&family=EB+Garamond:wght@700;800&family=Noto+Sans+Arabic:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --red:#c8202a;--red-bright:#e8333d;--red-dark:#8a1218;--red-deep:#5c0c12;
@@ -565,6 +565,10 @@ main{min-height:75vh}
   -webkit-font-smoothing:antialiased;
   word-spacing:normal
 }
+/* ── Kurdish font (Noto Sans Arabic renders Sorani better than Tajawal) ── */
+html[lang="ku"] body{
+  font-family:'Noto Sans Arabic','Tajawal','Segoe UI',sans-serif;
+}
 
 /* ════════════════════════════════
    UX / ANIMATION ENHANCEMENTS
@@ -661,21 +665,22 @@ html{scroll-behavior:smooth}
 .bio-img-placeholder{width:100%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--red) 0%,#8b0000 100%)}
 .bio-img-placeholder svg{width:52px;height:52px;color:#fff;opacity:.7}
 .bio-body{padding:14px 14px 16px}
-.bio-name{font-size:14.5px;font-weight:900;color:var(--navy);margin-bottom:3px;line-height:1.3}
-.bio-sci{font-size:12px;color:var(--muted);font-style:italic;margin-bottom:10px;line-height:1.4}
+.bio-name{font-size:16px;font-weight:900;color:var(--navy);margin-bottom:3px;line-height:1.3}
+.bio-sci{font-size:13px;color:var(--muted);font-style:italic;margin-bottom:10px;line-height:1.4}
 .bio-badges{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
-.bio-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:900;border-radius:6px;padding:3px 8px;white-space:nowrap}
+.bio-badge{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:900;border-radius:6px;padding:3px 8px;white-space:nowrap}
 .bio-badge-care-easy{background:#e4fff4;color:#0a7a46}.bio-badge-care-medium{background:#fff8e6;color:#7a5200}.bio-badge-care-hard{background:#fff2f2;color:#9f1218}
 .bio-badge-reef-safe{background:#e4fff4;color:#0a7a46}.bio-badge-reef-caution{background:#fff8e6;color:#7a5200}.bio-badge-reef-with_caution{background:#fff3e0;color:#8b4500}.bio-badge-reef-no{background:#fff2f2;color:#9f1218}
 .bio-badge-diet{background:#eef2ff;color:#1a3a8a}
 .bio-badge-light-low{background:#f0f4ff;color:#1e40af}.bio-badge-light-medium{background:#fefce8;color:#854d0e}.bio-badge-light-high{background:#fff8e6;color:#92400e}
 .bio-badge-flow-low{background:#f0f9ff;color:#0369a1}.bio-badge-flow-medium{background:#e0f2fe;color:#0369a1}.bio-badge-flow-high{background:#bfdbfe;color:#1e3a8a}
 .bio-badge-place{background:#f3e8ff;color:#6b21a8}
-.bio-notes{font-size:13px;color:#4a5568;line-height:1.65;margin-top:8px}
+.bio-notes{font-size:14px;color:#4a5568;line-height:1.6;margin-top:8px}
 .bio-notes-text{overflow:hidden;transition:max-height .35s cubic-bezier(.4,0,.2,1)}
 .bio-notes-text.collapsed{max-height:56px}.bio-notes-text.expanded{max-height:600px}
 .bio-read-more{background:none;border:none;color:var(--red);font-size:12px;font-weight:900;cursor:pointer;padding:4px 0;font-family:inherit;display:inline-flex;align-items:center;gap:4px}
 .bio-read-more:hover{text-decoration:underline}
+#page-education .acc-header-title{font-size:18px}
 .edu-empty{text-align:center;padding:60px 20px;color:var(--muted)}
 .edu-empty svg{width:56px;height:56px;opacity:.3;margin:0 auto 14px;display:block}
 .edu-empty p{font-size:16px;font-weight:800}
@@ -3135,6 +3140,8 @@ function parseMultiLangField(val,lang){
     if(lang==='ku') return o.ku||o.ar||o.en||'';
     return o.ar||o.en||'';
   }
+  /* Plain (non-JSON) string — only meaningful for Arabic; return empty for EN/KU */
+  if(lang==='en'||lang==='ku') return '';
   return val;
 }
 
@@ -3283,9 +3290,11 @@ function renderEducation(){
     var fishHtml='';
     fishFamilies.forEach(function(fam){
       var members=visibleCards.filter(function(f){return f.family_id===fam.id;});
-      if(!members.length)return;
       var famName=eduName(fam,'name_ar','name_en','name_ku');
       var accId='edu-fam-'+fam.id;
+      var famBody=members.length
+        ?'<div class="bio-grid">'+members.map(function(f){return bioCard(f,'fish');}).join('')+'</div>'
+        :'<p style="color:var(--muted);font-size:14px;text-align:center;padding:20px 0">لا توجد بطاقات بعد</p>';
       fishHtml+='<div class="acc-section" id="'+accId+'">'
         +'<div class="acc-header" onclick="toggleAccordion(\''+accId+'\')">'
         +'<span class="acc-header-title">'+esc(famName)
@@ -3293,7 +3302,7 @@ function renderEducation(){
         +CHEVRON_SVG
         +'</div>'
         +'<div class="acc-body"><div class="acc-body-inner">'
-        +'<div class="bio-grid">'+members.map(function(f){return bioCard(f,'fish');}).join('')+'</div>'
+        +famBody
         +'</div></div>'
         +'</div>';
     });
@@ -4972,8 +4981,8 @@ window.openBioModal=function(id,type){
     +'<button onclick="closeBioModal()" style="background:var(--pearl);border:none;border-radius:50%;width:34px;height:34px;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--navy);margin-right:4px" aria-label="إغلاق">✕</button>'
     +'</div>'
     +'<div class="bio-badges" style="margin-bottom:14px">'+badges+'</div>'
-    +(feeding?'<div style="font-size:13.5px;color:#4a5568;line-height:1.7;margin-bottom:10px"><b style="color:var(--navy)">'+(currentLang==='en'?'Feeding:':currentLang==='ku'?'خواردن:':'التغذية:')+' </b>'+esc(feeding)+'</div>':'')
-    +(notes?'<div style="font-size:13.5px;color:#4a5568;line-height:1.7">'+esc(notes)+'</div>':'')
+    +(feeding?'<div style="font-size:14px;color:#4a5568;line-height:1.6;margin-bottom:10px"><b style="color:var(--navy)">'+(currentLang==='en'?'Feeding:':currentLang==='ku'?'خواردن:':'التغذية:')+' </b>'+esc(feeding)+'</div>':'')
+    +(notes?'<div style="font-size:14px;color:#4a5568;line-height:1.6">'+esc(notes)+'</div>':'')
     +'</div>';
   m.style.display='flex';
   document.body.style.overflow='hidden';
