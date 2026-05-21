@@ -508,7 +508,7 @@ Return ONLY valid JSON: {"care_level":"...","diet":"...","reef_safe":"...","imag
   /* CLEAR FISH CARD IMAGES — set image_url = NULL on all cards that have one */
   if (action === 'clear_fish_card_images') {
     try {
-      await sb('PATCH', '/fish_cards?image_url=not.is.null', { image_url: null });
+      await sb('PATCH', '/fish_cards?image_url=ilike.' + encodeURIComponent('%fishbase.se%'), { image_url: null });
       return res(headers, 200, { ok: true });
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }

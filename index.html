@@ -1282,7 +1282,7 @@ html{scroll-behavior:smooth}
             <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');bulkFixFishImages()">🖼️ إصلاح الصور</button>
             <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');bulkWriteArabicNotes()">✍️ كتابة النبذات</button>
             <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');bulkFetchWikipediaImages()">🌐 جلب صور Wikipedia</button>
-            <button class="btn" style="font-size:11px;padding:6px 10px;background:var(--danger,#c0392b)" onclick="event.stopPropagation();openAccordion('accFishCards');clearFishCardImages()">🗑️ مسح الصور</button>
+            <button class="btn" style="font-size:11px;padding:6px 10px;background:var(--danger,#c0392b)" onclick="event.stopPropagation();openAccordion('accFishCards');clearFishCardImages()">🗑️ مسح صور FishBase فقط</button>
             <button class="btn primary" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');resetFishCardForm()">＋ سمكة جديدة</button>
             <svg class="acc-sub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
@@ -4027,17 +4027,19 @@ window.bulkWriteArabicNotes=async function(){
 /* ── Clear all fish card images (before re-running Wikipedia fetcher) ── */
 window.clearFishCardImages=async function(){
   if(!_adminToken){toast('غير مصرح — سجل الدخول');return;}
-  if(!confirm('سيتم مسح جميع صور بطاقات الأسماك. هل أنت متأكد؟'))return;
+  var fishbaseCount=fishCards.filter(function(c){return c.image_url&&c.image_url.includes('fishbase.se');}).length;
+  if(!fishbaseCount){toast('لا توجد صور FishBase ✓');return;}
+  if(!confirm('سيتم مسح '+fishbaseCount+' صورة من FishBase فقط. الصور الجيدة لن تُمس. هل أنت متأكد؟'))return;
   var prog=document.getElementById('bulkEnrichProgress');
   prog.style.display='block';
-  prog.innerHTML='🗑️ جاري مسح الصور...';
+  prog.innerHTML='🗑️ جاري مسح صور FishBase...';
   try{
     var r=await apiCall('clear_fish_card_images',{},true);
     if(r&&!r.error){
-      fishCards.forEach(function(c){c.image_url=null;});
+      fishCards.forEach(function(c){if(c.image_url&&c.image_url.includes('fishbase.se'))c.image_url=null;});
       renderAdminFishCards();
-      prog.innerHTML='✅ تم مسح جميع الصور. يمكنك الآن تشغيل "جلب صور Wikipedia".';
-      toast('تم مسح الصور ✓');
+      prog.innerHTML='✅ تم مسح '+fishbaseCount+' صورة FishBase. يمكنك الآن تشغيل "🌐 جلب صور Wikipedia".';
+      toast('تم مسح صور FishBase ✓');
     }else{
       prog.innerHTML='❌ فشل: '+(r&&r.error||'خطأ غير معروف');
     }
