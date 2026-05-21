@@ -1282,6 +1282,7 @@ html{scroll-behavior:smooth}
             <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');bulkFixFishImages()">🖼️ إصلاح الصور</button>
             <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');bulkWriteArabicNotes()">✍️ كتابة النبذات</button>
             <button class="btn" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');bulkFetchWikipediaImages()">🌐 جلب صور Wikipedia</button>
+            <button class="btn" style="font-size:11px;padding:6px 10px;background:var(--danger,#c0392b)" onclick="event.stopPropagation();openAccordion('accFishCards');clearFishCardImages()">🗑️ مسح الصور</button>
             <button class="btn primary" style="font-size:11px;padding:6px 10px" onclick="event.stopPropagation();openAccordion('accFishCards');resetFishCardForm()">＋ سمكة جديدة</button>
             <svg class="acc-sub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
@@ -1999,7 +2000,10 @@ const SB_URL='https://glhmmrovxyijtzjaldtf.supabase.co';
 const SB_KEY='sb_publishable_hzVe29KIzQ2h72PuHBLZ5Q_M6BLVkaI';
 async function sbGet(path){
   try{
-    const r=await fetch(SB_URL+path,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
+    const r=await fetch(SB_URL+path,{
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
+      cache:'no-store'
+    });
     return r.ok?await r.json():null;
   }catch(e){return null;}
 }
@@ -4020,6 +4024,28 @@ window.bulkWriteArabicNotes=async function(){
   prog.innerHTML='✅ اكتمل — تمت الكتابة: <b>'+done+'</b> | فشل: <b>'+failed+'</b>';
 };
 
+/* ── Clear all fish card images (before re-running Wikipedia fetcher) ── */
+window.clearFishCardImages=async function(){
+  if(!_adminToken){toast('غير مصرح — سجل الدخول');return;}
+  if(!confirm('سيتم مسح جميع صور بطاقات الأسماك. هل أنت متأكد؟'))return;
+  var prog=document.getElementById('bulkEnrichProgress');
+  prog.style.display='block';
+  prog.innerHTML='🗑️ جاري مسح الصور...';
+  try{
+    var r=await apiCall('clear_fish_card_images',{},true);
+    if(r&&!r.error){
+      fishCards.forEach(function(c){c.image_url=null;});
+      renderAdminFishCards();
+      prog.innerHTML='✅ تم مسح جميع الصور. يمكنك الآن تشغيل "جلب صور Wikipedia".';
+      toast('تم مسح الصور ✓');
+    }else{
+      prog.innerHTML='❌ فشل: '+(r&&r.error||'خطأ غير معروف');
+    }
+  }catch(e){
+    prog.innerHTML='❌ خطأ: '+e.message;
+  }
+};
+
 /* ── Wikipedia bulk image fetcher ── */
 async function _wikiImage(title){
   try{
@@ -4484,7 +4510,7 @@ async function syncFromSupabase(){
     if(ffData&&ffData.length){
       fishFamilies=ffData.map(function(r){return{id:r.id,name_ar:r.name_ar||'',name_en:r.name_en||'',name_ku:r.name_ku||'',created_at:r.created_at||''};});
     }
-    var fcData=await sbGet('/rest/v1/fish_cards?is_visible=eq.true&order=created_at.asc&limit=600');
+    var fcData=await sbGet('/rest/v1/fish_cards?order=created_at.asc&limit=600');
     if(fcData&&fcData.length){
       fishCards=fcData.map(function(r){return{id:r.id,family_id:r.family_id||'',common_name_ar:r.common_name_ar||'',common_name_en:r.common_name_en||'',common_name_ku:r.common_name_ku||'',scientific_name:r.scientific_name||'',care_level:r.care_level||null,diet:r.diet||null,reef_safe:r.reef_safe||null,notes:r.notes||null,image_url:r.image_url||null,needs_review:r.needs_review===undefined?null:r.needs_review,created_at:r.created_at||''};});
     }

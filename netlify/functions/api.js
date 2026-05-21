@@ -505,6 +505,14 @@ Return ONLY valid JSON: {"care_level":"...","diet":"...","reef_safe":"...","imag
     } catch (e) { return res(headers, 502, { error: 'API error: ' + e.message }); }
   }
 
+  /* CLEAR FISH CARD IMAGES — set image_url = NULL on all cards that have one */
+  if (action === 'clear_fish_card_images') {
+    try {
+      await sb('PATCH', '/fish_cards?image_url=not.is.null', { image_url: null });
+      return res(headers, 200, { ok: true });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
   /* FIX FISH IMAGE — fetch Wikimedia/iNaturalist image for one card */
   if (action === 'fix_fish_image') {
     const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
