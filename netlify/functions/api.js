@@ -758,8 +758,8 @@ ${fieldList}`;
     const bucket = 'education-images';
     const uploadPath = `${Date.now()}-${file_name}`;
 
-    // ensure bucket exists (idempotent)
-    await fetch(`${SB_URL}/storage/v1/bucket`, {
+    // fire-and-forget bucket create — don't await, saves ~300-500ms per upload
+    fetch(`${SB_URL}/storage/v1/bucket`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${SB_SERVICE_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: bucket, name: bucket, public: true })
