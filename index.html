@@ -3847,10 +3847,11 @@ function populateFishFamilySelect(){
 
 async function loadFishFamilies(){
   try{
-    var result=await apiCall('get_fish_families',{},true);
-    var data=result.families;
+    var r=await fetch(SB_URL+'/rest/v1/fish_families?select=id,name_ar,name_en,name_ku,created_at&order=created_at.asc&limit=200',
+      {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
+    var data=r.ok?await r.json():[];
     if(data&&data.length){
-      fishFamilies=data.map(function(r){return{id:r.id,name_ar:r.name_ar||'',name_en:r.name_en||'',name_ku:r.name_ku||'',created_at:r.created_at||''};});
+      fishFamilies=data.map(function(d){return{id:d.id,name_ar:d.name_ar||'',name_en:d.name_en||'',name_ku:d.name_ku||'',created_at:d.created_at||''};});
       populateFishFamilySelect();
     }
   }catch(e){console.error('[edu] loadFishFamilies:',e.message);}
@@ -4815,17 +4816,26 @@ window.switchImgTab=function(form,tab){
   upPanel.style.display=showUrl?'none':'';
 };
 
+async function uploadEduImage(file,prefix){
+  var b64=await compress(file,900,.82);
+  var blob=await fetch(b64).then(function(r){return r.blob();});
+  var fname=prefix+'-'+Date.now()+'.webp';
+  var upRes=await fetch(SB_URL+'/storage/v1/object/education-images/'+fname,{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+SB_KEY,'Content-Type':'image/webp','x-upsert':'true'},
+    body:blob
+  });
+  if(!upRes.ok){var txt=await upRes.text();throw new Error(txt);}
+  return SB_URL+'/storage/v1/object/public/education-images/'+fname;
+}
+
 window.handleFishImgUpload=async function(e){
   var file=e.target.files&&e.target.files[0];if(!file)return;
   var st=document.getElementById('fishImgUploadStatus');
   if(st)st.textContent='جاري الرفع...';
   try{
-    var b64=await compress(file,900,.82);
-    var data=b64.replace(/^data:[^;]+;base64,/,'');
-    var ext=file.name.split('.').pop()||'webp';
-    var fname='fish-'+Date.now()+'.webp';
-    var result=await apiCall('upload_edu_image',{image_data:data,file_name:fname,content_type:'image/webp'},true);
-    document.getElementById('fishCardImage').value=result.url||'';
+    var url=await uploadEduImage(file,'fish');
+    document.getElementById('fishCardImage').value=url;
     previewFishCardImg();
     if(st)st.textContent='تم الرفع ✓';
     switchImgTab('fish','url');
@@ -4840,11 +4850,8 @@ window.handleCoralImgUpload=async function(e){
   var st=document.getElementById('coralImgUploadStatus');
   if(st)st.textContent='جاري الرفع...';
   try{
-    var b64=await compress(file,900,.82);
-    var data=b64.replace(/^data:[^;]+;base64,/,'');
-    var fname='coral-'+Date.now()+'.webp';
-    var result=await apiCall('upload_edu_image',{image_data:data,file_name:fname,content_type:'image/webp'},true);
-    document.getElementById('coralImage').value=result.url||'';
+    var url=await uploadEduImage(file,'coral');
+    document.getElementById('coralImage').value=url;
     previewCoralImg();
     if(st)st.textContent='تم الرفع ✓';
     switchImgTab('coral','url');
