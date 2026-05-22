@@ -3841,7 +3841,7 @@ function populateFishFamilySelect(){
   var sel=document.getElementById('fishCardFamily');if(!sel)return;
   var val=sel.value;
   sel.innerHTML='<option value="">— بدون عائلة —</option>'
-    +fishFamilies.map(function(f){return'<option value="'+esc(f.id)+'">'+esc(f.name_ar)+'</option>';}).join('');
+    +fishFamilies.map(function(f){return'<option value="'+esc(f.id)+'">'+esc(f.name_en||f.name_ar)+'</option>';}).join('');
   if(val) sel.value=val;
 }
 

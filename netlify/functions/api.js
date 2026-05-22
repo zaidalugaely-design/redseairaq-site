@@ -766,7 +766,7 @@ ${fieldList}`;
     const bucket = 'education-images';
     const uploadPath = `${Date.now()}-${file_name}`;
 
-    async function doUpload() {
+    const doUpload = async () => {
       const buf = Buffer.from(image_data, 'base64');
       return fetch(`${SB_URL}/storage/v1/object/${bucket}/${uploadPath}`, {
         method: 'POST',
@@ -777,28 +777,33 @@ ${fieldList}`;
         },
         body: buf
       });
-    }
+    };
 
     try {
       let upRes = await doUpload();
       if (!upRes.ok) {
         const errBody = await upRes.json().catch(() => ({}));
         const msg = errBody?.error || errBody?.message || '';
-        if (upRes.status === 400 && msg.toLowerCase().includes('bucket')) {
-          /* bucket doesn't exist yet — create it then retry once */
-          await fetch(`${SB_URL}/storage/v1/bucket`, {
+        console.log(`[upload_edu_image] attempt 1 status=${upRes.status} msg=${msg}`);
+        /* retry after creating bucket — catches 400 and 404 from missing bucket */
+        if (upRes.status === 400 || upRes.status === 404) {
+          const bkRes = await fetch(`${SB_URL}/storage/v1/bucket`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${SB_SERVICE_KEY}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: bucket, name: bucket, public: true })
-          }).catch(() => {});
+          }).catch(() => null);
+          console.log(`[upload_edu_image] bucket create status=${bkRes?.status}`);
           upRes = await doUpload();
         }
         if (!upRes.ok) {
           const err2 = await upRes.json().catch(() => ({}));
-          throw new Error(err2?.error || err2?.message || `Storage ${upRes.status}`);
+          const errMsg = err2?.error || err2?.message || `Storage ${upRes.status}`;
+          console.error(`[upload_edu_image] failed: ${errMsg}`);
+          throw new Error(errMsg);
         }
       }
       const publicUrl = `${SB_URL}/storage/v1/object/public/${bucket}/${uploadPath}`;
+      console.log(`[upload_edu_image] ok: ${publicUrl}`);
       return res(headers, 200, { url: publicUrl });
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }
