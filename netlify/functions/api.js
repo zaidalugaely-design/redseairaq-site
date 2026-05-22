@@ -751,7 +751,7 @@ ${fieldList}`;
 
   /* UPLOAD EDU IMAGE — رفع صورة إلى Supabase Storage */
   if (action === 'upload_edu_image') {
-    if (!adminJwt) return res(headers, 401, { error: 'Unauthorized' });
+    if (!payload) return res(headers, 401, { error: 'Unauthorized' });
     const { image_data, file_name, content_type } = body;
     if (!image_data || !file_name) return res(headers, 400, { error: 'image_data and file_name required' });
 
