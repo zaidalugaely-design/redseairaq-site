@@ -4150,12 +4150,20 @@ window.bulkTranslateNotes=async function(){
   console.log('[translate] notes.ar (first 200 chars):',arText.substring(0,200));
   prog.innerHTML='🔬 اختبار على بطاقة واحدة: <b>'+esc(testCard.scientific_name)+'</b>...';
   try{
-    var tr=await apiCall('translate_fields',{fields:{notes:arText}},true);
+    /* Raw fetch so we can show raw_response on parse failure */
+    var _tfRes=await fetch(API+'?t='+Date.now(),{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+_adminToken},
+      body:JSON.stringify({action:'translate_fields',fields:{notes:arText}})});
+    var tr=await _tfRes.json().catch(function(){return {};});
+    if(!_tfRes.ok||tr.error){
+      prog.innerHTML='<div style="color:#c0392b;font-weight:700;margin-bottom:8px">❌ فشل: '+esc(tr.error||'HTTP '+_tfRes.status)+'</div>'
+        +'<div style="font-size:12px;font-weight:700;margin-bottom:4px">استجابة Claude الخام:</div>'
+        +'<pre style="font-size:11px;background:#f9f9f9;border:1px solid #ddd;border-radius:6px;padding:10px;overflow:auto;max-height:200px;white-space:pre-wrap">'+esc(tr.raw_response||'(فارغة)')+'</pre>';
+      return;
+    }
     var t=tr.translations||{};
     var enResult=t.en?.notes||'';
     var kuResult=t.ku?.notes||'';
-    console.log('[translate] TEST result EN:',enResult.substring(0,100));
-    console.log('[translate] TEST result KU:',kuResult.substring(0,100));
     if(!enResult){
       prog.innerHTML='<div style="color:#c0392b;font-weight:700">❌ الترجمة فارغة — استجابة translate_fields: <pre style="font-size:11px;overflow:auto">'+esc(JSON.stringify(tr,null,2).substring(0,400))+'</pre></div>';
       return;

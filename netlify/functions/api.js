@@ -702,7 +702,12 @@ ${fieldList}`;
       const rawText = aiData.content?.[0]?.text || '{}';
       let translations;
       try { translations = JSON.parse(rawText); }
-      catch { throw new Error('استجابة غير صالحة من الذكاء الاصطناعي'); }
+      catch (parseErr) {
+        return res(headers, 500, {
+          error: 'استجابة غير صالحة من الذكاء الاصطناعي',
+          raw_response: rawText.substring(0, 800)
+        });
+      }
       return res(headers, 200, { translations });
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }
