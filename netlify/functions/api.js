@@ -720,6 +720,35 @@ ${fieldList}`;
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }
 
+  /* TRANSLATE NOTE BULLET — translate one bullet point to a single target language */
+  if (action === 'translate_note_bullet') {
+    const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+    if (!ANTHROPIC_KEY) return res(headers, 500, { error: 'ANTHROPIC_API_KEY not set' });
+    const { text, lang } = body;
+    if (!text || !lang) return res(headers, 400, { error: 'text and lang required' });
+    const langLabel = lang === 'en' ? 'English' : lang === 'ku' ? 'Kurdish (Sorani)' : null;
+    if (!langLabel) return res(headers, 400, { error: 'lang must be en or ku' });
+    try {
+      const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 500,
+          system: `Translate the Arabic fish care text to ${langLabel}. Return ONLY the translated text, no explanations, no labels.`,
+          messages: [{ role: 'user', content: text }]
+        })
+      });
+      if (!aiRes.ok) {
+        const err = await aiRes.json().catch(() => ({}));
+        throw new Error(err?.error?.message || `Anthropic HTTP ${aiRes.status}`);
+      }
+      const aiData = await aiRes.json();
+      const translated = (aiData.content?.[0]?.text || '').trim();
+      return res(headers, 200, { translated });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
   /* UPLOAD EDU IMAGE — رفع صورة إلى Supabase Storage */
   if (action === 'upload_edu_image') {
     if (!adminJwt) return res(headers, 401, { error: 'Unauthorized' });

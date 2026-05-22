@@ -4122,115 +4122,121 @@ window.bulkWriteArabicNotes=async function(){
     +'</div>';
 };
 
-/* ── Extract notes object from a card (handles both object and JSON string) ── */
+/* ── Notes helpers ── */
 function _parseNotes(raw){
   if(!raw) return null;
   if(typeof raw==='object') return raw;
   if(typeof raw==='string'&&raw.charAt(0)==='{'){try{return JSON.parse(raw);}catch(e){}}
   return null;
 }
+function _extractBullets(arText){
+  var lines=arText.split('\n'),bullets=[],cur='';
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i].trim();
+    if(!line) continue;
+    if(line.charAt(0)==='—') break; /* signature line — stop */
+    if(line.charAt(0)==='•'){ if(cur) bullets.push(cur); cur=line; }
+    else if(cur){ cur+=' '+line; }
+  }
+  if(cur) bullets.push(cur);
+  if(!bullets.length){ /* no bullet structure — use whole text */
+    var plain=arText.replace(/\n—[^\n]*/g,'').trim();
+    if(plain) bullets.push(plain);
+  }
+  return bullets;
+}
+async function _translateBullet(text,lang){
+  var r=await apiCall('translate_note_bullet',{text:text,lang:lang},true);
+  return r.translated||'';
+}
+async function _translateCardNotes(arText){
+  var bullets=_extractBullets(arText);
+  var enBullets=[],kuBullets=[];
+  for(var i=0;i<bullets.length;i++){
+    var pair=await Promise.all([_translateBullet(bullets[i],'en'),_translateBullet(bullets[i],'ku')]);
+    enBullets.push(pair[0]);
+    kuBullets.push(pair[1]);
+  }
+  return{en:enBullets.join('\n'),ku:kuBullets.join('\n')};
+}
 
 /* ── Bulk translate Arabic notes → EN + KU ── */
 window.bulkTranslateNotes=async function(){
   if(!_adminToken){toast('غير مصرح — سجل الدخول');return;}
-  var toTranslate=fishCards.filter(function(c){
-    var o=_parseNotes(c.notes);
-    return o&&o.ar&&!o.en;
-  });
+  var toTranslate=fishCards.filter(function(c){var o=_parseNotes(c.notes);return o&&o.ar&&!o.en;});
   if(!toTranslate.length){toast('كل البطاقات لديها ترجمات ✓');return;}
   var prog=document.getElementById('bulkEnrichProgress');
   prog.style.display='block';
-
-  /* ── Test first card before bulk ── */
   var testCard=toTranslate[0];
   var testNotes=_parseNotes(testCard.notes);
-  /* Replace newlines with space — multi-line text breaks translate_fields JSON parse */
-  var arText=testNotes.ar.replace(/\n/g,' ');
-  console.log('[translate] TEST card:',testCard.scientific_name);
-  console.log('[translate] notes.ar (first 200 chars):',arText.substring(0,200));
-  prog.innerHTML='🔬 اختبار على بطاقة واحدة: <b>'+esc(testCard.scientific_name)+'</b>...';
+  var testBullets=_extractBullets(testNotes.ar);
+  prog.innerHTML='🔬 اختبار: <b>'+esc(testCard.scientific_name)+'</b> ('+testBullets.length+' نقاط)...';
   try{
-    /* Raw fetch so we can show raw_response on parse failure */
-    var _tfRes=await fetch(API+'?t='+Date.now(),{method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+_adminToken},
-      body:JSON.stringify({action:'translate_fields',fields:{notes:arText}})});
-    var tr=await _tfRes.json().catch(function(){return {};});
-    if(!_tfRes.ok||tr.error){
-      prog.innerHTML='<div style="color:#c0392b;font-weight:700;margin-bottom:8px">❌ فشل: '+esc(tr.error||'HTTP '+_tfRes.status)+'</div>'
-        +'<div style="font-size:12px;font-weight:700;margin-bottom:4px">استجابة Claude الخام:</div>'
-        +'<pre style="font-size:11px;background:#f9f9f9;border:1px solid #ddd;border-radius:6px;padding:10px;overflow:auto;max-height:200px;white-space:pre-wrap">'+esc(tr.raw_response||'(فارغة)')+'</pre>';
-      return;
+    /* Translate EN only for the test preview */
+    var enBullets=[];
+    for(var b=0;b<testBullets.length;b++){
+      prog.innerHTML='🔬 اختبار EN — نقطة '+(b+1)+'/'+testBullets.length+'...';
+      enBullets.push(await _translateBullet(testBullets[b],'en'));
     }
-    var t=tr.translations||{};
-    /* Server now normalises to flat {ar,en,ku}; keep nested fallback just in case */
-    function _extractLang(t,lang){var v=t[lang];return typeof v==='string'?v:(v&&typeof v==='object'?Object.values(v)[0]||'':'');}
-    var enResult=_extractLang(t,'en');
-    var kuResult=_extractLang(t,'ku');
-    if(!enResult){
-      prog.innerHTML='<div style="color:#c0392b;font-weight:700">❌ الترجمة فارغة — استجابة translate_fields:</div>'
-        +'<pre style="font-size:11px;background:#f9f9f9;border:1px solid #ddd;border-radius:6px;padding:10px;overflow:auto;max-height:200px;white-space:pre-wrap">'+esc(JSON.stringify(tr,null,2).substring(0,400))+'</pre>';
-      return;
-    }
+    var enPreview=enBullets.join('\n');
     prog.innerHTML=
       '<div style="background:#eafaf1;border:1px solid #a9dfbf;border-radius:10px;padding:14px;margin-bottom:14px">'
-      +'<div style="font-weight:800;margin-bottom:6px">✅ نجح الاختبار — '+esc(testCard.scientific_name)+'</div>'
-      +'<div style="font-size:12px;color:#555;margin-bottom:4px"><b>EN:</b> '+esc(enResult.substring(0,120))+'...</div>'
-      +'<div style="font-size:12px;color:#555"><b>KU:</b> '+esc(kuResult.substring(0,80))+'...</div>'
+      +'<div style="font-weight:800;margin-bottom:8px">✅ نجح الاختبار — '+esc(testCard.scientific_name)+'</div>'
+      +'<div style="font-size:12px;color:#333;white-space:pre-wrap;line-height:1.6;margin-bottom:6px">'+esc(enPreview)+'</div>'
       +'</div>'
       +'<div style="text-align:center">'
-      +'<button class="btn primary" onclick="bulkTranslateNotes._confirm()" style="font-size:13px;padding:10px 22px">✅ تشغيل الكل ('+toTranslate.length+' بطاقة)</button>'
+      +'<button class="btn primary" onclick="bulkTranslateNotes._confirm()" style="font-size:13px;padding:10px 22px">✅ تشغيل الكل — '+toTranslate.length+' بطاقة (EN + KU)</button>'
       +'</div>';
-    /* Save the test card result */
-    var newNotes={ar:testNotes.ar,en:enResult,ku:kuResult};
-    await apiCall('enrich_fish_card',{id:testCard.id,notes:newNotes},true);
-    var idx=fishCards.findIndex(function(f){return f.id===testCard.id;});
-    if(idx>=0) fishCards[idx].notes=newNotes;
-    /* Expose confirm callback */
-    bulkTranslateNotes._pending={cards:toTranslate.slice(1),prog};
+    bulkTranslateNotes._pending={testCard,testNotes,testBullets,enBullets,remaining:toTranslate.slice(1),prog};
   }catch(e){
-    console.error('[translate] TEST FAILED:',e);
-    prog.innerHTML='<div style="color:#c0392b;font-weight:700">❌ فشل الاختبار: '+esc(e.message)+'</div>'
-      +'<div style="font-size:12px;margin-top:8px;color:#555">تحقق من console للتفاصيل</div>';
+    prog.innerHTML='<div style="color:#c0392b;font-weight:700">❌ فشل الاختبار: '+esc(e.message)+'</div>';
   }
 };
 bulkTranslateNotes._confirm=async function(){
-  var pending=bulkTranslateNotes._pending;
-  if(!pending) return;
-  var {cards,prog}=pending;
+  var p=bulkTranslateNotes._pending;
+  if(!p) return;
   bulkTranslateNotes._pending=null;
-  var done=1,failed=0,total=cards.length+1; /* +1 for the test card already done */
+  var {testCard,testNotes,testBullets,enBullets,remaining,prog}=p;
+  var done=0,failed=0,total=remaining.length+1;
   function renderProg(){
     var pct=total?Math.round((done+failed)/total*100):0;
-    prog.innerHTML=
-      '<div style="font-weight:700;margin-bottom:8px;text-align:right">🌐 جاري الترجمة... '+(done+failed)+' / '+total+'</div>'
+    prog.innerHTML='<div style="font-weight:700;margin-bottom:8px;text-align:right">🌐 جاري الترجمة... '+(done+failed)+'/'+total+'</div>'
       +'<div style="background:#dde;border-radius:6px;height:10px;overflow:hidden;margin-bottom:8px">'
-      +'<div style="background:#2980b9;height:10px;width:'+pct+'%;transition:width 0.25s;border-radius:6px"></div>'
-      +'</div>'
+      +'<div style="background:#2980b9;height:10px;width:'+pct+'%;transition:width 0.25s;border-radius:6px"></div></div>'
       +'<div style="font-size:12px;color:var(--muted);text-align:right">✅ '+done+' &nbsp;|&nbsp; ❌ '+failed+'</div>';
   }
   renderProg();
-  var BATCH=5;
-  for(var i=0;i<cards.length;i+=BATCH){
-    var batch=cards.slice(i,i+BATCH);
+  /* Finish test card: translate KU bullets, save */
+  try{
+    var kuBullets=[];
+    for(var b=0;b<testBullets.length;b++) kuBullets.push(await _translateBullet(testBullets[b],'ku'));
+    var newNotes={ar:testNotes.ar,en:enBullets.join('\n'),ku:kuBullets.join('\n')};
+    await apiCall('enrich_fish_card',{id:testCard.id,notes:newNotes},true);
+    var ix=fishCards.findIndex(function(f){return f.id===testCard.id;});
+    if(ix>=0) fishCards[ix].notes=newNotes;
+    done++;
+  }catch(e){ failed++;console.warn('[translate]',testCard.scientific_name,e.message); }
+  renderProg();
+  /* Bulk: batch of 3 cards, bullets translated sequentially per card */
+  var BATCH=3;
+  for(var i=0;i<remaining.length;i+=BATCH){
+    var batch=remaining.slice(i,i+BATCH);
     await Promise.all(batch.map(async function(card){
       try{
-        var curNotes=_parseNotes(card.notes);
-        if(!curNotes||!curNotes.ar){failed++;return;}
-        var arText=curNotes.ar.replace(/\n/g,' ');
-        var tr=await apiCall('translate_fields',{fields:{notes:arText}},true);
-        var t=tr.translations||{};
-        var newNotes={ar:curNotes.ar,en:_extractLang(t,'en'),ku:_extractLang(t,'ku')};
-        await apiCall('enrich_fish_card',{id:card.id,notes:newNotes},true);
+        var cur=_parseNotes(card.notes);
+        if(!cur||!cur.ar){failed++;return;}
+        var translated=await _translateCardNotes(cur.ar);
+        var nn={ar:cur.ar,en:translated.en,ku:translated.ku};
+        await apiCall('enrich_fish_card',{id:card.id,notes:nn},true);
         var idx=fishCards.findIndex(function(f){return f.id===card.id;});
-        if(idx>=0) fishCards[idx].notes=newNotes;
+        if(idx>=0) fishCards[idx].notes=nn;
         done++;
       }catch(e){ failed++;console.warn('[translate]',card.scientific_name,e.message); }
       renderProg();
     }));
-    if(i+BATCH<cards.length) await new Promise(function(r){setTimeout(r,1000);});
+    if(i+BATCH<remaining.length) await new Promise(function(r){setTimeout(r,1000);});
   }
-  prog.innerHTML=
-    '<div style="font-weight:800;font-size:15px;margin-bottom:14px;text-align:right">اكتملت الترجمة</div>'
+  prog.innerHTML='<div style="font-weight:800;font-size:15px;margin-bottom:14px;text-align:right">اكتملت الترجمة</div>'
     +'<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">'
     +'<div style="background:#eaf4fb;border:1px solid #a9cce3;border-radius:10px;padding:12px 22px;text-align:center;min-width:80px">'
     +'<div style="font-size:26px;font-weight:800;color:#2980b9">'+done+'</div>'
