@@ -2029,11 +2029,14 @@ window.setLang=function(lang){
   applyI18n();
   /* Re-render dynamic content with new language */
   var activeRoute = (location.hash||'#/home').replace('#/','').split('/')[0]||'home';
-  if(activeRoute==='home')     { renderHome(); }
-  if(activeRoute==='products') { renderProducts(); }
-  if(activeRoute==='cart')     { renderCart(); }
-  if(activeRoute==='blog')      { renderBlogList(); }
-  if(activeRoute==='education') { renderEducation(); }
+  if(activeRoute==='home')       { renderHome(); }
+  if(activeRoute==='products')   { renderProducts(); }
+  if(activeRoute==='categories') { renderCategoriesPage(); }
+  if(activeRoute==='product')    { var _pid=(location.hash||'').replace('#/','').split('/')[1]; if(_pid) renderProductDetail(_pid); }
+  if(activeRoute==='cart')       { renderCart(); }
+  if(activeRoute==='blog')       { renderBlogList(); }
+  if(activeRoute==='education')  { renderEducation(); }
+  renderCatSelects();
   applyI18n();
 };
 function applyI18n(){
@@ -2200,6 +2203,12 @@ function getCur(p){
 function curLabel(cur){ return cur==='USD' ? 'حجز مسبق · بالدولار' : 'متوفر · الدفع بالدينار'; }
 function byId(id){return products.find(p=>p.id===id);}
 function catById(id){return CATS.find(c=>c.id===id);}
+function catName(c){
+  if(!c) return '';
+  if(currentLang==='en') return c.name_en||c.name||'';
+  if(currentLang==='ku') return c.name_ku||c.name||'';
+  return c.name||'';
+}
 function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(window._t);window._t=setTimeout(()=>el.classList.remove('show'),2600);}
 function saveCart(){localStorage.setItem('rsi_cart',JSON.stringify(cart));updateCartBadge();}
 function saveProd(){localStorage.setItem('rsi_prods',JSON.stringify(products));renderCatSelects();updateCartBadge();}
@@ -2271,7 +2280,7 @@ function catCard(c){
   return`<article class="category-card" onclick="openCat('${c.id}')">
     <span class="cat-count">${cnt} منتج</span>
     <div class="cat-icon">${iconHtml}</div>
-    <h3>${c.name}</h3><p>${c.desc}</p>
+    <h3>${catName(c)}</h3><p>${c.desc}</p>
   </article>`;
 }
 window.openCat=function(id){
@@ -2370,7 +2379,7 @@ window.renderProducts=function(){
 function renderCategoriesPage(){document.getElementById('categoriesGrid').innerHTML=CATS.map(catCard).join('');}
 function renderCatSelects(){
   const s=document.getElementById('categoryFilter');
-  if(s)s.innerHTML='<option value="">كل الفئات</option>'+CATS.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  if(s)s.innerHTML=`<option value="">${t('all_categories')}</option>`+CATS.map(c=>`<option value="${c.id}">${catName(c)}</option>`).join('');
   const a=document.getElementById('adminCategory');
   if(a)a.innerHTML=CATS.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
 }
@@ -2405,13 +2414,13 @@ function renderProductDetail(id){
   const isPre=p.stock==='preorder';
   const catIconHtml=(c && typeof c.icon==='string' && c.icon.indexOf('<svg')===0)?c.icon:`<span style="font-size:72px">${c?c.icon:'📦'}</span>`;
   document.getElementById('productDetail').innerHTML=`
-    <div class="breadcrumb"><a href="#/products">المتجر</a><span>›</span><a href="javascript:openCat('${esc(p.category)}')">${esc(c?.name||'')}</a><span>›</span><span>${esc(p.name)}</span></div>
+    <div class="breadcrumb"><a href="#/products">${t('nav_products')}</a><span>›</span><a href="javascript:openCat('${esc(p.category)}')">${esc(catName(c)||'')}</a><span>›</span><span>${esc(p.name)}</span></div>
     <div class="product-detail">
       <div class="detail-image">
         <img src="${safeImg(p.image)}" alt="${esc(p.name)}" onerror="this.style.display='none';this.parentElement.innerHTML='<div class=product-placeholder style=width:160px;height:160px>${catIconHtml.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}</div>'">
       </div>
       <div class="detail-info">
-        <span class="brand-mini">RED SEA · ${esc(c?.name||'')}</span>
+        <span class="brand-mini">RED SEA · ${esc(catName(c)||'')}</span>
         <h1>${esc(p.name)}</h1>
         <p>${esc(p.desc||'')}</p>
         ${isPre?`<div class="preorder-banner"><svg class="ico" viewBox="0 0 24 24" style="width:18px;height:18px;color:#854d0e"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span>منتج بالحجز المسبق · السعر بالدولار · مدة التوصيل تقريبًا 90 يوم</span></div>`:''}
@@ -2423,7 +2432,7 @@ function renderProductDetail(id){
           `<div class="detail-price${isPre?' preorder-detail':''}">${money(p.price,cur)}</div>`}
         <div class="detail-meta">
           <div class="meta-box"><b>الحالة</b><span>${stockLbl(p.stock)}</span></div>
-          <div class="meta-box"><b>الفئة</b><span>${c?.name||'-'}</span></div>
+          <div class="meta-box"><b>الفئة</b><span>${catName(c)||'-'}</span></div>
           <div class="meta-box"><b>الدفع</b><span>${isPre?'تأكيد الحجز · بالدولار':'الدفع عند الاستلام · بالدينار'}</span></div>
           <div class="meta-box"><b>التوصيل</b><span>${isPre?'بعد وصول الشحنة (تقريبا 90 يوم)':'جميع المحافظات'}</span></div>
         </div>
@@ -4844,7 +4853,7 @@ async function syncFromSupabase(){
   try{
     var catData=await sbGet('/rest/v1/categories?order=sort_order.asc&limit=100');
     if(catData&&catData.length){
-      CATS=catData.map(function(c){return{id:c.id,icon:c.icon||'📦',name:c.name,desc:c.description||''};});
+      CATS=catData.map(function(c){return{id:c.id,icon:c.icon||'📦',name:c.name,name_en:c.name_en||'',name_ku:c.name_ku||'',desc:c.description||''};});
     }
     var prodData=await sbGet('/rest/v1/products?order=sort_order.asc,created_at.desc&limit=500');
     if(prodData&&prodData.length){
