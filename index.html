@@ -4122,19 +4122,72 @@ window.bulkWriteArabicNotes=async function(){
     +'</div>';
 };
 
+/* ── Extract notes object from a card (handles both object and JSON string) ── */
+function _parseNotes(raw){
+  if(!raw) return null;
+  if(typeof raw==='object') return raw;
+  if(typeof raw==='string'&&raw.charAt(0)==='{'){try{return JSON.parse(raw);}catch(e){}}
+  return null;
+}
+
 /* ── Bulk translate Arabic notes → EN + KU ── */
 window.bulkTranslateNotes=async function(){
   if(!_adminToken){toast('غير مصرح — سجل الدخول');return;}
   var toTranslate=fishCards.filter(function(c){
-    var o=null;
-    if(typeof c.notes==='object'&&c.notes) o=c.notes;
-    else if(typeof c.notes==='string'&&c.notes.charAt(0)==='{'){try{o=JSON.parse(c.notes);}catch(e){}}
+    var o=_parseNotes(c.notes);
     return o&&o.ar&&!o.en;
   });
   if(!toTranslate.length){toast('كل البطاقات لديها ترجمات ✓');return;}
   var prog=document.getElementById('bulkEnrichProgress');
   prog.style.display='block';
-  var done=0,failed=0,total=toTranslate.length;
+
+  /* ── Test first card before bulk ── */
+  var testCard=toTranslate[0];
+  var testNotes=_parseNotes(testCard.notes);
+  /* Replace newlines with space — multi-line text breaks translate_fields JSON parse */
+  var arText=testNotes.ar.replace(/\n/g,' ');
+  console.log('[translate] TEST card:',testCard.scientific_name);
+  console.log('[translate] notes.ar (first 200 chars):',arText.substring(0,200));
+  prog.innerHTML='🔬 اختبار على بطاقة واحدة: <b>'+esc(testCard.scientific_name)+'</b>...';
+  try{
+    var tr=await apiCall('translate_fields',{fields:{notes:arText}},true);
+    var t=tr.translations||{};
+    var enResult=t.en?.notes||'';
+    var kuResult=t.ku?.notes||'';
+    console.log('[translate] TEST result EN:',enResult.substring(0,100));
+    console.log('[translate] TEST result KU:',kuResult.substring(0,100));
+    if(!enResult){
+      prog.innerHTML='<div style="color:#c0392b;font-weight:700">❌ الترجمة فارغة — استجابة translate_fields: <pre style="font-size:11px;overflow:auto">'+esc(JSON.stringify(tr,null,2).substring(0,400))+'</pre></div>';
+      return;
+    }
+    prog.innerHTML=
+      '<div style="background:#eafaf1;border:1px solid #a9dfbf;border-radius:10px;padding:14px;margin-bottom:14px">'
+      +'<div style="font-weight:800;margin-bottom:6px">✅ نجح الاختبار — '+esc(testCard.scientific_name)+'</div>'
+      +'<div style="font-size:12px;color:#555;margin-bottom:4px"><b>EN:</b> '+esc(enResult.substring(0,120))+'...</div>'
+      +'<div style="font-size:12px;color:#555"><b>KU:</b> '+esc(kuResult.substring(0,80))+'...</div>'
+      +'</div>'
+      +'<div style="text-align:center">'
+      +'<button class="btn primary" onclick="bulkTranslateNotes._confirm()" style="font-size:13px;padding:10px 22px">✅ تشغيل الكل ('+toTranslate.length+' بطاقة)</button>'
+      +'</div>';
+    /* Save the test card result */
+    var newNotes={ar:testNotes.ar,en:enResult,ku:kuResult};
+    await apiCall('enrich_fish_card',{id:testCard.id,notes:newNotes},true);
+    var idx=fishCards.findIndex(function(f){return f.id===testCard.id;});
+    if(idx>=0) fishCards[idx].notes=newNotes;
+    /* Expose confirm callback */
+    bulkTranslateNotes._pending={cards:toTranslate.slice(1),prog};
+  }catch(e){
+    console.error('[translate] TEST FAILED:',e);
+    prog.innerHTML='<div style="color:#c0392b;font-weight:700">❌ فشل الاختبار: '+esc(e.message)+'</div>'
+      +'<div style="font-size:12px;margin-top:8px;color:#555">تحقق من console للتفاصيل</div>';
+  }
+};
+bulkTranslateNotes._confirm=async function(){
+  var pending=bulkTranslateNotes._pending;
+  if(!pending) return;
+  var {cards,prog}=pending;
+  bulkTranslateNotes._pending=null;
+  var done=1,failed=0,total=cards.length+1; /* +1 for the test card already done */
   function renderProg(){
     var pct=total?Math.round((done+failed)/total*100):0;
     prog.innerHTML=
@@ -4146,15 +4199,14 @@ window.bulkTranslateNotes=async function(){
   }
   renderProg();
   var BATCH=5;
-  for(var i=0;i<toTranslate.length;i+=BATCH){
-    var batch=toTranslate.slice(i,i+BATCH);
+  for(var i=0;i<cards.length;i+=BATCH){
+    var batch=cards.slice(i,i+BATCH);
     await Promise.all(batch.map(async function(card){
       try{
-        var curNotes=null;
-        if(typeof card.notes==='object'&&card.notes) curNotes=card.notes;
-        else if(typeof card.notes==='string'&&card.notes.charAt(0)==='{'){try{curNotes=JSON.parse(card.notes);}catch(e){}}
+        var curNotes=_parseNotes(card.notes);
         if(!curNotes||!curNotes.ar){failed++;return;}
-        var tr=await apiCall('translate_fields',{fields:{notes:curNotes.ar}},true);
+        var arText=curNotes.ar.replace(/\n/g,' ');
+        var tr=await apiCall('translate_fields',{fields:{notes:arText}},true);
         var t=tr.translations||{};
         var newNotes={ar:curNotes.ar,en:t.en?.notes||'',ku:t.ku?.notes||''};
         await apiCall('enrich_fish_card',{id:card.id,notes:newNotes},true);
@@ -4164,7 +4216,7 @@ window.bulkTranslateNotes=async function(){
       }catch(e){ failed++;console.warn('[translate]',card.scientific_name,e.message); }
       renderProg();
     }));
-    if(i+BATCH<toTranslate.length) await new Promise(function(r){setTimeout(r,1000);});
+    if(i+BATCH<cards.length) await new Promise(function(r){setTimeout(r,1000);});
   }
   prog.innerHTML=
     '<div style="font-weight:800;font-size:15px;margin-bottom:14px;text-align:right">اكتملت الترجمة</div>'
