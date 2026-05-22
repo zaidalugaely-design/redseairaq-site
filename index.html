@@ -3834,6 +3834,7 @@ function renderAdminFishFamilies(){
 
 /* ── Fish Card CRUD ── */
 window.resetFishCardForm=function(){
+  populateFishFamilySelect();
   document.getElementById('fishCardId').value='';
   document.getElementById('fishCardFamily').value='';
   document.getElementById('fishCardNameAr').value='';
@@ -3894,6 +3895,7 @@ window.saveFishCard=async function(){
 };
 window.editFishCard=function(id){
   var c=fishCards.find(function(x){return x.id===id;});if(!c)return;
+  populateFishFamilySelect();
   document.getElementById('fishCardId').value=c.id;
   document.getElementById('fishCardFamily').value=c.family_id||'';
   document.getElementById('fishCardNameAr').value=c.common_name_ar||'';
@@ -4976,6 +4978,7 @@ async function syncEducationData(){
     var ffData=await sbGet('/rest/v1/fish_families?select=*&order=created_at.asc&limit=200');
     if(ffData&&ffData.length){
       fishFamilies=ffData.map(function(r){return{id:r.id,name_ar:r.name_ar||'',name_en:r.name_en||'',name_ku:r.name_ku||'',created_at:r.created_at||''};});
+      populateFishFamilySelect();
     }
     var fcData=await sbGet('/rest/v1/fish_cards?select=*&order=created_at.asc&limit=600');
     if(fcData&&fcData.length){
