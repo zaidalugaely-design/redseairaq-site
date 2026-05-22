@@ -4162,10 +4162,13 @@ window.bulkTranslateNotes=async function(){
       return;
     }
     var t=tr.translations||{};
-    var enResult=t.en?.notes||'';
-    var kuResult=t.ku?.notes||'';
+    /* Server now normalises to flat {ar,en,ku}; keep nested fallback just in case */
+    function _extractLang(t,lang){var v=t[lang];return typeof v==='string'?v:(v&&typeof v==='object'?Object.values(v)[0]||'':'');}
+    var enResult=_extractLang(t,'en');
+    var kuResult=_extractLang(t,'ku');
     if(!enResult){
-      prog.innerHTML='<div style="color:#c0392b;font-weight:700">❌ الترجمة فارغة — استجابة translate_fields: <pre style="font-size:11px;overflow:auto">'+esc(JSON.stringify(tr,null,2).substring(0,400))+'</pre></div>';
+      prog.innerHTML='<div style="color:#c0392b;font-weight:700">❌ الترجمة فارغة — استجابة translate_fields:</div>'
+        +'<pre style="font-size:11px;background:#f9f9f9;border:1px solid #ddd;border-radius:6px;padding:10px;overflow:auto;max-height:200px;white-space:pre-wrap">'+esc(JSON.stringify(tr,null,2).substring(0,400))+'</pre>';
       return;
     }
     prog.innerHTML=
@@ -4216,7 +4219,7 @@ bulkTranslateNotes._confirm=async function(){
         var arText=curNotes.ar.replace(/\n/g,' ');
         var tr=await apiCall('translate_fields',{fields:{notes:arText}},true);
         var t=tr.translations||{};
-        var newNotes={ar:curNotes.ar,en:t.en?.notes||'',ku:t.ku?.notes||''};
+        var newNotes={ar:curNotes.ar,en:_extractLang(t,'en'),ku:_extractLang(t,'ku')};
         await apiCall('enrich_fish_card',{id:card.id,notes:newNotes},true);
         var idx=fishCards.findIndex(function(f){return f.id===card.id;});
         if(idx>=0) fishCards[idx].notes=newNotes;

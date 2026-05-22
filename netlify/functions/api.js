@@ -673,10 +673,10 @@ Additional info: ${notes_en || ''}`;
 
     const fieldList = Object.entries(fields).map(([k, v]) => `${k}: ${v}`).join('\n');
 
-    const prompt = `Translate ALL of the following fields into Arabic, English, and Kurdish (Sorani). Auto-detect the input language. Return ONLY a JSON object — no markdown, no extra text — with this structure:
-{"ar":{"field_name":"..."},"en":{"field_name":"..."},"ku":{"field_name":"..."}}
+    const prompt = `Translate the following text into Arabic, English, and Kurdish (Sorani). Return ONLY this JSON — no markdown, no extra text:
+{"ar":"...","en":"...","ku":"..."}
 
-Fields:
+Text:
 ${fieldList}`;
 
     try {
@@ -690,7 +690,7 @@ ${fieldList}`;
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
           max_tokens: 1024,
-          system: 'You are a marine biology translator. Auto-detect the input language and translate all provided fields into Arabic, English, and Kurdish (Sorani). scientific_name fields must never be translated. Return ONLY a JSON object with keys: ar, en, ku for each field. No extra text.',
+          system: 'You are a marine biology translator. Translate the given text into Arabic, English, and Kurdish (Sorani). Return ONLY a JSON object: {"ar":"...","en":"...","ku":"..."}. No markdown, no extra text.',
           messages: [{ role: 'user', content: prompt }]
         })
       });
@@ -699,16 +699,24 @@ ${fieldList}`;
         throw new Error(err?.error?.message || `Anthropic HTTP ${aiRes.status}`);
       }
       const aiData = await aiRes.json();
-      const rawText = aiData.content?.[0]?.text || '{}';
+      const rawText = (aiData.content?.[0]?.text || '').trim();
+      /* Strip markdown code fences if Claude wraps the JSON */
+      const cleaned = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
       let translations;
-      try { translations = JSON.parse(rawText); }
+      try { translations = JSON.parse(cleaned); }
       catch (parseErr) {
         return res(headers, 500, {
           error: 'استجابة غير صالحة من الذكاء الاصطناعي',
           raw_response: rawText.substring(0, 800)
         });
       }
-      return res(headers, 200, { translations });
+      /* Normalise to flat {ar,en,ku} — handle nested {"ar":{"notes":"..."}} too */
+      const flat = {};
+      for (const lang of ['ar','en','ku']) {
+        const v = translations[lang];
+        flat[lang] = typeof v === 'string' ? v : (v && typeof v === 'object' ? Object.values(v)[0] || '' : '');
+      }
+      return res(headers, 200, { translations: flat });
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }
 
