@@ -1449,8 +1449,8 @@ html{scroll-behavior:smooth}
   <div class="section-head">
     <div class="section-title">
       <span class="section-kicker" data-i18n="nav_education">تعليم</span>
-      <h2>قاعدة بيانات الأحياء البحرية</h2>
-      <p>دليل الأسماك والمرجان لأحواض المياه المالحة</p>
+      <h2 data-i18n="education_title">قاعدة بيانات الأحياء البحرية</h2>
+      <p data-i18n="education_subtitle">دليل الأسماك والمرجان لأحواض المياه المالحة</p>
     </div>
   </div>
   <!-- Tab bar -->
@@ -1714,6 +1714,13 @@ const T = {
     edu_read_more:'اقرأ المزيد', edu_read_less:'اقرأ أقل',
     edu_no_fish:'لا توجد أسماك بعد', edu_no_coral:'لا يوجد مرجان بعد',
     edu_family:'العائلة',
+    education_title:'قاعدة بيانات الأحياء البحرية',
+    education_subtitle:'دليل الأسماك والمرجان لأحواض المياه المالحة',
+    edu_error_load:'خطأ في تحميل البيانات',
+    edu_pull_retry:'اسحب للأسفل للمحاولة مجدداً',
+    edu_retry:'🔄 إعادة التحميل',
+    edu_no_cards:'لا توجد بطاقات بعد',
+    edu_feeding:'التغذية:',
     ask_product:'اسأل عن المنتج',
     back_store:'رجوع للمتجر',
   },
@@ -1833,6 +1840,13 @@ const T = {
     edu_read_more:'Read More', edu_read_less:'Read Less',
     edu_no_fish:'No fish added yet', edu_no_coral:'No corals added yet',
     edu_family:'Family',
+    education_title:'Marine Life Database',
+    education_subtitle:'Fish and Coral Guide for Saltwater Aquariums',
+    edu_error_load:'Error Loading Data',
+    edu_pull_retry:'Pull down to retry',
+    edu_retry:'🔄 Reload',
+    edu_no_cards:'No cards yet',
+    edu_feeding:'Feeding:',
     ask_product:'Ask About Product',
     back_store:'Back to Store',
   },
@@ -1952,6 +1966,13 @@ const T = {
     edu_read_more:'زیاتر بخوێنەوە', edu_read_less:'کەمتر بخوێنەوە',
     edu_no_fish:'هێشتا ماسی زیاد نەکراوە', edu_no_coral:'هێشتا مەرجان زیاد نەکراوە',
     edu_family:'خێزان',
+    education_title:'داتابەیسی ژیانی دەریا',
+    education_subtitle:'ڕێنمایی ماسی و مەرجان بۆ ئاکوەریومی ئاوی شور',
+    edu_error_load:'هەڵە لە بارکردنی داتا',
+    edu_pull_retry:'بکێشە خوارەوە بۆ هەوڵدانەوە',
+    edu_retry:'🔄 دووبارە بارکردن',
+    edu_no_cards:'هێشتا بطاقەیەک نییە',
+    edu_feeding:'خواردن:',
     ask_product:'پرسیار دەربارەی کاڵا',
     back_store:'گەڕانەوە بۆ دوکان',
   }
@@ -3226,7 +3247,7 @@ function bioCard(item,type){
   var feedingHtml='';
   var feedingText=parseMultiLangField(item.feeding,currentLang);
   if(type==='coral'&&feedingText){
-    var feedingLabel=currentLang==='en'?'Feeding:':currentLang==='ku'?'خواردن:':'التغذية:';
+    var feedingLabel=t('edu_feeding');
     feedingHtml='<div style="font-size:12.5px;color:#4a5568;margin-bottom:8px;line-height:1.5"><b style="color:var(--navy)">'+feedingLabel+'</b> '+esc(feedingText)+'</div>';
   }
 
@@ -3275,9 +3296,9 @@ function renderEducation(){
     fishPanel.innerHTML=
       '<div style="text-align:center;padding:60px 20px">'
       +'<div style="font-size:42px;margin-bottom:16px">⚠️</div>'
-      +'<p style="font-size:16px;font-weight:700;color:#c0392b;margin-bottom:8px">خطأ في تحميل البيانات</p>'
-      +'<p style="color:var(--muted);margin-bottom:24px;font-size:14px">اسحب للأسفل للمحاولة مجدداً</p>'
-      +'<button class="btn primary" onclick="retryEducationLoad()" style="font-size:14px;padding:12px 24px">🔄 إعادة التحميل</button>'
+      +'<p style="font-size:16px;font-weight:700;color:#c0392b;margin-bottom:8px">'+t('edu_error_load')+'</p>'
+      +'<p style="color:var(--muted);margin-bottom:24px;font-size:14px">'+t('edu_pull_retry')+'</p>'
+      +'<button class="btn primary" onclick="retryEducationLoad()" style="font-size:14px;padding:12px 24px">'+t('edu_retry')+'</button>'
       +'</div>';
     coralPanel.innerHTML='';
     fishPanel.style.display=_eduActiveTab==='fish'?'block':'none';
@@ -3295,7 +3316,7 @@ function renderEducation(){
       var accId='edu-fam-'+fam.id;
       var famBody=members.length
         ?'<div class="bio-grid">'+members.map(function(f){return bioCard(f,'fish');}).join('')+'</div>'
-        :'<p style="color:var(--muted);font-size:14px;text-align:center;padding:20px 0">لا توجد بطاقات بعد</p>';
+        :'<p style="color:var(--muted);font-size:14px;text-align:center;padding:20px 0">'+t('edu_no_cards')+'</p>';
       fishHtml+='<div class="acc-section" id="'+accId+'">'
         +'<div class="acc-header" onclick="toggleAccordion(\''+accId+'\')">'
         +'<span class="acc-header-title">'+esc(famName)
@@ -5107,7 +5128,7 @@ window.openBioModal=function(id,type){
     +'<button onclick="closeBioModal()" style="background:var(--pearl);border:none;border-radius:50%;width:34px;height:34px;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--navy);margin-right:4px" aria-label="إغلاق">✕</button>'
     +'</div>'
     +'<div class="bio-badges" style="margin-bottom:14px">'+badges+'</div>'
-    +(feeding?'<div style="font-size:14px;color:#4a5568;line-height:1.6;margin-bottom:10px"><b style="color:var(--navy)">'+(currentLang==='en'?'Feeding:':currentLang==='ku'?'خواردن:':'التغذية:')+' </b>'+esc(feeding)+'</div>':'')
+    +(feeding?'<div style="font-size:14px;color:#4a5568;line-height:1.6;margin-bottom:10px"><b style="color:var(--navy)">'+t('edu_feeding')+'</b> '+esc(feeding)+'</div>':'')
     +(notes?'<div style="font-size:14px;color:#4a5568;line-height:1.6">'+esc(notes)+'</div>':'')
     +'</div>';
   m.style.display='flex';
