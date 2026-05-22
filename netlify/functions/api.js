@@ -766,16 +766,9 @@ ${fieldList}`;
     const bucket = 'education-images';
     const uploadPath = `${Date.now()}-${file_name}`;
 
-    // fire-and-forget bucket create — don't await, saves ~300-500ms per upload
-    fetch(`${SB_URL}/storage/v1/bucket`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${SB_SERVICE_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: bucket, name: bucket, public: true })
-    }).catch(() => {});
-
-    try {
+    async function doUpload() {
       const buf = Buffer.from(image_data, 'base64');
-      const upRes = await fetch(`${SB_URL}/storage/v1/object/${bucket}/${uploadPath}`, {
+      return fetch(`${SB_URL}/storage/v1/object/${bucket}/${uploadPath}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${SB_SERVICE_KEY}`,
@@ -784,9 +777,26 @@ ${fieldList}`;
         },
         body: buf
       });
+    }
+
+    try {
+      let upRes = await doUpload();
       if (!upRes.ok) {
-        const err = await upRes.json().catch(() => ({}));
-        throw new Error(err?.error || err?.message || `Storage ${upRes.status}`);
+        const errBody = await upRes.json().catch(() => ({}));
+        const msg = errBody?.error || errBody?.message || '';
+        if (upRes.status === 400 && msg.toLowerCase().includes('bucket')) {
+          /* bucket doesn't exist yet — create it then retry once */
+          await fetch(`${SB_URL}/storage/v1/bucket`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${SB_SERVICE_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: bucket, name: bucket, public: true })
+          }).catch(() => {});
+          upRes = await doUpload();
+        }
+        if (!upRes.ok) {
+          const err2 = await upRes.json().catch(() => ({}));
+          throw new Error(err2?.error || err2?.message || `Storage ${upRes.status}`);
+        }
       }
       const publicUrl = `${SB_URL}/storage/v1/object/public/${bucket}/${uploadPath}`;
       return res(headers, 200, { url: publicUrl });

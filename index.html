@@ -4818,18 +4818,10 @@ window.switchImgTab=function(form,tab){
 
 async function uploadEduImage(file,prefix){
   var b64=await compress(file,900,.82);
-  var arr=b64.split(',');var mime=arr[0].match(/:(.*?);/)[1];
-  var bstr=atob(arr[1]);var n=bstr.length;var u8=new Uint8Array(n);
-  while(n--)u8[n]=bstr.charCodeAt(n);
-  var blob=new Blob([u8],{type:mime});
+  var data=b64.replace(/^data:[^;]+;base64,/,'');
   var fname=prefix+'-'+Date.now()+'.webp';
-  var upRes=await fetch(SB_URL+'/storage/v1/object/education-images/'+fname,{
-    method:'POST',
-    headers:{'Authorization':'Bearer '+SB_KEY,'Content-Type':'image/webp','x-upsert':'true'},
-    body:blob
-  });
-  if(!upRes.ok){var txt=await upRes.text();throw new Error(txt);}
-  return SB_URL+'/storage/v1/object/public/education-images/'+fname;
+  var result=await apiCall('upload_edu_image',{image_data:data,file_name:fname,content_type:'image/webp'},true);
+  return result.url||'';
 }
 
 window.handleFishImgUpload=async function(e){
