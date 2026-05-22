@@ -4818,7 +4818,10 @@ window.switchImgTab=function(form,tab){
 
 async function uploadEduImage(file,prefix){
   var b64=await compress(file,900,.82);
-  var blob=await fetch(b64).then(function(r){return r.blob();});
+  var arr=b64.split(',');var mime=arr[0].match(/:(.*?);/)[1];
+  var bstr=atob(arr[1]);var n=bstr.length;var u8=new Uint8Array(n);
+  while(n--)u8[n]=bstr.charCodeAt(n);
+  var blob=new Blob([u8],{type:mime});
   var fname=prefix+'-'+Date.now()+'.webp';
   var upRes=await fetch(SB_URL+'/storage/v1/object/education-images/'+fname,{
     method:'POST',
