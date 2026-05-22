@@ -3846,15 +3846,22 @@ function populateFishFamilySelect(){
 }
 
 async function loadFishFamilies(){
+  console.log('loadFishFamilies called');
   try{
     var data=await sbGet('/rest/v1/fish_families?select=*&order=created_at.asc&limit=200');
+    console.log('sbGet result:', data, 'length:', data&&data.length);
     if(data&&data.length){
       fishFamilies=data.map(function(r){return{id:r.id,name_ar:r.name_ar||'',name_en:r.name_en||'',name_ku:r.name_ku||'',created_at:r.created_at||''};});
+      console.log('families fetched:', fishFamilies.length);
       populateFishFamilySelect();
+      console.log('dropdown populated, options count:', (document.getElementById('fishCardFamily')||{}).options&&document.getElementById('fishCardFamily').options.length);
+    } else {
+      console.warn('loadFishFamilies: no data returned, fishFamilies remains:', fishFamilies.length);
     }
-  }catch(e){console.error('[edu] loadFishFamilies:',e.message);}
+  }catch(e){console.error('[edu] loadFishFamilies error:',e.message, e);}
   var el=document.getElementById('fishFamiliesCounter');
   if(el) el.textContent='عائلات: '+fishFamilies.length;
+  console.log('loadFishFamilies done, final count:', fishFamilies.length);
   return fishFamilies.length;
 }
 
