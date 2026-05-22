@@ -354,6 +354,14 @@ exports.handler = async function(event) {
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }
 
+  /* GET FISH FAMILIES */
+  if (action === 'get_fish_families') {
+    try {
+      const data = await sb('GET', '/fish_families?select=*&order=created_at.asc&limit=200', null);
+      return res(headers, 200, { families: data || [] });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
   /* SAVE FISH CARD */
   if (action === 'save_fish_card') {
     const { card } = body;
