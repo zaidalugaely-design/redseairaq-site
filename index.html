@@ -4827,6 +4827,10 @@ async function uploadEduImage(file,prefix){
 window.handleFishImgUpload=async function(e){
   var file=e.target.files&&e.target.files[0];if(!file)return;
   var st=document.getElementById('fishImgUploadStatus');
+  var box=document.getElementById('fishCardImgPreview');
+  var oldUrl=document.getElementById('fishCardImage').value;
+  document.getElementById('fishCardImage').value='';
+  if(box)box.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:120px"><div style="width:28px;height:28px;border:3px solid #e2e8f0;border-top-color:#3b82f6;border-radius:50%;animation:spin .7s linear infinite"></div></div>';
   if(st)st.textContent='جاري الرفع...';
   try{
     var url=await uploadEduImage(file,'fish');
@@ -4835,6 +4839,8 @@ window.handleFishImgUpload=async function(e){
     if(st)st.textContent='تم الرفع ✓';
     switchImgTab('fish','url');
   }catch(err){
+    document.getElementById('fishCardImage').value=oldUrl;
+    previewFishCardImg();
     if(st)st.textContent='فشل الرفع: '+(err.message||err);
   }
   e.target.value='';
