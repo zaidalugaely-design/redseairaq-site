@@ -4356,8 +4356,19 @@ var _reEnrichState=null;
 async function _reEnrichCard(card,counters,logLines,updateFn){
   var label=card.scientific_name||card.common_name_en||card.id;
   if(!card.scientific_name&&!card.common_name_en){counters.skipped++;logLines.push('⏭️ '+label+' — no name');updateFn();return;}
+  async function attempt(){
+    return apiCall('re_enrich_fish',{scientific_name:card.scientific_name,common_name_en:card.common_name_en},true);
+  }
   try{
-    var r=await apiCall('re_enrich_fish',{scientific_name:card.scientific_name,common_name_en:card.common_name_en},true);
+    var r;
+    try{r=await attempt();}
+    catch(e){
+      if(e.message&&e.message.toLowerCase().includes('rate_limit')){
+        logLines.push('⏳ rate limit — waiting 20s for '+label);updateFn();
+        await new Promise(function(res){setTimeout(res,20000);});
+        r=await attempt();
+      }else{throw e;}
+    }
     if(r.not_found||(!r.care_level&&!r.diet&&!r.reef_safe)){
       counters.skipped++;logLines.push('⏭️ '+label+' — no data returned');
     }else{
@@ -4375,11 +4386,9 @@ async function _reEnrichCard(card,counters,logLines,updateFn){
   updateFn();
 }
 async function _runReEnrichBatch(cards,counters,logLines,updateFn){
-  var BATCH=5;
-  for(var i=0;i<cards.length;i+=BATCH){
-    var batch=cards.slice(i,i+BATCH);
-    await Promise.all(batch.map(function(c){return _reEnrichCard(c,counters,logLines,updateFn);}));
-    if(i+BATCH<cards.length)await new Promise(function(r){setTimeout(r,2000);});
+  for(var i=0;i<cards.length;i++){
+    await _reEnrichCard(cards[i],counters,logLines,updateFn);
+    if(i+1<cards.length)await new Promise(function(r){setTimeout(r,7000);});
   }
 }
 function _reEnrichSummaryHTML(counters,logLines){
@@ -4399,7 +4408,7 @@ window.bulkReEnrichFish=async function(){
       +'<div style="font-family:monospace;font-size:11px;max-height:220px;overflow-y:auto;background:#f8fafc;padding:8px;border-radius:8px;direction:ltr;white-space:pre-wrap">'+logLines.join('\n')+'</div>';
   }
   updateProg();
-  await Promise.all(testCards.map(function(c){return _reEnrichCard(c,counters,logLines,updateProg);}));
+  await _runReEnrichBatch(testCards,counters,logLines,updateProg);
   renderAdminFishCards();
   _reEnrichState={counters:counters,logLines:logLines,remaining:remaining};
   prog.innerHTML='<div style="font-weight:900;margin-bottom:10px">🔬 اكتمل الاختبار — أول 5 بطاقات:</div>'
