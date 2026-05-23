@@ -513,6 +513,94 @@ Return ONLY valid JSON: {"care_level":"...","diet":"...","reef_safe":"...","imag
     } catch (e) { return res(headers, 502, { error: 'API error: ' + e.message }); }
   }
 
+  /* RE-ENRICH FISH — FishBase-only, updates care_level/diet/reef_safe only */
+  if (action === 're_enrich_fish') {
+    const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+    if (!ANTHROPIC_KEY) return res(headers, 500, { error: 'ANTHROPIC_API_KEY غير مضبوط' });
+
+    const { scientific_name, common_name_en } = body;
+    if (!scientific_name && !common_name_en)
+      return res(headers, 400, { error: 'scientific_name مطلوب' });
+
+    const VALID_CARE = new Set(['easy', 'medium', 'hard']);
+    const VALID_DIET = new Set(['carnivore', 'herbivore', 'omnivore']);
+    const VALID_REEF = new Set(['reef_safe', 'caution', 'with_caution', 'no']);
+
+    const systemPrompt =
+`You are a marine biology expert. Search FishBase (fishbase.se) for the exact scientific name provided. Extract only:
+- care_level: must be exactly 'easy', 'medium', or 'hard'
+- diet: must be exactly 'carnivore', 'herbivore', or 'omnivore'
+- reef_safe: must be exactly 'reef_safe', 'caution', 'with_caution', or 'no'
+
+STRICT RULES:
+- Use scientific name ONLY for searching
+- Return null for any field not clearly confirmed by FishBase
+- NEVER guess or assume any value
+- reef_safe definitions:
+  reef_safe = completely safe, will not harm any coral
+  caution = generally safe but individual specimens may occasionally nip
+  with_caution = frequently problematic, only for experienced reefers
+  no = will definitely damage or eat corals and invertebrates
+- Return ONLY this JSON with no extra text:
+  {"care_level": "...", "diet": "...", "reef_safe": "..."}`;
+
+    const name = scientific_name || common_name_en;
+    const userContent = `Scientific name: ${name}\n\nSearch FishBase for this species by scientific name only. Return the three fields as JSON.`;
+
+    const callClaude = (msgs, forceSearch) => fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type'     : 'application/json',
+        'x-api-key'        : ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta'   : 'web-search-2025-03-05'
+      },
+      body: JSON.stringify({
+        model     : 'claude-haiku-4-5-20251001',
+        max_tokens: 512,
+        system    : systemPrompt,
+        tools     : [{ type: 'web_search_20250305', name: 'web_search' }],
+        ...(forceSearch ? { tool_choice: { type: 'tool', name: 'web_search' } } : {}),
+        messages  : msgs
+      })
+    });
+
+    try {
+      let messages = [{ role: 'user', content: userContent }];
+      let r = await callClaude(messages, true);
+      if (!r.ok) { const e = await r.text(); throw new Error(e); }
+      let data = await r.json();
+
+      let loops = 0;
+      while (data.stop_reason === 'tool_use' && loops++ < 5) {
+        const toolCalls = data.content.filter(c => c.type === 'tool_use');
+        const toolResults = toolCalls.map(tc => {
+          const resultBlock = data.content.find(c => c.type === 'tool_result' && c.tool_use_id === tc.id);
+          return { type: 'tool_result', tool_use_id: tc.id, content: resultBlock?.content ?? [] };
+        });
+        messages = [...messages, { role: 'assistant', content: data.content }, { role: 'user', content: toolResults }];
+        r = await callClaude(messages, false);
+        if (!r.ok) { const e = await r.text(); throw new Error(e); }
+        data = await r.json();
+      }
+
+      const text = (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim();
+      if (!text) return res(headers, 200, { not_found: true });
+
+      let parsed;
+      try {
+        const m = text.match(/\{[\s\S]*?\}/);
+        parsed = JSON.parse(m ? m[0] : text);
+      } catch { return res(headers, 200, { not_found: true }); }
+
+      return res(headers, 200, {
+        care_level: VALID_CARE.has(parsed.care_level) ? parsed.care_level : null,
+        diet      : VALID_DIET.has(parsed.diet)       ? parsed.diet       : null,
+        reef_safe : VALID_REEF.has(parsed.reef_safe)  ? parsed.reef_safe  : null
+      });
+    } catch (e) { return res(headers, 502, { error: 'API error: ' + e.message }); }
+  }
+
   /* CLEAR FISH CARD IMAGES — set image_url = NULL on all cards that have one */
   if (action === 'clear_fish_card_images') {
     try {
