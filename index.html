@@ -1405,7 +1405,12 @@ html{scroll-behavior:smooth}
                 </div>
               </div>
             </div>
-            <div><div class="admin-products" id="adminFishCardList"></div></div>
+            <div>
+              <div id="fcBulkBar" style="display:none;padding:6px 0 10px">
+                <button id="fcBulkBtn" onclick="fishCardBulkDelete()" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:900;cursor:pointer;font-family:inherit">🗑️ حذف المحددة (0)</button>
+              </div>
+              <div class="admin-products" id="adminFishCardList"></div>
+            </div>
           </div>
           <div id="bulkEnrichProgress" style="display:none;margin-top:14px;padding:18px 20px;background:var(--pearl);border-radius:14px;font-size:13px;color:var(--navy);line-height:1.7;max-width:600px"></div>
         </div></div>
@@ -3328,6 +3333,7 @@ function saveRef(){localStorage.setItem('rsi_ref',JSON.stringify(refTopics));}
 ════════════════════════════════════════════════════ */
 var fishFamilies=[];
 var fishCards=[];
+var _fishCardSel=new Set();
 var coralCards=[];
 /* Clear any stale education cache from older sessions */
 ['rsi_fish_families','rsi_fish_cards','rsi_coral_cards'].forEach(function(k){localStorage.removeItem(k);});
@@ -4233,6 +4239,9 @@ function _fishCardRow(c){
     return s+'</select>'+tick+'</span>';
   }
   return '<div class="admin-product-row" data-fish-id="'+esc(c.id)+'" style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line)">'
+    +'<input type="checkbox" id="fccb-'+c.id+'" onchange="_fcToggleCheck(\''+c.id+'\',this.checked)" '
+    +(_fishCardSel.has(c.id)?'checked ':'')
+    +'style="width:16px;height:16px;cursor:pointer;flex-shrink:0;accent-color:#dc2626">'
     +thumb
     +'<div style="flex:1;min-width:0">'
     +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
@@ -4263,7 +4272,9 @@ function renderAdminFishCards(){
       +'<div class="acc-header" onclick="toggleAccordion(\''+accId+'\')">'
       +'<span class="acc-header-title">'+esc(fam.name_en||fam.name_ar||fam.id)
       +' <span style="font-size:12px;font-weight:400;color:var(--muted)">('+cards.length+')</span></span>'
-      +CHEVRON_SVG+'</div>'
+      +'<div class="acc-header-actions">'
+      +'<button id="fcsa-'+fam.id+'" class="small-btn" style="font-size:11px;padding:3px 8px" onclick="event.stopPropagation();_fcSelectAll(\''+fam.id+'\')">تحديد الكل</button>'
+      +CHEVRON_SVG+'</div></div>'
       +'<div class="acc-body"><div style="padding:0">'
       +cards.map(_fishCardRow).join('')
       +'<div style="padding:8px 14px">'
@@ -4276,10 +4287,13 @@ function renderAdminFishCards(){
     html+='<div class="acc-section" id="'+oid+'">'
       +'<div class="acc-header" onclick="toggleAccordion(\''+oid+'\')">'
       +'<span class="acc-header-title">بدون عائلة <span style="font-size:12px;font-weight:400;color:var(--muted)">('+orphans.length+')</span></span>'
-      +CHEVRON_SVG+'</div>'
+      +'<div class="acc-header-actions">'
+      +'<button id="fcsa-orphans" class="small-btn" style="font-size:11px;padding:3px 8px" onclick="event.stopPropagation();_fcSelectAll(\'orphans\')">تحديد الكل</button>'
+      +CHEVRON_SVG+'</div></div>'
       +'<div class="acc-body"><div style="padding:0">'+orphans.map(_fishCardRow).join('')+'</div></div></div>';
   }
   el.innerHTML=html||'<div class="admin-help">لا توجد أسماك بعد.</div>';
+  _fcUpdateBulkBtn();
 }
 
 window.fishCardInlineEdit=async function(id,field,value,confirmEl){
@@ -4293,6 +4307,46 @@ window.fishCardInlineEdit=async function(id,field,value,confirmEl){
     var row=document.querySelector('[data-fish-id="'+CSS.escape(id)+'"]');
     if(row){var b=row.querySelector('.fc-badge');if(b){var t=document.createElement('span');t.innerHTML=_fishCardBadge(card);b.replaceWith(t.firstChild);}}
   }catch(e){toast('فشل الحفظ: '+e.message);}
+};
+
+function _fcUpdateBulkBtn(){
+  var bar=document.getElementById('fcBulkBar');
+  var btn=document.getElementById('fcBulkBtn');
+  if(!bar||!btn)return;
+  var n=_fishCardSel.size;
+  bar.style.display=n?'block':'none';
+  btn.textContent='🗑️ حذف المحددة ('+n+')';
+}
+window._fcToggleCheck=function(id,checked){
+  if(checked)_fishCardSel.add(id);else _fishCardSel.delete(id);
+  _fcUpdateBulkBtn();
+};
+window._fcSelectAll=function(famId){
+  var cards=famId==='orphans'
+    ?fishCards.filter(function(c){return!c.family_id;})
+    :fishCards.filter(function(c){return c.family_id===famId;});
+  var allSel=cards.length>0&&cards.every(function(c){return _fishCardSel.has(c.id);});
+  cards.forEach(function(c){
+    if(allSel)_fishCardSel.delete(c.id);else _fishCardSel.add(c.id);
+    var cb=document.getElementById('fccb-'+c.id);
+    if(cb)cb.checked=!allSel;
+  });
+  var btn=document.getElementById('fcsa-'+famId);
+  if(btn)btn.textContent=allSel?'تحديد الكل':'إلغاء التحديد';
+  _fcUpdateBulkBtn();
+};
+window.fishCardBulkDelete=async function(){
+  if(!_adminToken){toast('غير مصرح — سجل الدخول');return;}
+  var ids=Array.from(_fishCardSel);if(!ids.length)return;
+  if(!confirm('هل تريد حذف '+ids.length+' بطاقة؟ لا يمكن التراجع'))return;
+  var n=ids.length;
+  for(var i=0;i<ids.length;i++){
+    try{await apiCall('delete_fish_card',{id:ids[i]},true);}catch(e){console.warn('delete_fish_card',e);}
+  }
+  fishCards=fishCards.filter(function(f){return!_fishCardSel.has(f.id);});
+  _fishCardSel.clear();
+  renderAdminFishCards();
+  toast('تم حذف '+n+' بطاقة ✓');
 };
 
 /* ── P5: Bulk fix FishBase images → Wikimedia/iNaturalist ── */
