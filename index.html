@@ -4351,52 +4351,77 @@ window.fishCardBulkDelete=async function(){
 };
 
 /* ── Re-enrich ALL fish cards: care_level / diet / reef_safe only ── */
+var _reEnrichState=null;
+
+async function _reEnrichCard(card,counters,logLines,updateFn){
+  var label=card.scientific_name||card.common_name_en||card.id;
+  if(!card.scientific_name&&!card.common_name_en){counters.skipped++;logLines.push('⏭️ '+label+' — no name');updateFn();return;}
+  try{
+    var r=await apiCall('re_enrich_fish',{scientific_name:card.scientific_name,common_name_en:card.common_name_en},true);
+    if(r.not_found||(!r.care_level&&!r.diet&&!r.reef_safe)){
+      counters.skipped++;logLines.push('⏭️ '+label+' — no data returned');
+    }else{
+      var patch={id:card.id};
+      if(r.care_level)patch.care_level=r.care_level;
+      if(r.diet)patch.diet=r.diet;
+      if(r.reef_safe)patch.reef_safe=r.reef_safe;
+      await apiCall('enrich_fish_card',patch,true);
+      var idx=fishCards.findIndex(function(f){return f.id===card.id;});
+      if(idx>=0)fishCards[idx]=Object.assign({},fishCards[idx],patch);
+      counters.done++;
+      logLines.push('✓ '+label+' → '+(r.care_level||'—')+' / '+(r.diet||'—')+' / '+(r.reef_safe||'—'));
+    }
+  }catch(e){counters.failed++;logLines.push('❌ '+label+' — '+e.message);}
+  updateFn();
+}
+async function _runReEnrichBatch(cards,counters,logLines,updateFn){
+  var BATCH=5;
+  for(var i=0;i<cards.length;i+=BATCH){
+    var batch=cards.slice(i,i+BATCH);
+    await Promise.all(batch.map(function(c){return _reEnrichCard(c,counters,logLines,updateFn);}));
+    if(i+BATCH<cards.length)await new Promise(function(r){setTimeout(r,2000);});
+  }
+}
+function _reEnrichSummaryHTML(counters,logLines){
+  return '✅ حُدّث: <b>'+counters.done+'</b> &nbsp;| ⏭️ بدون تغيير: <b>'+counters.skipped+'</b> &nbsp;| ❌ فشل: <b>'+counters.failed+'</b>'
+    +'<div style="font-family:monospace;font-size:11px;max-height:220px;overflow-y:auto;background:#f8fafc;padding:8px;border-radius:8px;margin-top:10px;direction:ltr;white-space:pre-wrap">'+logLines.join('\n')+'</div>';
+}
 window.bulkReEnrichFish=async function(){
   if(!_adminToken){toast('سجل الدخول أولاً');return;}
   if(!fishCards.length){toast('لا توجد بطاقات أسماك');return;}
   var prog=document.getElementById('bulkEnrichProgress');
   prog.style.display='block';
-  var total=fishCards.length,BATCH=5;
-  var counters={done:0,skipped:0,failed:0};
-  var logLines=[];
+  var counters={done:0,skipped:0,failed:0},logLines=[];
+  var testCards=fishCards.slice(0,5),remaining=fishCards.slice(5);
   function updateProg(){
-    prog.innerHTML='<div style="font-weight:900;margin-bottom:8px">🔄 جاري التحديث... '+(counters.done+counters.skipped+counters.failed)+' / '+total+'</div>'
+    var p=document.getElementById('bulkEnrichProgress');
+    p.innerHTML='<div style="font-weight:900;margin-bottom:8px">🔬 جاري اختبار أول 5 بطاقات... '+(counters.done+counters.skipped+counters.failed)+' / 5</div>'
       +'<div style="font-family:monospace;font-size:11px;max-height:220px;overflow-y:auto;background:#f8fafc;padding:8px;border-radius:8px;direction:ltr;white-space:pre-wrap">'+logLines.join('\n')+'</div>';
   }
   updateProg();
-  for(var i=0;i<fishCards.length;i+=BATCH){
-    var batch=fishCards.slice(i,i+BATCH);
-    await Promise.all(batch.map(async function(card){
-      var sci=card.scientific_name;
-      var label=sci||card.common_name_en||card.id;
-      if(!sci&&!card.common_name_en){counters.skipped++;logLines.push('⏭️ '+label+' — no name');updateProg();return;}
-      try{
-        var r=await apiCall('re_enrich_fish',{scientific_name:card.scientific_name,common_name_en:card.common_name_en},true);
-        if(r.not_found||(!r.care_level&&!r.diet&&!r.reef_safe)){
-          counters.skipped++;
-          logLines.push('⏭️ '+label+' — no data returned');
-        }else{
-          var patch={id:card.id};
-          if(r.care_level)patch.care_level=r.care_level;
-          if(r.diet)patch.diet=r.diet;
-          if(r.reef_safe)patch.reef_safe=r.reef_safe;
-          await apiCall('enrich_fish_card',patch,true);
-          var idx=fishCards.findIndex(function(f){return f.id===card.id;});
-          if(idx>=0)fishCards[idx]=Object.assign({},fishCards[idx],patch);
-          counters.done++;
-          logLines.push('✓ '+label+' → '+(r.care_level||'—')+' / '+(r.diet||'—')+' / '+(r.reef_safe||'—'));
-        }
-      }catch(e){
-        counters.failed++;
-        logLines.push('❌ '+label+' — '+e.message);
-      }
-      updateProg();
-    }));
-    if(i+BATCH<fishCards.length)await new Promise(function(r){setTimeout(r,2000);});
-  }
+  await Promise.all(testCards.map(function(c){return _reEnrichCard(c,counters,logLines,updateProg);}));
   renderAdminFishCards();
-  prog.innerHTML='✅ حُدّث: <b>'+counters.done+'</b> &nbsp;| ⏭️ بدون تغيير: <b>'+counters.skipped+'</b> &nbsp;| ❌ فشل: <b>'+counters.failed+'</b>'
-    +'<div style="font-family:monospace;font-size:11px;max-height:220px;overflow-y:auto;background:#f8fafc;padding:8px;border-radius:8px;margin-top:10px;direction:ltr;white-space:pre-wrap">'+logLines.join('\n')+'</div>';
+  _reEnrichState={counters:counters,logLines:logLines,remaining:remaining};
+  prog.innerHTML='<div style="font-weight:900;margin-bottom:10px">🔬 اكتمل الاختبار — أول 5 بطاقات:</div>'
+    +_reEnrichSummaryHTML(counters,logLines)
+    +'<div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">'
+    +'<button onclick="reEnrichContinue()" style="background:#0a2240;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:900;cursor:pointer;font-family:inherit">▶️ استمر — باقي '+remaining.length+' بطاقة</button>'
+    +'<button onclick="document.getElementById(\'bulkEnrichProgress\').style.display=\'none\';_reEnrichState=null" style="background:#f1f5f9;color:#475569;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:900;cursor:pointer;font-family:inherit">❌ إيقاف</button>'
+    +'</div>';
+};
+window.reEnrichContinue=async function(){
+  if(!_reEnrichState||!_adminToken)return;
+  var s=_reEnrichState;_reEnrichState=null;
+  var counters=s.counters,logLines=s.logLines,remaining=s.remaining,total=fishCards.length;
+  function updateProg(){
+    var p=document.getElementById('bulkEnrichProgress');
+    p.innerHTML='<div style="font-weight:900;margin-bottom:8px">🔄 جاري التحديث... '+(counters.done+counters.skipped+counters.failed)+' / '+total+'</div>'
+      +'<div style="font-family:monospace;font-size:11px;max-height:220px;overflow-y:auto;background:#f8fafc;padding:8px;border-radius:8px;direction:ltr;white-space:pre-wrap">'+logLines.join('\n')+'</div>';
+  }
+  updateProg();
+  await _runReEnrichBatch(remaining,counters,logLines,updateProg);
+  renderAdminFishCards();
+  document.getElementById('bulkEnrichProgress').innerHTML='<div style="font-weight:900;margin-bottom:10px">✅ اكتمل التحديث الكامل</div>'+_reEnrichSummaryHTML(counters,logLines);
 };
 
 /* ── P5: Bulk fix FishBase images → Wikimedia/iNaturalist ── */
