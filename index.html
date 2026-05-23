@@ -4199,28 +4199,44 @@ window.bulkEnrichFishCards=async function(){
   prog.innerHTML='✅ اكتمل — تم إثراء: <b>'+counters.done+'</b> &nbsp;| يحتاج مراجعة يدوية: <b>'+counters.failed+'</b>';
 };
 
+function _fishCardBadge(c){
+  var b='display:inline-flex;align-items:center;gap:3px;border-radius:5px;padding:2px 7px;font-size:11px;font-weight:900;white-space:nowrap;border:1px solid ';
+  if(!c.common_name_ar)
+    return '<span class="fc-badge" style="'+b+'#fca5a5;background:#fee2e2;color:#991b1b">🔴 بدون اسم عربي</span>';
+  if(!c.image_url)
+    return '<span class="fc-badge" style="'+b+'#fdba74;background:#fff7ed;color:#c2410c">📷 بدون صورة</span>';
+  if(!_notesAr(c))
+    return '<span class="fc-badge" style="'+b+'#fde047;background:#fefce8;color:#a16207">📝 بدون نبذة</span>';
+  if(!c.care_level)
+    return '<span class="fc-badge" style="'+b+'#fde047;background:#fefce8;color:#a16207">⚠️ بدون بيانات</span>';
+  return '<span class="fc-badge" style="'+b+'#86efac;background:#f0fdf4;color:#15803d">✅ مكتمل</span>';
+}
 function _fishCardRow(c){
   var thumb=c.image_url
     ?'<img src="'+esc(c.image_url)+'" loading="lazy" style="width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0">'
     :'<div style="width:40px;height:40px;border-radius:6px;background:#fee2e2;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🐠</div>';
-  var badge;
-  if(!c.image_url){
-    badge='<span style="display:inline-flex;align-items:center;gap:3px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:5px;padding:2px 7px;font-size:11px;font-weight:900;white-space:nowrap">📷 بدون صورة</span>';
-  } else if(!_notesAr(c)){
-    badge='<span style="display:inline-flex;align-items:center;gap:3px;background:#fff7ed;color:#c2410c;border:1px solid #fdba74;border-radius:5px;padding:2px 7px;font-size:11px;font-weight:900;white-space:nowrap">📝 بدون نبذة</span>';
-  } else if(!c.care_level){
-    badge='<span style="display:inline-flex;align-items:center;gap:3px;background:#fefce8;color:#a16207;border:1px solid #fde047;border-radius:5px;padding:2px 7px;font-size:11px;font-weight:900;white-space:nowrap">⚠️ بدون بيانات</span>';
-  } else {
-    badge='<span style="display:inline-flex;align-items:center;gap:3px;background:#f0fdf4;color:#15803d;border:1px solid #86efac;border-radius:5px;padding:2px 7px;font-size:11px;font-weight:900;white-space:nowrap">✅ مكتمل</span>';
+  var tick='<span style="color:#15803d;font-size:11px;font-weight:900;opacity:0;transition:opacity .5s">✓</span>';
+  function sel(field,opts,cur){
+    var s='<span style="display:inline-flex;align-items:center;gap:2px">'
+      +'<select onchange="fishCardInlineEdit(\''+c.id+'\',\''+field+'\',this.value,this.nextElementSibling)" '
+      +'style="font-size:11px;border:1px solid var(--line);border-radius:5px;padding:2px 4px;background:var(--pearl);cursor:pointer">'
+      +'<option value="">—</option>';
+    opts.forEach(function(o){s+='<option value="'+o[0]+'"'+(cur===o[0]?' selected':'')+'>'+o[1]+'</option>';});
+    return s+'</select>'+tick+'</span>';
   }
-  return '<div class="admin-product-row" style="display:flex;align-items:center;gap:12px;padding:9px 14px;border-bottom:1px solid var(--line)">'
+  return '<div class="admin-product-row" data-fish-id="'+esc(c.id)+'" style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line)">'
     +thumb
     +'<div style="flex:1;min-width:0">'
     +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
     +'<b style="font-size:13px">'+esc(c.common_name_en||c.common_name_ar||'—')+'</b>'
-    +badge
+    +_fishCardBadge(c)
     +'</div>'
     +(c.scientific_name?'<div class="meta" style="font-style:italic;font-size:11.5px">'+esc(c.scientific_name)+'</div>':'')
+    +'</div>'
+    +'<div style="display:flex;align-items:center;gap:5px;flex-shrink:0">'
+    +sel('care_level',[['easy','سهل'],['medium','متوسط'],['hard','صعب']],c.care_level)
+    +sel('diet',[['carnivore','لاحم'],['herbivore','عاشب'],['omnivore','آكل الكل']],c.diet)
+    +sel('reef_safe',[['reef_safe','آمن'],['caution','تحذير'],['with_caution','بحذر'],['no','غير آمن']],c.reef_safe)
     +'</div>'
     +'<div class="actions">'
     +'<button class="small-btn" onclick="editFishCard(\''+c.id+'\')">تعديل</button>'
@@ -4257,6 +4273,19 @@ function renderAdminFishCards(){
   }
   el.innerHTML=html||'<div class="admin-help">لا توجد أسماك بعد.</div>';
 }
+
+window.fishCardInlineEdit=async function(id,field,value,confirmEl){
+  if(!_adminToken){toast('غير مصرح — سجل الدخول');return;}
+  var card=fishCards.find(function(c){return c.id===id;});if(!card)return;
+  var patch={id:id};patch[field]=value||null;
+  try{
+    await apiCall('enrich_fish_card',patch,true);
+    card[field]=value||null;
+    if(confirmEl){confirmEl.style.opacity='1';setTimeout(function(){confirmEl.style.opacity='0';},1500);}
+    var row=document.querySelector('[data-fish-id="'+CSS.escape(id)+'"]');
+    if(row){var b=row.querySelector('.fc-badge');if(b){var t=document.createElement('span');t.innerHTML=_fishCardBadge(card);b.replaceWith(t.firstChild);}}
+  }catch(e){toast('فشل الحفظ: '+e.message);}
+};
 
 /* ── P5: Bulk fix FishBase images → Wikimedia/iNaturalist ── */
 window.bulkFixFishImages=async function(){
