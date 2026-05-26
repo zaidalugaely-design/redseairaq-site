@@ -392,7 +392,7 @@ exports.handler = async function(event) {
 
   /* ENRICH FISH CARD — patch only enriched fields, preserves all others */
   if (action === 'enrich_fish_card') {
-    const { id, care_level, diet, reef_safe, image_url, notes, needs_review } = body;
+    const { id, care_level, diet, reef_safe, image_url, notes, needs_review, is_visible } = body;
     if (!id) return res(headers, 400, { error: 'id مطلوب' });
     try {
       const patch = {};
@@ -402,6 +402,7 @@ exports.handler = async function(event) {
       if (image_url    !== undefined) patch.image_url    = image_url;
       if (notes        !== undefined) patch.notes        = notes;
       if (needs_review !== undefined) patch.needs_review = needs_review;
+      if (is_visible   !== undefined) patch.is_visible   = is_visible;
       if (!Object.keys(patch).length) return res(headers, 400, { error: 'لا توجد حقول للتحديث' });
       await sb('PATCH', `/fish_cards?id=eq.${encodeURIComponent(id)}`, patch);
       return res(headers, 200, { ok: true });
