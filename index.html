@@ -718,7 +718,7 @@ html{scroll-behavior:smooth}
 .acc-sub-chevron{width:16px;height:16px;flex-shrink:0;color:var(--muted);transition:transform .3s ease}
 .acc-sub.open>.acc-sub-header .acc-sub-chevron{transform:rotate(180deg)}
 .acc-sub-body{max-height:0;overflow:hidden;transition:max-height .4s cubic-bezier(.4,0,.2,1)}
-.acc-sub.open>.acc-sub-body{max-height:5000px}
+.acc-sub.open>.acc-sub-body{max-height:5000px;overflow:clip}
 .acc-sub-body-inner{padding:16px}
 
 /* ── Image tab buttons ── */
@@ -1407,6 +1407,11 @@ html{scroll-behavior:smooth}
               </div>
             </div>
             <div>
+              <div id="fishFamJumpBar" style="position:sticky;top:0;z-index:40;background:#fff;padding:8px 0 6px;margin-bottom:4px;border-bottom:1px solid var(--line)">
+                <select id="fishFamJump" onchange="fishFamJumpTo(this.value)" style="width:100%;font-size:13px;font-family:inherit;border:1px solid var(--line);border-radius:8px;padding:7px 12px;background:var(--pearl);cursor:pointer;color:var(--navy)">
+                  <option value="">🔍 انتقل إلى عائلة...</option>
+                </select>
+              </div>
               <div id="fcBulkBar" style="display:none;padding:6px 0 10px">
                 <button id="fcBulkBtn" onclick="fishCardBulkDelete()" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:900;cursor:pointer;font-family:inherit">🗑️ حذف المحددة (0)</button>
               </div>
@@ -4328,6 +4333,18 @@ function renderAdminFishCards(){
   }
   el.innerHTML=html||'<div class="admin-help">لا توجد أسماك بعد.</div>';
   _fcUpdateBulkBtn();
+  var jsel=document.getElementById('fishFamJump');
+  if(jsel){
+    var jopts='<option value="">🔍 انتقل إلى عائلة...</option>';
+    fishFamilies.forEach(function(fam){
+      var cnt=fishCards.filter(function(c){return c.family_id===fam.id;}).length;
+      if(!cnt)return;
+      jopts+='<option value="admin-fam-'+fam.id+'">'+esc(fam.name_en||fam.name_ar||fam.id)+' ('+cnt+')</option>';
+    });
+    var orphanCnt=fishCards.filter(function(c){return!c.family_id;}).length;
+    if(orphanCnt)jopts+='<option value="admin-fam-orphans">بدون عائلة ('+orphanCnt+')</option>';
+    jsel.innerHTML=jopts;
+  }
 }
 
 window.fishCardInlineEdit=async function(id,field,value,confirmEl){
@@ -5061,6 +5078,14 @@ window.toggleAccordion=function(id){
 window.openAccordion=function(id){
   var el=document.getElementById(id);
   if(el&&!el.classList.contains('open')) el.classList.add('open');
+};
+window.fishFamJumpTo=function(accId){
+  if(!accId)return;
+  openAccordion(accId);
+  var el=document.getElementById(accId);
+  if(el)setTimeout(function(){el.scrollIntoView({behavior:'smooth',block:'start'});},50);
+  var sel=document.getElementById('fishFamJump');
+  if(sel)setTimeout(function(){sel.value='';},400);
 };
 
 /* ════════════════════════════════
