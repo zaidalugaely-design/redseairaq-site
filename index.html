@@ -1310,13 +1310,18 @@ html{scroll-behavior:smooth}
         <div class="acc-sub-header" onclick="toggleAccordion('accFishFamilies')">
           <span class="acc-sub-header-title">🐠 عائلات الأسماك</span>
           <div style="display:flex;align-items:center;gap:8px">
-            <button class="btn primary" style="font-size:12px;padding:7px 12px" onclick="event.stopPropagation();openAccordion('accFishFamilies');resetFishFamilyForm()">＋ عائلة جديدة</button>
+            <button class="btn primary" style="font-size:12px;padding:7px 12px" onclick="event.stopPropagation();openAccordion('accFishFamilies');resetFishFamilyForm();openFishFamilyModal()">＋ عائلة جديدة</button>
             <svg class="acc-sub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
         </div>
         <div class="acc-sub-body"><div class="acc-sub-body-inner">
-          <div class="admin-grid">
-            <div class="admin-form" id="fishFamilyFormWrap">
+          <div id="fishFamilyModalOverlay" class="edu-modal-overlay" onclick="closeFishFamilyModal()"></div>
+          <div class="admin-form edu-card-modal" id="fishFamilyFormWrap">
+            <div class="edu-modal-header">
+              <span id="fishFamilyModalTitle">عائلة سمك</span>
+              <button type="button" class="edu-close-btn" onclick="closeFishFamilyModal()">✕</button>
+            </div>
+            <div class="edu-modal-body">
               <input type="hidden" id="fishFamilyId">
               <input class="input" id="fishFamilyNameAr" placeholder="الاسم بالعربي *">
               <input class="input" id="fishFamilyNameEn" placeholder="Name in English">
@@ -1329,19 +1334,33 @@ html{scroll-behavior:smooth}
                 </label>
                 <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
                   <input type="radio" name="famCoverMode" id="famCoverManual" value="manual" onchange="updateFamCoverPreview()">
-                  رابط URL مخصص
+                  رابط URL / رفع صورة
                 </label>
                 <div id="famCoverManualWrap" style="display:none;margin-top:8px">
-                  <input class="input" id="fishFamilyCoverUrl" placeholder="https://..." oninput="updateFamCoverPreview()" style="font-size:12px">
+                  <div style="display:flex;gap:6px;margin-bottom:6px">
+                    <button type="button" class="img-tab-btn active" id="famImgTabUrl" onclick="switchFamImgTab('url')">URL</button>
+                    <button type="button" class="img-tab-btn" id="famImgTabUpload" onclick="switchFamImgTab('upload')">رفع ↑</button>
+                  </div>
+                  <div id="famImgPanelUrl">
+                    <input class="input" id="fishFamilyCoverUrl" placeholder="https://..." oninput="updateFamCoverPreview()" style="font-size:12px">
+                  </div>
+                  <div id="famImgPanelUpload" style="display:none">
+                    <input type="file" accept="image/*" id="famCoverImageFile" style="display:none" onchange="handleFamImgUpload(event)">
+                    <button type="button" class="btn" style="font-size:12px;width:100%;padding:8px" onclick="document.getElementById('famCoverImageFile').click()">اختر صورة</button>
+                    <div id="famImgUploadStatus" style="font-size:12px;color:var(--muted);margin-top:4px;text-align:center;min-height:18px"></div>
+                  </div>
                 </div>
                 <div id="famCoverPreview" style="display:none;margin-top:10px">
                   <img id="famCoverPreviewImg" src="" width="60" height="60" alt="" loading="lazy" style="border-radius:8px;object-fit:cover;border:1px solid var(--line);display:block" onerror="this.style.display='none'">
                 </div>
               </div>
-              <button class="btn primary" onclick="saveFishFamily()"><svg style="width:14px;height:14px;vertical-align:-.12em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> حفظ العائلة</button>
             </div>
-            <div><div class="admin-products" id="adminFishFamilyList"></div></div>
+            <div class="edu-modal-footer">
+              <button class="btn" onclick="closeFishFamilyModal()">إلغاء</button>
+              <button class="btn primary" onclick="saveFishFamily()"><svg style="width:14px;height:14px;vertical-align:-.12em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> حفظ</button>
+            </div>
           </div>
+          <div class="admin-products" id="adminFishFamilyList"></div>
         </div></div>
       </div><!-- /accFishFamilies -->
 
@@ -3592,8 +3611,11 @@ function renderEducation(){
       var famBody=members.length
         ?'<div class="bio-grid">'+members.map(function(f){return bioCard(f,'fish');}).join('')+'</div>'
         :'<p style="color:var(--muted);font-size:14px;text-align:center;padding:20px 0">'+t('edu_no_cards')+'</p>';
-      var famCoverImg=fam.cover_image_url
-        ?'<img src="'+esc(fam.cover_image_url)+'" width="80" height="80" loading="lazy" alt="" style="border-radius:10px;object-fit:cover;flex-shrink:0" onerror="this.style.display=\'none\'">'
+      /* cover: use explicit cover_image_url, or fall back to first fish card image in this family */
+      var _coverUrl=fam.cover_image_url;
+      if(!_coverUrl){var _fc=visibleCards.find(function(c){return c.family_id===fam.id&&c.image_url;});_coverUrl=_fc?_fc.image_url:null;}
+      var famCoverImg=_coverUrl
+        ?'<img src="'+esc(_coverUrl)+'" width="80" height="80" loading="lazy" alt="" style="border-radius:10px;object-fit:cover;flex-shrink:0" onerror="this.style.display=\'none\'">'
         :'';
       fishHtml+='<div class="acc-section" id="'+accId+'">'
         +'<div class="acc-header" onclick="toggleAccordion(\''+accId+'\')">'
@@ -3952,6 +3974,17 @@ async function loadFishFamilies(){
 }
 
 /* ── Fish Family CRUD ── */
+function openFishFamilyModal(){
+  if(window.innerWidth<1024)return;
+  document.getElementById('fishFamilyModalOverlay')?.classList.add('active');
+  document.getElementById('fishFamilyFormWrap')?.classList.add('modal-active');
+  document.body.style.overflow='hidden';
+}
+function closeFishFamilyModal(){
+  document.getElementById('fishFamilyModalOverlay')?.classList.remove('active');
+  document.getElementById('fishFamilyFormWrap')?.classList.remove('modal-active');
+  document.body.style.overflow='';
+}
 window.resetFishFamilyForm=function(){
   document.getElementById('fishFamilyId').value='';
   document.getElementById('fishFamilyNameAr').value='';
@@ -3962,6 +3995,39 @@ window.resetFishFamilyForm=function(){
   document.getElementById('fishFamilyCoverUrl').value='';
   document.getElementById('famCoverManualWrap').style.display='none';
   document.getElementById('famCoverPreview').style.display='none';
+  switchFamImgTab('url');
+  var title=document.getElementById('fishFamilyModalTitle');if(title)title.textContent='عائلة سمك جديدة';
+};
+window.switchFamImgTab=function(tab){
+  var urlTab=document.getElementById('famImgTabUrl');
+  var upTab=document.getElementById('famImgTabUpload');
+  var urlPanel=document.getElementById('famImgPanelUrl');
+  var upPanel=document.getElementById('famImgPanelUpload');
+  if(!urlTab||!upTab||!urlPanel||!upPanel)return;
+  var showUrl=tab==='url';
+  urlTab.classList.toggle('active',showUrl);
+  upTab.classList.toggle('active',!showUrl);
+  urlPanel.style.display=showUrl?'':'none';
+  upPanel.style.display=showUrl?'none':'';
+};
+window.handleFamImgUpload=async function(e){
+  var file=e.target.files&&e.target.files[0];if(!file)return;
+  var st=document.getElementById('famImgUploadStatus');
+  var preview=document.getElementById('famCoverPreview');
+  var img=document.getElementById('famCoverPreviewImg');
+  if(st)st.textContent='جاري الرفع...';
+  if(preview)preview.style.display='none';
+  try{
+    var url=await uploadEduImage(file,'fam');
+    document.getElementById('fishFamilyCoverUrl').value=url;
+    if(img){img.src=url;img.style.display='block';}
+    if(preview)preview.style.display='block';
+    if(st)st.textContent='تم الرفع ✓';
+    switchFamImgTab('url');
+  }catch(err){
+    if(st)st.textContent='فشل الرفع: '+(err.message||err);
+  }
+  e.target.value='';
 };
 window.updateFamCoverPreview=function(){
   var mode=document.querySelector('input[name="famCoverMode"]:checked')?.value||'auto';
@@ -4013,6 +4079,7 @@ window.saveFishFamily=async function(){
   var idx=fishFamilies.findIndex(function(f){return f.id===id;});
   if(idx>=0) fishFamilies[idx]=fam; else fishFamilies.push(fam);
   try{ await apiCall('save_fish_family',{family:fam},true); }catch(e){ console.warn('save_fish_family',e); }
+  closeFishFamilyModal();
   renderAdminFishFamilies();populateFishFamilySelect();resetFishFamilyForm();
   toast('تم حفظ العائلة ✓');
 };
@@ -4032,7 +4099,10 @@ window.editFishFamily=function(id){
     document.getElementById('fishFamilyCoverUrl').value='';
   }
   updateFamCoverPreview();
-  openAccordion('educationAdminSection');openAccordion('accFishFamilies');document.getElementById('fishFamilyFormWrap')?.scrollIntoView({behavior:'smooth',block:'start'});
+  var title=document.getElementById('fishFamilyModalTitle');if(title)title.textContent='تعديل: '+f.name_ar;
+  openAccordion('educationAdminSection');openAccordion('accFishFamilies');
+  openFishFamilyModal();
+  if(window.innerWidth<1024)document.getElementById('fishFamilyFormWrap')?.scrollIntoView({behavior:'smooth',block:'start'});
 };
 window.deleteFishFamily=async function(id){
   if(!confirm('حذف العائلة؟'))return;
@@ -4048,40 +4118,40 @@ function renderAdminFishFamilies(){
   if(allZero){fishFamilies.forEach(function(f,i){f.sort_order=i+1;});}
   /* sort by sort_order asc */
   var sorted=fishFamilies.slice().sort(function(a,b){return(a.sort_order||0)-(b.sort_order||0);});
+  var total=sorted.length;
   el.innerHTML=sorted.map(function(f,i){
-    var isFirst=i===0, isLast=i===sorted.length-1;
-    var upBtn='<button class="small-btn" title="تحريك لأعلى" '+(isFirst?'disabled style="opacity:.35"':'')+' onclick="fishFamilyMoveSort(\''+f.id+'\',-1)">▲</button>';
-    var downBtn='<button class="small-btn" title="تحريك لأسفل" '+(isLast?'disabled style="opacity:.35"':'')+' onclick="fishFamilyMoveSort(\''+f.id+'\',1)">▼</button>';
+    var orderInput='<input type="number" min="1" max="'+total+'" value="'+(f.sort_order||i+1)+'" '
+      +'style="width:50px;height:30px;text-align:center;border:1px solid var(--line);border-radius:6px;font-size:12px;font-weight:700;padding:0 4px;-moz-appearance:textfield;flex-shrink:0" '
+      +'onclick="event.stopPropagation()" '
+      +'onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur()}" '
+      +'onblur="fishFamilySortSet(this,\''+f.id+'\','+total+')">';
     return'<div class="admin-product-row" data-fam-id="'+esc(f.id)+'">'
-      +'<span style="font-size:11px;color:var(--muted);font-weight:700;min-width:28px;flex-shrink:0">#'+(f.sort_order||i+1)+'</span>'
+      +orderInput
       +'<div style="flex:1;min-width:0"><b>'+esc(f.name_ar)+'</b>'+(f.name_en?'<div class="meta">'+esc(f.name_en)+'</div>':'')+'</div>'
-      +'<div class="actions" style="gap:4px">'+upBtn+downBtn
+      +'<div class="actions" style="gap:4px">'
       +'<button class="small-btn" onclick="editFishFamily(\''+f.id+'\')">تعديل</button>'
       +'<button class="small-btn admin-danger" onclick="deleteFishFamily(\''+f.id+'\')">حذف</button>'
       +'</div></div>';
   }).join('');
 }
-window.fishFamilyMoveSort=async function(id,dir){
-  var sorted=fishFamilies.slice().sort(function(a,b){return(a.sort_order||0)-(b.sort_order||0);});
-  var idx=sorted.findIndex(function(f){return f.id===id;});
-  var swapIdx=idx+dir;
-  if(idx<0||swapIdx<0||swapIdx>=sorted.length)return;
-  var a=sorted[idx], b=sorted[swapIdx];
-  /* swap sort_order values */
-  var tmp=a.sort_order||0; a.sort_order=b.sort_order||0; b.sort_order=tmp;
-  /* if equal after swap, re-number */
-  if(a.sort_order===b.sort_order){a.sort_order=idx+1;b.sort_order=swapIdx+1;}
-  /* update in master array */
-  var ai=fishFamilies.findIndex(function(f){return f.id===a.id;});
-  var bi=fishFamilies.findIndex(function(f){return f.id===b.id;});
-  if(ai>=0)fishFamilies[ai].sort_order=a.sort_order;
-  if(bi>=0)fishFamilies[bi].sort_order=b.sort_order;
+window.fishFamilySortSet=async function(input,id,total){
+  var val=Math.round(Number(input.value));
+  if(!val||val<1)val=1;if(val>total)val=total;
+  input.value=val;
+  var idx=fishFamilies.findIndex(function(f){return f.id===id;});
+  if(idx<0)return;
+  if(fishFamilies[idx].sort_order===val)return;
+  fishFamilies[idx].sort_order=val;
   renderAdminFishFamilies();
   try{
-    await Promise.all([
-      apiCall('patch_fish_family',{id:a.id,sort_order:a.sort_order},true),
-      apiCall('patch_fish_family',{id:b.id,sort_order:b.sort_order},true)
-    ]);
+    await apiCall('patch_fish_family',{id:id,sort_order:val},true);
+    var row=document.querySelector('[data-fam-id="'+CSS.escape(id)+'"]');
+    if(row){
+      var tick=document.createElement('span');
+      tick.textContent='✓';tick.style.cssText='color:#15803d;font-size:12px;font-weight:900;margin:0 6px;flex-shrink:0';
+      row.querySelector('.actions').prepend(tick);
+      setTimeout(function(){if(tick.parentNode)tick.remove();},1500);
+    }
   }catch(e){toast('فشل حفظ الترتيب: '+e.message);}
 };
 
