@@ -4012,14 +4012,11 @@ window.switchFamImgTab=function(tab){
 };
 window.handleFamImgUpload=async function(e){
   var file=e.target.files&&e.target.files[0];if(!file)return;
-  if(!_adminToken){toast('سجل الدخول أولاً');e.target.value='';return;}
   var st=document.getElementById('famImgUploadStatus');
   var preview=document.getElementById('famCoverPreview');
   var img=document.getElementById('famCoverPreviewImg');
-  var oldUrl=document.getElementById('fishFamilyCoverUrl').value;
-  document.getElementById('fishFamilyCoverUrl').value='';
-  if(preview)preview.style.display='none';
   if(st)st.textContent='جاري الرفع...';
+  if(preview)preview.style.display='none';
   try{
     var url=await uploadEduImage(file,'fam');
     document.getElementById('fishFamilyCoverUrl').value=url;
@@ -4028,8 +4025,6 @@ window.handleFamImgUpload=async function(e){
     if(st)st.textContent='تم الرفع ✓';
     switchFamImgTab('url');
   }catch(err){
-    document.getElementById('fishFamilyCoverUrl').value=oldUrl;
-    if(oldUrl&&img){img.src=oldUrl;img.style.display='block';if(preview)preview.style.display='block';}
     if(st)st.textContent='فشل الرفع: '+(err.message||err);
   }
   e.target.value='';
