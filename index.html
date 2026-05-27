@@ -2440,7 +2440,7 @@ function router(){
   if(route===ADMIN_ROUTE){ refreshAdminSession(); renderAdmin(); }
   if(route==='blog'){ renderBlogList(); }
   if(route==='reference'){ if(id)renderRefTopic(id);else renderReference(); }
-  if(route==='education'){ renderEducation(); }
+  if(route==='education'){ ensureEducationData(); }
   applyI18n();
 }
 
@@ -2591,7 +2591,7 @@ function renderProductDetail(id){
     <div class="breadcrumb"><a href="#/products">${t('nav_products')}</a><span>›</span><a href="javascript:openCat('${esc(p.category)}')">${esc(catName(c)||'')}</a><span>›</span><span>${esc(p.name)}</span></div>
     <div class="product-detail">
       <div class="detail-image">
-        <img src="${safeImg(p.image)}" alt="${esc(p.name)}" onerror="this.style.display='none';this.parentElement.innerHTML='<div class=product-placeholder style=width:160px;height:160px>${catIconHtml.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}</div>'">
+        <img src="${safeImg(p.image)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='<div class=product-placeholder style=width:160px;height:160px>${catIconHtml.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}</div>'">
       </div>
       <div class="detail-info">
         <span class="brand-mini">RED SEA · ${esc(catName(c)||'')}</span>
@@ -3246,7 +3246,7 @@ function renderBlogList(){
   list.innerHTML='<div class="blog-grid">'+blogPosts.map(p=>`
     <article class="blog-card" onclick="openPost('${p.id}')">
       <div class="blog-thumb">
-        ${p.image?`<img src="${p.image}" alt="${p.title}">`:'<div class="blog-thumb-placeholder">📖</div>'}
+        ${p.image?`<img src="${p.image}" alt="${p.title}" loading="lazy">`:'<div class="blog-thumb-placeholder">📖</div>'}
         ${p.category?`<span class="blog-cat-badge">${p.category}</span>`:''}
       </div>
       <div class="blog-body">
@@ -3271,7 +3271,7 @@ window.openPost=function(id){
   if(post){
     post.style.display='block';
     post.innerHTML=`
-      ${p.image?`<img class="blog-post-img" src="${p.image}" alt="${p.title}">`:''}
+      ${p.image?`<img class="blog-post-img" src="${p.image}" alt="${p.title}" loading="lazy">`:''}
       <div class="blog-post-body">
         <h1>${p.title}</h1>
         <div class="blog-post-meta">
@@ -3391,6 +3391,7 @@ var coralCards=[];
 ['rsi_fish_families','rsi_fish_cards','rsi_coral_cards'].forEach(function(k){localStorage.removeItem(k);});
 
 var _eduActiveTab='fish';
+var _eduDataLoaded=false;
 
 window.switchEduTab=function(tab){
   _eduActiveTab=tab;
@@ -3454,7 +3455,7 @@ function bioCard(item,type){
   _bioItems[item.id]=item;
   var cardId='bio-'+item.id;
   var img=item.image_url
-    ?'<img class="bio-img" src="'+esc(item.image_url)+'" alt="'+esc(item.common_name_ar||item.name_ar||'')+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
+    ?'<img class="bio-img" src="'+esc(item.image_url)+'" alt="'+esc(item.common_name_ar||item.name_ar||'')+'" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">'
      +bioPlaceholder(type==='fish'?FISH_ICON:CORAL_ICON).replace('class="bio-img-placeholder"','class="bio-img-placeholder" style="display:none"')
     :bioPlaceholder(type==='fish'?FISH_ICON:CORAL_ICON);
 
@@ -3532,11 +3533,26 @@ window.toggleBioNotes=function(cardId){
 var CHEVRON_SVG='<svg class="acc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
 
 window.retryEducationLoad=async function(){
+  _eduDataLoaded=false;
   var fp=document.getElementById('eduFishPanel');
   if(fp)fp.innerHTML='<div style="text-align:center;padding:60px 20px;color:var(--muted)">⏳ جاري التحميل...</div>';
   await syncEducationData();
+  _eduDataLoaded=true;
   renderEducation();
 };
+async function ensureEducationData(){
+  if(_eduDataLoaded){renderEducation();return;}
+  var fp=document.getElementById('eduFishPanel');
+  var cp=document.getElementById('eduCoralPanel');
+  var spinner='<div style="text-align:center;padding:80px 20px;color:var(--muted)">'
+    +'<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="display:block;margin:0 auto 16px;animation:spin .8s linear infinite;color:var(--reef)"><circle cx="12" cy="12" r="10" stroke-dasharray="31.4" stroke-linecap="round"/></svg>'
+    +'<p style="font-size:15px;font-weight:700">جاري تحميل البيانات...</p></div>';
+  if(fp)fp.innerHTML=spinner;
+  if(cp)cp.innerHTML='';
+  await syncEducationData();
+  _eduDataLoaded=true;
+  renderEducation();
+}
 
 function renderEducation(){
   var fishPanel=document.getElementById('eduFishPanel');
@@ -3752,7 +3768,7 @@ function renderRefTopic(slugOrId){
   if(ogTitle)ogTitle.setAttribute('content',seoTitle+' | Red Sea Iraq');
   var ogDesc=document.querySelector('meta[name="description"]');
   if(ogDesc)ogDesc.setAttribute('content',metaDesc);
-  tv.innerHTML=(t.image?'<img class="ref-post-img" src="'+t.image+'" alt="'+esc(t.title)+'">':"")
+  tv.innerHTML=(t.image?'<img class="ref-post-img" src="'+t.image+'" alt="'+esc(t.title)+'" loading="lazy">':"")
     +'<div class="ref-post-body">'
     +'<h1>'+esc(t.title)+'</h1>'
     +'<div class="ref-post-meta">'
@@ -4276,7 +4292,7 @@ function _showEnrichPreview(testResults){
       }
       var d=r.data;
       return'<div style="padding:12px;background:var(--pearl);border-radius:10px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start">'
-        +(d.image_url?'<img src="'+esc(d.image_url)+'" style="width:56px;height:56px;object-fit:cover;border-radius:8px;flex-shrink:0" onerror="this.style.display=\'none\'">':'')
+        +(d.image_url?'<img src="'+esc(d.image_url)+'" loading="lazy" style="width:56px;height:56px;object-fit:cover;border-radius:8px;flex-shrink:0" onerror="this.style.display=\'none\'">':'')
         +'<div style="flex:1;min-width:0">'
         +'<b style="display:block;margin-bottom:6px;font-size:14px">'+name+'</b>'
         +'<div style="font-size:12px;display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px">'
@@ -5148,7 +5164,7 @@ function renderAdminCorals(){
   if(!coralCards.length){el.innerHTML='<div class="admin-help">لا يوجد مرجان بعد.</div>';return;}
   el.innerHTML=coralCards.map(function(c){
     return'<div class="admin-product-row">'
-      +(c.image_url?'<img src="'+esc(c.image_url)+'" style="width:52px;height:52px;object-fit:cover;border-radius:10px" alt="">':'<div class="thumb-empty" style="display:grid;place-items:center;width:52px;height:52px;background:var(--pearl);border-radius:10px;color:var(--muted);font-size:18px">🪸</div>')
+      +(c.image_url?'<img src="'+esc(c.image_url)+'" loading="lazy" style="width:52px;height:52px;object-fit:cover;border-radius:10px" alt="">':'<div class="thumb-empty" style="display:grid;place-items:center;width:52px;height:52px;background:var(--pearl);border-radius:10px;color:var(--muted);font-size:18px">🪸</div>')
       +'<div style="flex:1;min-width:0">'
       +'<b style="display:block">'+esc(c.name_ar)+'</b>'
       +(c.scientific_name?'<div class="meta" style="font-style:italic">'+esc(c.scientific_name)+'</div>':'')
@@ -5428,11 +5444,15 @@ window.updateOrderStatus = async function(orderId, newStatus){
    ════════════════════════════════════════════════════ */
 async function syncFromSupabase(){
   try{
-    var catData=await sbGet('/rest/v1/categories?order=sort_order.asc&limit=100');
+    var [catData,prodData,blogData,refData]=await Promise.all([
+      sbGet('/rest/v1/categories?order=sort_order.asc&limit=100'),
+      sbGet('/rest/v1/products?order=sort_order.asc,created_at.desc&limit=500'),
+      sbGet('/rest/v1/blog_posts?order=created_at.desc&limit=100'),
+      sbGet('/rest/v1/reference_topics?order=sort_order.asc,created_at.desc&limit=200')
+    ]);
     if(catData&&catData.length){
       CATS=catData.map(function(c){return{id:c.id,icon:c.icon||'📦',name:c.name,name_en:c.name_en||'',name_ku:c.name_ku||'',desc:c.description||''};});
     }
-    var prodData=await sbGet('/rest/v1/products?order=sort_order.asc,created_at.desc&limit=500');
     if(prodData&&prodData.length){
       products=prodData.map(function(p){
         var stock = p.stock||'available';
@@ -5449,7 +5469,6 @@ async function syncFromSupabase(){
       });
       localStorage.setItem('rsi_prods',JSON.stringify(products));
     }
-    var blogData=await sbGet('/rest/v1/blog_posts?order=created_at.desc&limit=100');
     if(blogData&&blogData.length){
       blogPosts=blogData.map(function(b){return{
         id:b.id,title:b.title,category:b.category||'',excerpt:b.excerpt||'',
@@ -5457,7 +5476,6 @@ async function syncFromSupabase(){
       };});
       localStorage.setItem('rsi_blog',JSON.stringify(blogPosts));
     }
-    var refData=await sbGet('/rest/v1/reference_topics?order=sort_order.asc,created_at.desc&limit=200');
     if(refData&&refData.length){
       refTopics=refData.map(function(r){return{
         id:r.id,slug:r.slug||r.id,title:r.title,excerpt:r.excerpt||'',
@@ -5553,7 +5571,7 @@ async function boot(){
     setPage('product');
   }
 
-  await Promise.all([syncFromSupabase(), syncEducationData()]); /* انتظر البيانات كاملة */
+  await syncFromSupabase(); /* education data loads on-demand when user visits that page */
 
   renderCatSelects();
   updateCartBadge();
