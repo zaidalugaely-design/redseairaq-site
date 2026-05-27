@@ -3565,7 +3565,11 @@ function renderEducation(){
     fishPanel.innerHTML='<div class="edu-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">'+FISH_ICON+'</svg><p>'+t('edu_no_fish')+'</p></div>';
   } else {
     var fishHtml='';
-    fishFamilies.forEach(function(fam){
+    var sortedFamilies=fishFamilies.slice().sort(function(a,b){
+      var d=(a.sort_order||0)-(b.sort_order||0);
+      return d!==0?d:(a.name_en||'').localeCompare(b.name_en||'');
+    });
+    sortedFamilies.forEach(function(fam){
       var members=visibleCards.filter(function(f){return f.family_id===fam.id;});
       var famName=eduName(fam,'name_ar','name_en','name_ku');
       var accId='edu-fam-'+fam.id;
@@ -3918,11 +3922,11 @@ function populateFishFamilySelect(){
 
 async function loadFishFamilies(){
   try{
-    var r=await fetch(SB_URL+'/rest/v1/fish_families?select=id,name_ar,name_en,name_ku,cover_image_url,created_at&order=created_at.asc&limit=200',
+    var r=await fetch(SB_URL+'/rest/v1/fish_families?select=id,name_ar,name_en,name_ku,cover_image_url,sort_order,created_at&order=sort_order.asc,created_at.asc&limit=200',
       {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
     var data=r.ok?await r.json():[];
     if(data&&data.length){
-      fishFamilies=data.map(function(d){return{id:d.id,name_ar:d.name_ar||'',name_en:d.name_en||'',name_ku:d.name_ku||'',cover_image_url:d.cover_image_url||null,created_at:d.created_at||''};});
+      fishFamilies=data.map(function(d){return{id:d.id,name_ar:d.name_ar||'',name_en:d.name_en||'',name_ku:d.name_ku||'',cover_image_url:d.cover_image_url||null,sort_order:d.sort_order||0,created_at:d.created_at||''};});
       populateFishFamilySelect();
     }
   }catch(e){console.error('[edu] loadFishFamilies:',e.message);}
@@ -3988,7 +3992,8 @@ window.saveFishFamily=async function(){
   }else{
     coverUrl=(document.getElementById('fishFamilyCoverUrl')?.value||'').trim();
   }
-  var fam={id,name_ar:nameAr,name_en:nameEn,name_ku:nameKu,cover_image_url:coverUrl||null,created_at:new Date().toISOString()};
+  var existingFam=fishFamilies.find(function(f){return f.id===id;});
+  var fam={id,name_ar:nameAr,name_en:nameEn,name_ku:nameKu,cover_image_url:coverUrl||null,sort_order:existingFam?existingFam.sort_order:fishFamilies.length,created_at:new Date().toISOString()};
   var idx=fishFamilies.findIndex(function(f){return f.id===id;});
   if(idx>=0) fishFamilies[idx]=fam; else fishFamilies.push(fam);
   try{ await apiCall('save_fish_family',{family:fam},true); }catch(e){ console.warn('save_fish_family',e); }
@@ -4022,15 +4027,47 @@ window.deleteFishFamily=async function(id){
 function renderAdminFishFamilies(){
   var el=document.getElementById('adminFishFamilyList');if(!el)return;
   if(!fishFamilies.length){el.innerHTML='<div class="admin-help">لا توجد عائلات بعد.</div>';return;}
-  el.innerHTML=fishFamilies.map(function(f){
-    return'<div class="admin-product-row">'
-      +'<div><b>'+esc(f.name_ar)+'</b>'+(f.name_en?'<div class="meta">'+esc(f.name_en)+'</div>':'')+'</div>'
-      +'<div class="actions">'
+  /* auto-assign sort_order if all are 0 */
+  var allZero=fishFamilies.every(function(f){return!f.sort_order;});
+  if(allZero){fishFamilies.forEach(function(f,i){f.sort_order=i+1;});}
+  /* sort by sort_order asc */
+  var sorted=fishFamilies.slice().sort(function(a,b){return(a.sort_order||0)-(b.sort_order||0);});
+  el.innerHTML=sorted.map(function(f,i){
+    var isFirst=i===0, isLast=i===sorted.length-1;
+    var upBtn='<button class="small-btn" title="تحريك لأعلى" '+(isFirst?'disabled style="opacity:.35"':'')+' onclick="fishFamilyMoveSort(\''+f.id+'\',-1)">▲</button>';
+    var downBtn='<button class="small-btn" title="تحريك لأسفل" '+(isLast?'disabled style="opacity:.35"':'')+' onclick="fishFamilyMoveSort(\''+f.id+'\',1)">▼</button>';
+    return'<div class="admin-product-row" data-fam-id="'+esc(f.id)+'">'
+      +'<span style="font-size:11px;color:var(--muted);font-weight:700;min-width:28px;flex-shrink:0">#'+(f.sort_order||i+1)+'</span>'
+      +'<div style="flex:1;min-width:0"><b>'+esc(f.name_ar)+'</b>'+(f.name_en?'<div class="meta">'+esc(f.name_en)+'</div>':'')+'</div>'
+      +'<div class="actions" style="gap:4px">'+upBtn+downBtn
       +'<button class="small-btn" onclick="editFishFamily(\''+f.id+'\')">تعديل</button>'
       +'<button class="small-btn admin-danger" onclick="deleteFishFamily(\''+f.id+'\')">حذف</button>'
       +'</div></div>';
   }).join('');
 }
+window.fishFamilyMoveSort=async function(id,dir){
+  var sorted=fishFamilies.slice().sort(function(a,b){return(a.sort_order||0)-(b.sort_order||0);});
+  var idx=sorted.findIndex(function(f){return f.id===id;});
+  var swapIdx=idx+dir;
+  if(idx<0||swapIdx<0||swapIdx>=sorted.length)return;
+  var a=sorted[idx], b=sorted[swapIdx];
+  /* swap sort_order values */
+  var tmp=a.sort_order||0; a.sort_order=b.sort_order||0; b.sort_order=tmp;
+  /* if equal after swap, re-number */
+  if(a.sort_order===b.sort_order){a.sort_order=idx+1;b.sort_order=swapIdx+1;}
+  /* update in master array */
+  var ai=fishFamilies.findIndex(function(f){return f.id===a.id;});
+  var bi=fishFamilies.findIndex(function(f){return f.id===b.id;});
+  if(ai>=0)fishFamilies[ai].sort_order=a.sort_order;
+  if(bi>=0)fishFamilies[bi].sort_order=b.sort_order;
+  renderAdminFishFamilies();
+  try{
+    await Promise.all([
+      apiCall('patch_fish_family',{id:a.id,sort_order:a.sort_order},true),
+      apiCall('patch_fish_family',{id:b.id,sort_order:b.sort_order},true)
+    ]);
+  }catch(e){toast('فشل حفظ الترتيب: '+e.message);}
+};
 
 /* ── Fish Card CRUD ── */
 function openFishCardModal(){
@@ -5447,9 +5484,9 @@ async function syncFromSupabase(){
 /* ── Education data — isolated from shop sync so a shop error can't kill it ── */
 async function syncEducationData(){
   try{
-    var ffData=await sbGet('/rest/v1/fish_families?select=*&order=created_at.asc&limit=200');
+    var ffData=await sbGet('/rest/v1/fish_families?select=*&order=sort_order.asc,created_at.asc&limit=200');
     if(ffData&&ffData.length){
-      fishFamilies=ffData.map(function(r){return{id:r.id,name_ar:r.name_ar||'',name_en:r.name_en||'',name_ku:r.name_ku||'',cover_image_url:r.cover_image_url||null,created_at:r.created_at||''};});
+      fishFamilies=ffData.map(function(r){return{id:r.id,name_ar:r.name_ar||'',name_en:r.name_en||'',name_ku:r.name_ku||'',cover_image_url:r.cover_image_url||null,sort_order:r.sort_order||0,created_at:r.created_at||''};});
       populateFishFamilySelect();
     }
     var fcData=await sbGet('/rest/v1/fish_cards?select=*&order=created_at.asc&limit=600');
