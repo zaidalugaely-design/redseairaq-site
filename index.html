@@ -1321,6 +1321,23 @@ html{scroll-behavior:smooth}
               <input class="input" id="fishFamilyNameAr" placeholder="الاسم بالعربي *">
               <input class="input" id="fishFamilyNameEn" placeholder="Name in English">
               <input class="input" id="fishFamilyNameKu" placeholder="ناوی کوردی">
+              <div style="border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--pearl)">
+                <div style="font-size:12px;font-weight:900;color:var(--navy);margin-bottom:10px">🖼️ صورة غلاف العائلة</div>
+                <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;font-size:12px">
+                  <input type="radio" name="famCoverMode" id="famCoverAuto" value="auto" checked onchange="updateFamCoverPreview()">
+                  استخدم أول صورة من العائلة تلقائياً
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+                  <input type="radio" name="famCoverMode" id="famCoverManual" value="manual" onchange="updateFamCoverPreview()">
+                  رابط URL مخصص
+                </label>
+                <div id="famCoverManualWrap" style="display:none;margin-top:8px">
+                  <input class="input" id="fishFamilyCoverUrl" placeholder="https://..." oninput="updateFamCoverPreview()" style="font-size:12px">
+                </div>
+                <div id="famCoverPreview" style="display:none;margin-top:10px">
+                  <img id="famCoverPreviewImg" src="" width="60" height="60" alt="" loading="lazy" style="border-radius:8px;object-fit:cover;border:1px solid var(--line);display:block" onerror="this.style.display='none'">
+                </div>
+              </div>
               <button class="btn primary" onclick="saveFishFamily()"><svg style="width:14px;height:14px;vertical-align:-.12em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> حفظ العائلة</button>
             </div>
             <div><div class="admin-products" id="adminFishFamilyList"></div></div>
@@ -3555,10 +3572,15 @@ function renderEducation(){
       var famBody=members.length
         ?'<div class="bio-grid">'+members.map(function(f){return bioCard(f,'fish');}).join('')+'</div>'
         :'<p style="color:var(--muted);font-size:14px;text-align:center;padding:20px 0">'+t('edu_no_cards')+'</p>';
+      var famCoverImg=fam.cover_image_url
+        ?'<img src="'+esc(fam.cover_image_url)+'" width="80" height="80" loading="lazy" alt="" style="border-radius:10px;object-fit:cover;flex-shrink:0" onerror="this.style.display=\'none\'">'
+        :'';
       fishHtml+='<div class="acc-section" id="'+accId+'">'
         +'<div class="acc-header" onclick="toggleAccordion(\''+accId+'\')">'
-        +'<span class="acc-header-title">'+esc(famName)
-        +'<span style="font-size:12px;font-weight:500;color:var(--muted);margin-right:8px"> ('+members.length+')</span></span>'
+        +'<span class="acc-header-title">'
+        +famCoverImg
+        +esc(famName)
+        +'<span style="font-size:12px;font-weight:500;color:var(--muted)"> ('+members.length+')</span></span>'
         +CHEVRON_SVG
         +'</div>'
         +'<div class="acc-body"><div class="acc-body-inner">'
@@ -3896,11 +3918,11 @@ function populateFishFamilySelect(){
 
 async function loadFishFamilies(){
   try{
-    var r=await fetch(SB_URL+'/rest/v1/fish_families?select=id,name_ar,name_en,name_ku,created_at&order=created_at.asc&limit=200',
+    var r=await fetch(SB_URL+'/rest/v1/fish_families?select=id,name_ar,name_en,name_ku,cover_image_url,created_at&order=created_at.asc&limit=200',
       {headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
     var data=r.ok?await r.json():[];
     if(data&&data.length){
-      fishFamilies=data.map(function(d){return{id:d.id,name_ar:d.name_ar||'',name_en:d.name_en||'',name_ku:d.name_ku||'',created_at:d.created_at||''};});
+      fishFamilies=data.map(function(d){return{id:d.id,name_ar:d.name_ar||'',name_en:d.name_en||'',name_ku:d.name_ku||'',cover_image_url:d.cover_image_url||null,created_at:d.created_at||''};});
       populateFishFamilySelect();
     }
   }catch(e){console.error('[edu] loadFishFamilies:',e.message);}
@@ -3915,6 +3937,30 @@ window.resetFishFamilyForm=function(){
   document.getElementById('fishFamilyNameAr').value='';
   document.getElementById('fishFamilyNameEn').value='';
   document.getElementById('fishFamilyNameKu').value='';
+  document.getElementById('famCoverAuto').checked=true;
+  document.getElementById('famCoverManual').checked=false;
+  document.getElementById('fishFamilyCoverUrl').value='';
+  document.getElementById('famCoverManualWrap').style.display='none';
+  document.getElementById('famCoverPreview').style.display='none';
+};
+window.updateFamCoverPreview=function(){
+  var mode=document.querySelector('input[name="famCoverMode"]:checked')?.value||'auto';
+  var manualWrap=document.getElementById('famCoverManualWrap');
+  var preview=document.getElementById('famCoverPreview');
+  var img=document.getElementById('famCoverPreviewImg');
+  if(manualWrap)manualWrap.style.display=mode==='manual'?'block':'none';
+  var url='';
+  if(mode==='auto'){
+    var famId=document.getElementById('fishFamilyId')?.value;
+    var firstCard=famId?fishCards.find(function(c){return c.family_id===famId&&c.image_url;}):null;
+    url=firstCard?firstCard.image_url:'';
+  }else{
+    url=(document.getElementById('fishFamilyCoverUrl')?.value||'').trim();
+  }
+  if(preview&&img){
+    if(url){img.src=url;img.style.display='block';preview.style.display='block';}
+    else{preview.style.display='none';}
+  }
 };
 window.saveFishFamily=async function(){
   var nameInput=(document.getElementById('fishFamilyNameAr')?.value||'').trim();
@@ -3934,7 +3980,15 @@ window.saveFishFamily=async function(){
     document.getElementById('fishFamilyNameEn').value=nameEn;
     document.getElementById('fishFamilyNameKu').value=nameKu;
   }catch(e){ console.warn('translate_fields',e); }
-  var fam={id,name_ar:nameAr,name_en:nameEn,name_ku:nameKu,created_at:new Date().toISOString()};
+  var coverMode=document.querySelector('input[name="famCoverMode"]:checked')?.value||'auto';
+  var coverUrl='';
+  if(coverMode==='auto'){
+    var firstCard=fishCards.find(function(c){return c.family_id===id&&c.image_url;});
+    coverUrl=firstCard?firstCard.image_url:'';
+  }else{
+    coverUrl=(document.getElementById('fishFamilyCoverUrl')?.value||'').trim();
+  }
+  var fam={id,name_ar:nameAr,name_en:nameEn,name_ku:nameKu,cover_image_url:coverUrl||null,created_at:new Date().toISOString()};
   var idx=fishFamilies.findIndex(function(f){return f.id===id;});
   if(idx>=0) fishFamilies[idx]=fam; else fishFamilies.push(fam);
   try{ await apiCall('save_fish_family',{family:fam},true); }catch(e){ console.warn('save_fish_family',e); }
@@ -3947,6 +4001,16 @@ window.editFishFamily=function(id){
   document.getElementById('fishFamilyNameAr').value=f.name_ar||'';
   document.getElementById('fishFamilyNameEn').value=f.name_en||'';
   document.getElementById('fishFamilyNameKu').value=f.name_ku||'';
+  if(f.cover_image_url){
+    document.getElementById('famCoverManual').checked=true;
+    document.getElementById('famCoverAuto').checked=false;
+    document.getElementById('fishFamilyCoverUrl').value=f.cover_image_url;
+  }else{
+    document.getElementById('famCoverAuto').checked=true;
+    document.getElementById('famCoverManual').checked=false;
+    document.getElementById('fishFamilyCoverUrl').value='';
+  }
+  updateFamCoverPreview();
   openAccordion('educationAdminSection');openAccordion('accFishFamilies');document.getElementById('fishFamilyFormWrap')?.scrollIntoView({behavior:'smooth',block:'start'});
 };
 window.deleteFishFamily=async function(id){
@@ -5385,7 +5449,7 @@ async function syncEducationData(){
   try{
     var ffData=await sbGet('/rest/v1/fish_families?select=*&order=created_at.asc&limit=200');
     if(ffData&&ffData.length){
-      fishFamilies=ffData.map(function(r){return{id:r.id,name_ar:r.name_ar||'',name_en:r.name_en||'',name_ku:r.name_ku||'',created_at:r.created_at||''};});
+      fishFamilies=ffData.map(function(r){return{id:r.id,name_ar:r.name_ar||'',name_en:r.name_en||'',name_ku:r.name_ku||'',cover_image_url:r.cover_image_url||null,created_at:r.created_at||''};});
       populateFishFamilySelect();
     }
     var fcData=await sbGet('/rest/v1/fish_cards?select=*&order=created_at.asc&limit=600');

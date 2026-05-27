@@ -324,6 +324,7 @@ exports.handler = async function(event) {
       await sb('POST', '/fish_families', {
         id: family.id, name_ar: family.name_ar,
         name_en: family.name_en || '', name_ku: family.name_ku || '',
+        cover_image_url: family.cover_image_url ?? null,
         created_at: family.created_at || new Date().toISOString()
       });
       return res(headers, 200, { ok: true });
@@ -332,11 +333,12 @@ exports.handler = async function(event) {
 
   /* PATCH FISH FAMILY — update only name_ar / name_ku */
   if (action === 'patch_fish_family') {
-    const { id, name_ar, name_ku } = body;
+    const { id, name_ar, name_ku, cover_image_url } = body;
     if (!id) return res(headers, 400, { error: 'id مطلوب' });
     const patch = {};
-    if (name_ar !== undefined) patch.name_ar = name_ar;
-    if (name_ku !== undefined) patch.name_ku = name_ku;
+    if (name_ar          !== undefined) patch.name_ar          = name_ar;
+    if (name_ku          !== undefined) patch.name_ku          = name_ku;
+    if (cover_image_url  !== undefined) patch.cover_image_url  = cover_image_url;
     if (!Object.keys(patch).length) return res(headers, 400, { error: 'لا توجد حقول للتحديث' });
     try {
       await sb('PATCH', `/fish_families?id=eq.${encodeURIComponent(id)}`, patch);
