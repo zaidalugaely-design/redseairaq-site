@@ -792,6 +792,23 @@ html{scroll-behavior:smooth}
   ]
 }
 </script>
+<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '851806290780479');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=851806290780479&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->
 </head>
 <body>
 <div id="scrollProgress"></div>
@@ -4015,8 +4032,10 @@ window.handleFamImgUpload=async function(e){
   var st=document.getElementById('famImgUploadStatus');
   var preview=document.getElementById('famCoverPreview');
   var img=document.getElementById('famCoverPreviewImg');
-  if(st)st.textContent='جاري الرفع...';
+  var oldUrl=document.getElementById('fishFamilyCoverUrl').value;
+  document.getElementById('fishFamilyCoverUrl').value='';
   if(preview)preview.style.display='none';
+  if(st)st.textContent='جاري الرفع...';
   try{
     var url=await uploadEduImage(file,'fam');
     document.getElementById('fishFamilyCoverUrl').value=url;
@@ -4025,6 +4044,8 @@ window.handleFamImgUpload=async function(e){
     if(st)st.textContent='تم الرفع ✓';
     switchFamImgTab('url');
   }catch(err){
+    document.getElementById('fishFamilyCoverUrl').value=oldUrl;
+    if(oldUrl&&img){img.src=oldUrl;img.style.display='block';if(preview)preview.style.display='block';}
     if(st)st.textContent='فشل الرفع: '+(err.message||err);
   }
   e.target.value='';
@@ -4113,9 +4134,6 @@ window.deleteFishFamily=async function(id){
 function renderAdminFishFamilies(){
   var el=document.getElementById('adminFishFamilyList');if(!el)return;
   if(!fishFamilies.length){el.innerHTML='<div class="admin-help">لا توجد عائلات بعد.</div>';return;}
-  /* auto-assign sort_order if all are 0 */
-  var allZero=fishFamilies.every(function(f){return!f.sort_order;});
-  if(allZero){fishFamilies.forEach(function(f,i){f.sort_order=i+1;});}
   /* sort by sort_order asc */
   var sorted=fishFamilies.slice().sort(function(a,b){return(a.sort_order||0)-(b.sort_order||0);});
   var total=sorted.length;
@@ -4141,10 +4159,16 @@ window.fishFamilySortSet=async function(input,id,total){
   var idx=fishFamilies.findIndex(function(f){return f.id===id;});
   if(idx<0)return;
   if(fishFamilies[idx].sort_order===val)return;
+  var oldVal=fishFamilies[idx].sort_order;
+  /* swap with any family that already holds the target sort_order */
+  var swapFam=fishFamilies.find(function(f){return f.id!==id&&f.sort_order===val;});
   fishFamilies[idx].sort_order=val;
+  if(swapFam)swapFam.sort_order=oldVal;
   renderAdminFishFamilies();
   try{
-    await apiCall('patch_fish_family',{id:id,sort_order:val},true);
+    var saves=[apiCall('patch_fish_family',{id:id,sort_order:val},true)];
+    if(swapFam)saves.push(apiCall('patch_fish_family',{id:swapFam.id,sort_order:oldVal},true));
+    await Promise.all(saves);
     var row=document.querySelector('[data-fam-id="'+CSS.escape(id)+'"]');
     if(row){
       var tick=document.createElement('span');
