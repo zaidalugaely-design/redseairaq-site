@@ -4,3 +4,8 @@
 
 [functions]
   node_bundler = "esbuild"
+
+[[redirects]]
+  from   = "/product/:id"
+  to     = "/.netlify/functions/og-preview?id=:id"
+  status = 200
