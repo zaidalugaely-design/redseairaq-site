@@ -13,10 +13,11 @@ exports.handler = async function(event) {
   const isCrawler = CRAWLER_RE.test(ua);
 
   if (!isCrawler) {
+    const safeId = encodeURIComponent(id);
     return {
-      statusCode: 302,
-      headers: { Location: `${SITE}/#/product/${id}` },
-      body: ''
+      statusCode: 200,
+      headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+      body: `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=/#/product/${safeId}"><script>location.replace('/#/product/${safeId}')</script></head><body></body></html>`
     };
   }
 
@@ -41,10 +42,11 @@ exports.handler = async function(event) {
   }
 
   if (!product) {
+    const safeId = encodeURIComponent(id);
     return {
-      statusCode: 302,
-      headers: { Location: `${SITE}/#/product/${id}` },
-      body: ''
+      statusCode: 200,
+      headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+      body: `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=/#/product/${safeId}"><script>location.replace('/#/product/${safeId}')</script></head><body></body></html>`
     };
   }
 
