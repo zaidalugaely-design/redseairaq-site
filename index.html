@@ -5614,7 +5614,10 @@ async function syncEducationData(){
 }
 
 async function sbSaveProduct(item){
-  try{ await apiCall('save_product',{item},true); }
+  try{
+    const result=await apiCall('save_product',{item},true);
+    console.log('Supabase save result:',result);
+  }
   catch(e){ console.error('save_product:',e); }
 }
 async function sbDeleteProduct(id){
