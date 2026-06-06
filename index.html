@@ -2688,8 +2688,7 @@ async function renderProdibio(){
     ctaBtn.href='https://api.whatsapp.com/send?phone=9647726669956&text='+ctaMsg;
   }
   try{
-    var data=await sbGet('/rest/v1/products?category=eq.prodibio&order=sort_order.asc,created_at.desc&limit=100');
-    if(data)data=data.filter(function(p){return!p.hidden;});
+    var data=await sbGet('/rest/v1/products?category=eq.probidio&hidden=not.is.true&select=*&order=sort_order.asc,created_at.desc&limit=100');
     if(!data||!data.length){
       grid.innerHTML='<p class="pb-empty">لا توجد منتجات</p>';
       return;
