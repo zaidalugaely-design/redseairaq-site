@@ -2696,15 +2696,19 @@ async function renderProdibio(){
     grid.innerHTML=data.map(function(p){
       var waMsg=encodeURIComponent('أريد طلب '+(p.name||'')+' - PRODIBIO');
       var waUrl='https://api.whatsapp.com/send?phone=9647726669956&text='+waMsg;
-      var imgHtml=p.image?'<img src="'+esc(p.image)+'" alt="'+esc(p.name||'')+'" loading="lazy">':'<div class="pb-img-placeholder">🧪</div>';
+      var imgHtml=p.image?'<img src="'+esc(p.image)+'" alt="'+esc(p.name||'')+'" loading="lazy" onclick="go(\'product/'+p.id+'\')">':'<div class="pb-img-placeholder" onclick="go(\'product/'+p.id+'\')">🧪</div>';
       var priceHtml=p.price?'<div class="pb-card-price">'+Number(p.price).toLocaleString('en')+'<small style="font-size:12px;font-weight:700;margin-right:4px;opacity:.7">د.ع</small></div>':'';
+      var ok=p.stock==='available'||p.stock==='available_nd'||p.stock==='preorder';
+      var cartBtn='<button class="small-btn" '+(ok?'':'disabled')+' onclick="addToCart(\''+p.id+'\')">'+(p.stock==='available'||p.stock==='available_nd'?t('add_to_cart'):stockLbl(p.stock||'available'))+'</button>';
       return '<div class="pb-card">'
-        +'<div class="pb-card-img">'+imgHtml+'</div>'
+        +'<div class="pb-card-img" style="cursor:pointer">'+imgHtml+'</div>'
         +'<div class="pb-card-body">'
-        +'<div class="pb-card-name">'+esc(p.name||'')+'</div>'
+        +'<div class="pb-card-name" style="cursor:pointer" onclick="go(\'product/'+p.id+'\')">'+esc(p.name||'')+'</div>'
         +(p.description?'<div class="pb-card-desc">'+esc(p.description)+'</div>':'')
         +priceHtml
-        +'<a class="pb-wa-btn" href="'+waUrl+'" target="_blank" rel="noopener">🛒 طلب عبر WhatsApp</a>'
+        +'<div style="display:flex;gap:8px;margin-top:4px">'+cartBtn
+        +'<a class="pb-wa-btn" style="flex:1" href="'+waUrl+'" target="_blank" rel="noopener">💬 واتساب</a>'
+        +'</div>'
         +'</div></div>';
     }).join('');
   }catch(e){
