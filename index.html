@@ -2452,7 +2452,6 @@ const DEF_PRODUCTS=[
 function safeJson(k,fb){try{const r=localStorage.getItem(k);return r?JSON.parse(r)||fb:fb;}catch(e){localStorage.removeItem(k);return fb;}}
 function validList(l){return Array.isArray(l)&&l.every(p=>p&&p.id&&p.name&&p.category&&typeof p.price==='number');}
 let products=validList(safeJson('rsi_prods',null))?safeJson('rsi_prods',[]):JSON.parse(JSON.stringify(DEF_PRODUCTS));
-var _productsReady=false; /* set true after first Supabase sync completes */
 let cart=safeJson('rsi_cart',[]);if(!Array.isArray(cart))cart=[];
 let adminImgData='';
 
@@ -2654,10 +2653,6 @@ function renderHome(){
 }
 window.renderProducts=function(){
   const grid=document.getElementById('productsGrid'); if(!grid)return;
-  if(!_productsReady){
-    grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--muted)"><div style="width:32px;height:32px;border:3px solid var(--line);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 16px"></div><p style="margin:0;font-size:15px">جاري تحميل المنتجات...</p></div>';
-    return;
-  }
   const q=(document.getElementById('searchInput')?.value||'').trim().toLowerCase();
   const cat=document.getElementById('categoryFilter')?.value||'';
   const srt=document.getElementById('sortFilter')?.value||'default';
@@ -5693,7 +5688,6 @@ async function syncFromSupabase(){
       });
       localStorage.setItem('rsi_prods',JSON.stringify(products));
       localStorage.setItem('rsi_prods_updated',Date.now());
-      _productsReady=true;
       var _ar=(location.hash||'').replace('#/','').split('/')[0]||'home';
       if(_ar==='products')renderProducts();
       else if(_ar==='home')renderHome();
