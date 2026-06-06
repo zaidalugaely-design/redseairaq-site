@@ -5670,7 +5670,7 @@ async function syncFromSupabase(){
   try{
     var [catData,prodData,blogData,refData]=await Promise.all([
       sbGet('/rest/v1/categories?order=sort_order.asc&limit=100'),
-      sbGet('/rest/v1/products?hidden=not.eq.true&order=sort_order.asc,created_at.desc&limit=500'),
+      sbGet('/rest/v1/products?order=sort_order.asc,created_at.desc&limit=500'),
       sbGet('/rest/v1/blog_posts?order=created_at.desc&limit=100'),
       sbGet('/rest/v1/reference_topics?order=sort_order.asc,created_at.desc&limit=200')
     ]);
