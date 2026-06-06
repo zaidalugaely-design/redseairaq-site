@@ -2452,7 +2452,7 @@ const DEF_PRODUCTS=[
 function safeJson(k,fb){try{const r=localStorage.getItem(k);return r?JSON.parse(r)||fb:fb;}catch(e){localStorage.removeItem(k);return fb;}}
 function validList(l){return Array.isArray(l)&&l.every(p=>p&&p.id&&p.name&&p.category&&typeof p.price==='number');}
 let products=validList(safeJson('rsi_prods',null))?safeJson('rsi_prods',[]):JSON.parse(JSON.stringify(DEF_PRODUCTS));
-var _productsReady=validList(safeJson('rsi_prods',null)); /* true when cached data exists; set true after sync otherwise */
+var _productsReady=false; /* set true after first Supabase sync completes */
 let cart=safeJson('rsi_cart',[]);if(!Array.isArray(cart))cart=[];
 let adminImgData='';
 
