@@ -764,6 +764,54 @@ html{scroll-behavior:smooth}
   .edu-modal-footer{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
   .edu-form-2col,.edu-form-3col,.edu-form-2col-drop{display:grid;grid-template-columns:1fr;gap:10px}
 }
+
+/* ── PRODIBIO PAGE ── */
+#page-prodibio{background:#0a0e1a;color:#e8eaf0;min-height:100vh;padding:0;font-family:'Tajawal',sans-serif}
+.pb-banner{background:var(--red);color:#fff;text-align:center;padding:10px 16px;font-size:13.5px;font-weight:800;letter-spacing:.3px;line-height:1.6}
+.pb-hero{background:linear-gradient(160deg,#0d1424 0%,#0a0e1a 60%,#081420 100%);padding:80px 20px 64px;text-align:center;position:relative;overflow:hidden}
+.pb-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 20%,rgba(0,180,216,.13),transparent);pointer-events:none}
+.pb-hero-brand{font-size:clamp(52px,8vw,96px);font-weight:900;letter-spacing:-2px;color:#fff;font-family:'Montserrat',sans-serif;line-height:1;margin-bottom:6px;opacity:0;animation:pbFadeUp .7s .1s ease forwards}
+.pb-hero-sub{font-size:13px;letter-spacing:4px;color:#00b4d8;font-weight:700;text-transform:uppercase;margin-bottom:18px;opacity:0;animation:pbFadeUp .7s .25s ease forwards}
+.pb-hero-tagline{font-size:18px;color:rgba(232,234,240,.75);max-width:520px;margin:0 auto 28px;line-height:1.75;opacity:0;animation:pbFadeUp .7s .4s ease forwards}
+.pb-badges{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-bottom:32px;opacity:0;animation:pbFadeUp .7s .55s ease forwards}
+.pb-badge{background:rgba(0,180,216,.12);border:1px solid rgba(0,180,216,.3);border-radius:999px;padding:7px 16px;font-size:13px;font-weight:700;color:#00b4d8}
+.pb-hero-btns{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;opacity:0;animation:pbFadeUp .7s .7s ease forwards}
+.pb-btn-primary{background:#00b4d8;color:#fff;border:none;border-radius:12px;padding:13px 28px;font-size:15px;font-weight:800;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:background .3s ease,transform .3s ease}
+.pb-btn-primary:hover{background:#0096b7;transform:translateY(-2px)}
+.pb-btn-outline{background:transparent;color:#e8eaf0;border:2px solid rgba(232,234,240,.3);border-radius:12px;padding:12px 28px;font-size:15px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:border-color .3s ease,color .3s ease,transform .3s ease}
+.pb-btn-outline:hover{border-color:#00b4d8;color:#00b4d8;transform:translateY(-2px)}
+.pb-section{max-width:1200px;margin:0 auto;padding:60px 20px}
+.pb-section-title{text-align:center;font-size:clamp(22px,3.5vw,32px);font-weight:900;color:#fff;margin-bottom:40px}
+.pb-section-title span{color:#00b4d8}
+.pb-products-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.pb-card{background:#111827;border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;transition:transform .3s ease,border-color .3s ease,box-shadow .3s ease;display:flex;flex-direction:column}
+.pb-card:hover{transform:translateY(-6px);border-color:#00b4d8;box-shadow:0 12px 40px rgba(0,180,216,.2)}
+.pb-card-img{aspect-ratio:1;overflow:hidden;background:#0d1424}
+.pb-card-img img{width:100%;height:100%;object-fit:cover;transition:transform .3s ease}
+.pb-card:hover .pb-card-img img{transform:scale(1.04)}
+.pb-img-placeholder{width:100%;height:100%;min-height:180px;background:linear-gradient(135deg,#1a2235,#111827);display:flex;align-items:center;justify-content:center;font-size:40px}
+.pb-card-body{padding:18px;flex:1;display:flex;flex-direction:column;gap:8px}
+.pb-card-name{font-size:16px;font-weight:800;color:#e8eaf0;line-height:1.4}
+.pb-card-desc{font-size:13.5px;color:rgba(232,234,240,.6);line-height:1.6;flex:1}
+.pb-card-price{font-size:18px;font-weight:900;color:#00b4d8;font-family:'Montserrat',sans-serif}
+.pb-wa-btn{display:block;background:#25d366;color:#fff;border:none;border-radius:10px;padding:11px;text-align:center;font-size:14px;font-weight:800;text-decoration:none;margin-top:4px;transition:background .3s ease,transform .3s ease}
+.pb-wa-btn:hover{background:#1ebe5d;transform:translateY(-2px)}
+.pb-spinner{grid-column:1/-1;text-align:center;padding:60px 20px;color:rgba(232,234,240,.4)}
+.pb-spinner-ring{width:36px;height:36px;border:3px solid rgba(0,180,216,.2);border-top-color:#00b4d8;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 14px}
+.pb-empty{grid-column:1/-1;text-align:center;padding:60px 20px;color:rgba(232,234,240,.4);font-size:16px}
+.pb-why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.pb-why-card{background:#111827;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:24px;transition:transform .3s ease,border-color .3s ease}
+.pb-why-card:hover{transform:translateY(-4px);border-color:rgba(0,180,216,.3)}
+.pb-why-icon{font-size:32px;margin-bottom:12px}
+.pb-why-title{font-size:15px;font-weight:800;color:#e8eaf0;margin-bottom:6px}
+.pb-why-text{font-size:13.5px;color:rgba(232,234,240,.6);line-height:1.6}
+.pb-cta-section{background:linear-gradient(135deg,#0d1e35,#0a0e1a);padding:60px 20px;text-align:center;border-top:1px solid rgba(0,180,216,.15)}
+.pb-cta-title{font-size:clamp(20px,3vw,28px);font-weight:900;color:#fff;margin-bottom:10px}
+.pb-cta-sub{color:rgba(232,234,240,.6);margin-bottom:28px;font-size:15px}
+.nav-badge-new{background:var(--red);color:#fff;font-size:10px;font-weight:900;padding:2px 6px;border-radius:99px;margin-right:5px;vertical-align:middle;letter-spacing:.3px}
+@keyframes pbFadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:900px){.pb-products-grid{grid-template-columns:repeat(2,1fr)}.pb-why-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:540px){.pb-products-grid{grid-template-columns:1fr}.pb-why-grid{grid-template-columns:1fr}.pb-hero{padding:60px 16px 40px}}
 </style>
 
 <!-- Structured Data for Google -->
@@ -851,6 +899,7 @@ src="https://www.facebook.com/tr?id=851806290780479&ev=PageView&noscript=1"
         <a href="#/contact" data-route="contact" data-i18n="nav_contact">تواصل</a>
         <a href="#/blog" data-route="blog" data-i18n="nav_blog">المقالات</a>
         <a href="#/education" data-route="education" data-i18n="nav_education">تعليم</a>
+        <a href="#/prodibio" data-route="prodibio"><span class="nav-badge-new">جديد</span>PRODIBIO</a>
       </nav>
     </div>
     <div class="actions">
@@ -876,6 +925,7 @@ src="https://www.facebook.com/tr?id=851806290780479&ev=PageView&noscript=1"
   <a href="#/cart" onclick="closeMenu()"><svg class="ico" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg><span data-i18n="nav_cart">السلة</span></a>
   <a href="#/blog" onclick="closeMenu()"><svg class="ico" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><span data-i18n="nav_blog">المقالات</span></a>
   <a href="#/education" data-route="education" onclick="closeMenu()"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg><span data-i18n="nav_education">تعليم</span></a>
+  <a href="#/prodibio" data-route="prodibio" onclick="closeMenu()"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg><span><span class="nav-badge-new">جديد</span>PRODIBIO</span></a>
 </aside>
 
 <!-- BOTTOM NAV -->
@@ -1609,6 +1659,48 @@ src="https://www.facebook.com/tr?id=851806290780479&ev=PageView&noscript=1"
   <!-- Tab panels -->
   <div id="eduFishPanel" class="edu-panel"></div>
   <div id="eduCoralPanel" class="edu-panel" style="display:none"></div>
+</section>
+
+<!-- PRODIBIO -->
+<section class="page" id="page-prodibio">
+  <div class="pb-banner">🇫🇷 الوكيل الحصري والوحيد لـ PRODIBIO في العراق &nbsp;|&nbsp; ❄️ شحن مبرد عبر FedEx</div>
+  <div class="pb-hero">
+    <div class="pb-hero-brand">PRODIBIO</div>
+    <div class="pb-hero-sub">AQUARIUM CARE PROGRAM</div>
+    <div class="pb-hero-tagline">عناية مائية طبيعية قائمة على البكتيريا</div>
+    <div class="pb-badges">
+      <span class="pb-badge">🇫🇷 مصنوع في فرنسا</span>
+      <span class="pb-badge">❄️ شحن مبرد FedEx</span>
+      <span class="pb-badge">✅ وكيل حصري معتمد</span>
+      <span class="pb-badge">🚚 توصيل لجميع المحافظات</span>
+    </div>
+    <div class="pb-hero-btns">
+      <a class="pb-btn-primary" href="https://www.prodibio.com/distributors" target="_blank" rel="noopener">وكيل معتمد رسمي 🔗</a>
+      <button class="pb-btn-outline" onclick="document.getElementById('pb-products').scrollIntoView({behavior:'smooth'})">تصفح المنتجات ↓</button>
+    </div>
+  </div>
+  <div class="pb-section" id="pb-products">
+    <h2 class="pb-section-title">منتجات <span>PRODIBIO</span></h2>
+    <div class="pb-products-grid" id="pb-products-grid">
+      <div class="pb-spinner"><div class="pb-spinner-ring"></div><p>جاري التحميل...</p></div>
+    </div>
+  </div>
+  <div class="pb-section" style="padding-top:0">
+    <h2 class="pb-section-title">لماذا <span>PRODIBIO</span>؟</h2>
+    <div class="pb-why-grid">
+      <div class="pb-why-card"><div class="pb-why-icon">🇫🇷</div><div class="pb-why-title">مصنوع في فرنسا</div><div class="pb-why-text">معايير جودة أوروبية صارمة</div></div>
+      <div class="pb-why-card"><div class="pb-why-icon">💉</div><div class="pb-why-title">أمبولات لمرة واحدة</div><div class="pb-why-text">جرعات دقيقة محددة مسبقاً</div></div>
+      <div class="pb-why-card"><div class="pb-why-icon">⚗️</div><div class="pb-why-title">تغليف بغاز الأرجون</div><div class="pb-why-text">فعالية تصل إلى 5 سنوات</div></div>
+      <div class="pb-why-card"><div class="pb-why-icon">❄️</div><div class="pb-why-title">شحن مبرد عبر FedEx</div><div class="pb-why-text">نحافظ على سلسلة التبريد</div></div>
+      <div class="pb-why-card"><div class="pb-why-icon">✅</div><div class="pb-why-title">وكيل حصري معتمد</div><div class="pb-why-text">ضمان الأصالة</div></div>
+      <div class="pb-why-card"><div class="pb-why-icon">🐠</div><div class="pb-why-title">للمياه المالحة والعذبة</div><div class="pb-why-text">مناسب لجميع الأحواض</div></div>
+    </div>
+  </div>
+  <div class="pb-cta-section">
+    <div class="pb-cta-title">هل لديك استفسار؟</div>
+    <div class="pb-cta-sub">تواصل معنا مباشرة عبر WhatsApp للحصول على المشورة والطلب</div>
+    <a class="pb-btn-primary" id="pb-cta-btn" href="#" target="_blank" rel="noopener">💬 تواصل عبر WhatsApp</a>
+  </div>
 </section>
 
 </main>
@@ -2476,6 +2568,7 @@ function router(){
   if(route==='blog'){ renderBlogList(); }
   if(route==='reference'){ if(id)renderRefTopic(id);else renderReference(); }
   if(route==='education'){ ensureEducationData(); }
+  if(route==='prodibio'){ renderProdibio(); }
   applyI18n();
 }
 
@@ -2590,6 +2683,39 @@ window.renderProducts=function(){
   setTimeout(function(){if(typeof imgFadeIn==='function')imgFadeIn();if(typeof initReveal==='function')initReveal();},20);
 };
 function renderCategoriesPage(){document.getElementById('categoriesGrid').innerHTML=CATS.map(catCard).join('');}
+async function renderProdibio(){
+  var grid=document.getElementById('pb-products-grid');
+  if(!grid)return;
+  grid.innerHTML='<div class="pb-spinner"><div class="pb-spinner-ring"></div><p>جاري التحميل...</p></div>';
+  var ctaBtn=document.getElementById('pb-cta-btn');
+  if(ctaBtn){
+    var ctaMsg=encodeURIComponent('أريد الاستفسار عن منتجات PRODIBIO');
+    ctaBtn.href='https://api.whatsapp.com/send?phone=9647726669956&text='+ctaMsg;
+  }
+  try{
+    var data=await sbGet('/rest/v1/products?category=eq.prodibio&hidden=eq.false&order=sort_order.asc,created_at.desc&limit=100');
+    if(!data||!data.length){
+      grid.innerHTML='<p class="pb-empty">لا توجد منتجات</p>';
+      return;
+    }
+    grid.innerHTML=data.map(function(p){
+      var waMsg=encodeURIComponent('أريد طلب '+(p.name||'')+' - PRODIBIO');
+      var waUrl='https://api.whatsapp.com/send?phone=9647726669956&text='+waMsg;
+      var imgHtml=p.image?'<img src="'+esc(p.image)+'" alt="'+esc(p.name||'')+'" loading="lazy">':'<div class="pb-img-placeholder">🧪</div>';
+      var priceHtml=p.price?'<div class="pb-card-price">'+Number(p.price).toLocaleString('en')+'<small style="font-size:12px;font-weight:700;margin-right:4px;opacity:.7">د.ع</small></div>':'';
+      return '<div class="pb-card">'
+        +'<div class="pb-card-img">'+imgHtml+'</div>'
+        +'<div class="pb-card-body">'
+        +'<div class="pb-card-name">'+esc(p.name||'')+'</div>'
+        +(p.description?'<div class="pb-card-desc">'+esc(p.description)+'</div>':'')
+        +priceHtml
+        +'<a class="pb-wa-btn" href="'+waUrl+'" target="_blank" rel="noopener">🛒 طلب عبر WhatsApp</a>'
+        +'</div></div>';
+    }).join('');
+  }catch(e){
+    grid.innerHTML='<p class="pb-empty">خطأ في تحميل المنتجات</p>';
+  }
+}
 function renderCatSelects(){
   const s=document.getElementById('categoryFilter');
   if(s)s.innerHTML=`<option value="">${t('all_categories')}</option>`+CATS.map(c=>`<option value="${c.id}">${catName(c)}</option>`).join('');
