@@ -17,7 +17,7 @@ exports.handler = async function(event) {
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
-      body: `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=/#/product/${safeId}"><script>location.replace('/#/product/${safeId}')</script></head><body></body></html>`
+      body: `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=${SITE}/#/product/${safeId}"><script>location.replace('${SITE}/#/product/${safeId}')</script></head><body></body></html>`
     };
   }
 
@@ -46,7 +46,7 @@ exports.handler = async function(event) {
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
-      body: `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=/#/product/${safeId}"><script>location.replace('/#/product/${safeId}')</script></head><body></body></html>`
+      body: `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=${SITE}/#/product/${safeId}"><script>location.replace('${SITE}/#/product/${safeId}')</script></head><body></body></html>`
     };
   }
 
