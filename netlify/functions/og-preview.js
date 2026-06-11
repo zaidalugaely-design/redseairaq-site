@@ -4,7 +4,7 @@ const SITE   = 'https://redseairaq.com';
 const CRAWLER_RE = /whatsapp|facebookexternalhit|facebot|twitterbot|linkedinbot|telegrambot|slackbot|discordbot|googlebot|bingbot/i;
 
 exports.handler = async function(event) {
-  const id = (event.queryStringParameters || {}).id;
+  const id = (event.queryStringParameters || {}).product || (event.queryStringParameters || {}).id;
   if (!id) {
     return { statusCode: 302, headers: { Location: SITE }, body: '' };
   }
@@ -53,7 +53,7 @@ exports.handler = async function(event) {
   const title = esc(product.name || 'Red Sea Iraq');
   const desc  = esc(product.desc || 'منتج Red Sea الأصلي — الوكيل الحصري في العراق');
   const image = esc(product.image || '');
-  const url   = `${SITE}/product/${id}`;
+  const url   = `${SITE}/?product=${encodeURIComponent(id)}`;
 
   return {
     statusCode: 200,
