@@ -3,6 +3,7 @@ const SB_URL  = 'https://glhmmrovxyijtzjaldtf.supabase.co';
 const CRAWLER = /facebookexternalhit|facebot|whatsapp|twitterbot|linkedinbot|slackbot|googlebot|bingbot|discordbot|telegrambot/i;
 
 export default async function(request, context) {
+  console.log('Edge function triggered:', request.url);
   const url   = new URL(request.url);
   const match = url.pathname.match(/^\/product\/(.+)$/);
   if (!match) return context.next();

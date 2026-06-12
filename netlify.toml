@@ -1,6 +1,7 @@
 [build]
-  functions = "netlify/functions"
-  publish   = "."
+  functions       = "netlify/functions"
+  edge_functions  = "netlify/edge-functions"
+  publish         = "."
 
 [functions]
   node_bundler = "esbuild"
