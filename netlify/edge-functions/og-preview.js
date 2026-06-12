@@ -1,15 +1,14 @@
 const SITE    = 'https://redseairaq.com';
-const SB_URL  = Deno.env.get('SB_URL') || 'https://glhmmrovxyijtzjaldtf.supabase.co';
+const SB_URL  = 'https://glhmmrovxyijtzjaldtf.supabase.co';
+const SB_KEY  = 'sb_publishable_hzVe29KIzQ2h72PuHBLZ5Q_M6BLVkaI';
 const CRAWLER = /facebookexternalhit|facebot|whatsapp|twitterbot|linkedinbot|slackbot|googlebot|bingbot|discordbot|telegrambot/i;
 
 export default async function(request, context) {
-  console.log('Edge function triggered:', request.url);
   const url   = new URL(request.url);
   const match = url.pathname.match(/^\/product\/(.+)$/);
   if (!match) return context.next();
 
   const id = decodeURIComponent(match[1]);
-  console.log('product id from URL:', id);
 
   const ua = request.headers.get('user-agent') || '';
 
@@ -18,8 +17,6 @@ export default async function(request, context) {
   }
 
   /* Crawler: fetch product and return OG meta HTML */
-  const SB_KEY = Deno.env.get('SB_SERVICE_KEY');
-  console.log('SB key available:', !!SB_KEY);
   let product  = null;
   try {
     const res = await fetch(
@@ -32,7 +29,6 @@ export default async function(request, context) {
         }
       }
     );
-    console.log('fetch result status:', res.status);
     const data = await res.json();
     product = Array.isArray(data) && data[0];
   } catch (_) { /* fall through */ }
