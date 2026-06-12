@@ -1,27 +1,13 @@
 const SB_URL = process.env.SUPABASE_URL || 'https://glhmmrovxyijtzjaldtf.supabase.co';
 const SITE   = 'https://redseairaq.com';
 
-const CRAWLER_RE = /whatsapp|facebookexternalhit|facebot|twitterbot|linkedinbot|telegrambot|slackbot|discordbot|googlebot|bingbot/i;
-
 exports.handler = async function(event) {
   const id = (event.queryStringParameters || {}).product || (event.queryStringParameters || {}).id;
   if (!id) {
     return { statusCode: 302, headers: { Location: SITE }, body: '' };
   }
 
-  const ua = event.headers['user-agent'] || '';
-  const isCrawler = CRAWLER_RE.test(ua);
-
-  if (!isCrawler) {
-    const safeId = encodeURIComponent(id);
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
-      body: `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=${SITE}/#/product/${safeId}"><script>location.replace('${SITE}/#/product/${safeId}')</script></head><body></body></html>`
-    };
-  }
-
-  /* Crawler: fetch product and return OG meta page */
+  /* Fetch product from Supabase */
   const SB_KEY = process.env.SB_SERVICE_KEY;
   let product = null;
   try {
@@ -41,19 +27,21 @@ exports.handler = async function(event) {
     console.error('[og-preview] supabase error:', e.message);
   }
 
+  const safeId = encodeURIComponent(id);
+  const redirect = `${SITE}/#/product/${safeId}`;
+
   if (!product) {
-    const safeId = encodeURIComponent(id);
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
-      body: `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=${SITE}/#/product/${safeId}"><script>location.replace('${SITE}/#/product/${safeId}')</script></head><body></body></html>`
+      body: `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=${redirect}"><script>location.replace('${redirect}')</script></head><body></body></html>`
     };
   }
 
   const title = esc(product.name || 'Red Sea Iraq');
   const desc  = esc(product.description || 'منتج Red Sea الأصلي — الوكيل الحصري في العراق');
   const image = esc(product.image || '');
-  const url   = `${SITE}/?product=${encodeURIComponent(id)}`;
+  const url   = `${SITE}/?product=${safeId}`;
 
   return {
     statusCode: 200,
@@ -72,7 +60,8 @@ exports.handler = async function(event) {
   <meta name="twitter:title" content="${title}">
   <meta name="twitter:description" content="${desc}">
   <meta name="twitter:image" content="${image}">
-  <meta http-equiv="refresh" content="0;url=${SITE}/#/product/${id}">
+  <meta http-equiv="refresh" content="0;url=${redirect}">
+  <script>location.replace('${redirect}')</script>
 </head>
 <body>جاري التحويل...</body>
 </html>`
