@@ -5,13 +5,12 @@
 [functions]
   node_bundler = "esbuild"
 
-[[redirects]]
-  from   = "/"
-  to     = "/.netlify/functions/og-preview?product=:product"
-  status = 200
-  query  = {product = ":product"}
+[[edge_functions]]
+  path     = "/product/*"
+  function = "og-preview"
 
+# SPA catch-all — serves index.html for any path with no matching file
 [[redirects]]
-  from   = "/product/:id"
-  to     = "/.netlify/functions/og-preview?product=:id"
+  from   = "/*"
+  to     = "/index.html"
   status = 200

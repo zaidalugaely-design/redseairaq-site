@@ -5810,6 +5810,8 @@ async function boot(){
   document.getElementById('refImage').addEventListener('change',onRefImg);
   var _qprod=new URLSearchParams(location.search).get('product');
   if(_qprod&&!location.hash.includes('/product/'))location.hash='#/product/'+encodeURIComponent(_qprod);
+  var _pathProd=location.pathname.match(/^\/product\/(.+)$/);
+  if(_pathProd&&!location.hash.includes('/product/'))location.hash='#/product/'+encodeURIComponent(decodeURIComponent(_pathProd[1]));
   window.addEventListener('hashchange',router);
   router(); /* الآن البيانات جاهزة — نشغّل الـ router */
 }
@@ -5838,7 +5840,7 @@ window.shareProduct=function(id){
   var cur=getCur(p);
   var hv=p.variants&&p.variants.length;
   var price=money(hv?p.variants[0].price:p.price,cur);
-  var url=location.origin+'/?product='+encodeURIComponent(id);
+  var url=location.origin+'/product/'+id;
   var nl='%0A';
   var msg='*'+p.name+'*'+nl;
   if(p.desc)msg+=p.desc+nl;
