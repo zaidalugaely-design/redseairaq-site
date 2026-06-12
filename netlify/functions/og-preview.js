@@ -26,7 +26,7 @@ exports.handler = async function(event) {
   let product = null;
   try {
     const res = await fetch(
-      `${SB_URL}/rest/v1/products?id=eq.${encodeURIComponent(id)}&select=name,desc,image&limit=1`,
+      `${SB_URL}/rest/v1/products?id=eq.${encodeURIComponent(id)}&select=name,description,image&limit=1`,
       {
         headers: {
           'apikey':        SB_KEY,
@@ -51,7 +51,7 @@ exports.handler = async function(event) {
   }
 
   const title = esc(product.name || 'Red Sea Iraq');
-  const desc  = esc(product.desc || 'منتج Red Sea الأصلي — الوكيل الحصري في العراق');
+  const desc  = esc(product.description || 'منتج Red Sea الأصلي — الوكيل الحصري في العراق');
   const image = esc(product.image || '');
   const url   = `${SITE}/?product=${encodeURIComponent(id)}`;
 
