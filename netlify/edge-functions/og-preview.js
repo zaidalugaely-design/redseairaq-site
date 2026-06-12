@@ -1,7 +1,6 @@
-const SITE    = 'https://redseairaq.com';
-const SB_URL  = 'https://glhmmrovxyijtzjaldtf.supabase.co';
-const SB_KEY  = 'sb_publishable_hzVe29KIzQ2h72PuHBLZ5Q_M6BLVkaI';
-const CRAWLER = /facebookexternalhit|facebot|whatsapp|twitterbot|linkedinbot|slackbot|googlebot|bingbot|discordbot|telegrambot/i;
+const SITE   = 'https://redseairaq.com';
+const SB_URL = 'https://glhmmrovxyijtzjaldtf.supabase.co';
+const SB_KEY = 'sb_publishable_hzVe29KIzQ2h72PuHBLZ5Q_M6BLVkaI';
 
 export default async function(request, context) {
   const url   = new URL(request.url);
@@ -10,13 +9,7 @@ export default async function(request, context) {
 
   const id = decodeURIComponent(match[1]);
 
-  const ua = request.headers.get('user-agent') || '';
-
-  if (!CRAWLER.test(ua)) {
-    return context.next(); // real browser — serve index.html, boot() handles routing
-  }
-
-  /* Crawler: fetch product and return OG meta HTML */
+  /* Fetch product and return OG meta HTML with meta-refresh for browsers */
   let product  = null;
   try {
     const res = await fetch(
