@@ -1,14 +1,10 @@
 [build]
+  command         = "node scripts/generate-og-pages.js"
   functions       = "netlify/functions"
-  edge_functions  = "netlify/edge-functions"
   publish         = "."
 
 [functions]
   node_bundler = "esbuild"
-
-[[edge_functions]]
-  path     = "/product/*"
-  function = "og-preview"
 
 # SPA catch-all — serves index.html for any path with no matching file
 [[redirects]]
