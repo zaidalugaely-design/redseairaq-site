@@ -83,6 +83,8 @@ async function main() {
     process.exit(1);
   }
 
+  console.log('First product:', JSON.stringify(products[0]));
+
   if (!Array.isArray(products)) {
     console.error('Unexpected response (not an array):', JSON.stringify(products).slice(0, 200));
     process.exit(1);
