@@ -6,6 +6,12 @@
 [functions]
   node_bundler = "esbuild"
 
+# Serve static OG pages — must come before the SPA catch-all
+[[redirects]]
+  from   = "/p/*"
+  to     = "/p/:splat"
+  status = 200
+
 # SPA catch-all — serves index.html for any path with no matching file
 [[redirects]]
   from   = "/*"
