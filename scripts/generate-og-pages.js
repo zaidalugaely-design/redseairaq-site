@@ -49,6 +49,7 @@ function page(p) {
   const title   = esc(p.name || 'Red Sea Iraq');
   const desc    = esc((p.description || 'منتج Red Sea الأصلي — الوكيل الحصري في العراق').slice(0, 160));
   const image   = esc(safeImage(p.image));
+  console.log('Product image for', id, ':', p.image || '(empty)');
   const ogUrl   = `${SITE}/p/${encodeURIComponent(id)}.html`;
   const hashUrl = `${SITE}/#/product/${encodeURIComponent(id)}`;
   const hashRel = `/#/product/${encodeURIComponent(id)}`;
@@ -59,6 +60,9 @@ function page(p) {
 <meta property="og:title" content="${title}">
 <meta property="og:description" content="${desc}">
 <meta property="og:image" content="${image}">
+<meta property="og:image:width" content="600">
+<meta property="og:image:height" content="600">
+<meta property="og:image:type" content="image/png">
 <meta property="og:url" content="${ogUrl}">
 <meta property="og:site_name" content="Red Sea Iraq">
 <meta name="twitter:card" content="summary_large_image">
