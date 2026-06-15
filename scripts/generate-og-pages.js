@@ -8,7 +8,7 @@ const path  = require('path');
 const SB_URL = 'https://glhmmrovxyijtzjaldtf.supabase.co';
 const SB_KEY = 'sb_publishable_hzVe29KIzQ2h72PuHBLZ5Q_M6BLVkaI';
 const SITE   = 'https://redseairaq.com';
-const OUT    = path.join(__dirname, '..', 'p');
+const OUT    = path.join(__dirname, '..', 'dist', 'p');
 
 function esc(str) {
   return String(str || '')

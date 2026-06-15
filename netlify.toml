@@ -1,7 +1,7 @@
 [build]
-  command         = "node scripts/generate-og-pages.js"
+  command         = "mkdir -p dist && cp index.html dist/ && cp -r netlify dist/ && node scripts/generate-og-pages.js"
   functions       = "netlify/functions"
-  publish         = "."
+  publish         = "dist"
 
 [functions]
   node_bundler = "esbuild"
