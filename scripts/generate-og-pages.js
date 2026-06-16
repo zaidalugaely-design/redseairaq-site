@@ -48,6 +48,7 @@ function page(p) {
   const id      = p.id;
   const title   = esc(p.name || 'Red Sea Iraq');
   const desc    = esc((p.description || 'منتج Red Sea الأصلي — الوكيل الحصري في العراق').slice(0, 160));
+  console.log('RAW image for', p.id, ':', JSON.stringify(p.image));
   const image   = esc(safeImage(p.image));
   const ogUrl   = `${SITE}/p/${encodeURIComponent(id)}.html`;
   const hashUrl = `${SITE}/#/product/${encodeURIComponent(id)}`;
