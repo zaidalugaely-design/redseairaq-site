@@ -49,7 +49,6 @@ function page(p) {
   const title   = esc(p.name || 'Red Sea Iraq');
   const desc    = esc((p.description || 'منتج Red Sea الأصلي — الوكيل الحصري في العراق').slice(0, 160));
   const image   = esc(safeImage(p.image));
-  console.log('Product image for', id, ':', p.image || '(empty)');
   const ogUrl   = `${SITE}/p/${encodeURIComponent(id)}.html`;
   const hashUrl = `${SITE}/#/product/${encodeURIComponent(id)}`;
   const hashRel = `/#/product/${encodeURIComponent(id)}`;
@@ -93,6 +92,8 @@ async function main() {
     console.error('Unexpected response (not an array):', JSON.stringify(products).slice(0, 200));
     process.exit(1);
   }
+
+  products.forEach(p => console.log(p.id, '→', p.image || '(empty)'));
 
   if (!fs.existsSync(OUT)) fs.mkdirSync(OUT, { recursive: true });
 
