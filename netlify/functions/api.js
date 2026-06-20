@@ -209,6 +209,39 @@ exports.handler = async function(event) {
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }
 
+  /* UPLOAD PRODUCT IMAGE */
+  if (action === 'upload_product_image') {
+    const { data } = body;
+    if (!data || !data.startsWith('data:')) return res(headers, 400, { error: 'بيانات الصورة غير صالحة' });
+    const commaIdx = data.indexOf(',');
+    if (commaIdx === -1) return res(headers, 400, { error: 'تنسيق data URI غير صحيح' });
+    const header  = data.slice(0, commaIdx);
+    const b64     = data.slice(commaIdx + 1);
+    const mimeMatch = header.match(/data:([^;]+)/);
+    const mime    = mimeMatch ? mimeMatch[1].toLowerCase() : 'image/webp';
+    const ext     = mime === 'image/png' ? 'png' : mime === 'image/jpeg' ? 'jpg' : 'webp';
+    const filename = `product-images/${Date.now()}.${ext}`;
+    const buffer  = Buffer.from(b64, 'base64');
+    try {
+      const upRes = await fetch(`${SB_URL}/storage/v1/object/products/${filename}`, {
+        method: 'POST',
+        headers: {
+          apikey:          SB_SERVICE_KEY,
+          Authorization:   `Bearer ${SB_SERVICE_KEY}`,
+          'Content-Type':  mime,
+          'x-upsert':      'true'
+        },
+        body: buffer
+      });
+      if (!upRes.ok) {
+        const err = await upRes.text();
+        throw new Error(`Storage ${upRes.status}: ${err.slice(0, 200)}`);
+      }
+      const url = `${SB_URL}/storage/v1/object/public/products/${filename}`;
+      return res(headers, 200, { url });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
   /* TOGGLE HIDE */
   if (action === 'toggle_hide') {
     const { id, hidden } = body;
