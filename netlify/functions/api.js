@@ -23,6 +23,12 @@ const SB_URL = process.env.SUPABASE_URL || 'https://glhmmrovxyijtzjaldtf.supabas
 const SB_SERVICE_KEY = process.env.SB_SERVICE_KEY; /* service_role key — لا يُكشف أبداً */
 const ADMIN_PASS_HASH = process.env.ADMIN_PASS_HASH; /* sha256 لكلمة المرور */
 const JWT_SECRET = process.env.JWT_SECRET; /* سر توقيع الـ tokens */
+const BUILD_HOOK = process.env.NETLIFY_BUILD_HOOK;
+
+function triggerRebuild() {
+  if (!BUILD_HOOK) return;
+  fetch(BUILD_HOOK, { method: 'POST' }).catch(() => {});
+}
 
 const ALLOWED_ORIGINS = [
   'https://redseairaq.com',
@@ -205,6 +211,7 @@ exports.handler = async function(event) {
         variants: JSON.stringify(item.variants || []),
         updated_at: new Date().toISOString()
       });
+      triggerRebuild();
       return res(headers, 200, { ok: true });
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }
