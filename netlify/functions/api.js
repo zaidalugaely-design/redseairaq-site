@@ -25,9 +25,9 @@ const ADMIN_PASS_HASH = process.env.ADMIN_PASS_HASH; /* sha256 لكلمة الم
 const JWT_SECRET = process.env.JWT_SECRET; /* سر توقيع الـ tokens */
 const BUILD_HOOK = process.env.NETLIFY_BUILD_HOOK;
 
-function dbLog(message) {
+async function dbLog(message) {
   if (!SB_SERVICE_KEY) return;
-  fetch(`${SB_URL}/rest/v1/_debug_log`, {
+  await fetch(`${SB_URL}/rest/v1/_debug_log`, {
     method: 'POST',
     headers: {
       'apikey'       : SB_SERVICE_KEY,
@@ -39,14 +39,17 @@ function dbLog(message) {
   }).catch(() => {});
 }
 
-function triggerRebuild() {
+async function triggerRebuild() {
   if (!BUILD_HOOK) {
-    dbLog('triggerRebuild: BUILD_HOOK not set');
+    await dbLog('triggerRebuild: BUILD_HOOK not set');
     return;
   }
-  fetch(BUILD_HOOK, { method: 'POST' })
-    .then(r => dbLog(`triggerRebuild: hook status ${r.status}`))
-    .catch(e => dbLog(`triggerRebuild: fetch error — ${e.message}`));
+  try {
+    const r = await fetch(BUILD_HOOK, { method: 'POST' });
+    await dbLog(`triggerRebuild: hook status ${r.status}`);
+  } catch (e) {
+    await dbLog(`triggerRebuild: fetch error — ${e.message}`);
+  }
 }
 
 const ALLOWED_ORIGINS = [
@@ -230,7 +233,7 @@ exports.handler = async function(event) {
         variants: JSON.stringify(item.variants || []),
         updated_at: new Date().toISOString()
       });
-      triggerRebuild();
+      try { await triggerRebuild(); } catch (_) {}
       return res(headers, 200, { ok: true });
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }
