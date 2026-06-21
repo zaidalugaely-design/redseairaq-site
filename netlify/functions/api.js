@@ -25,11 +25,28 @@ const ADMIN_PASS_HASH = process.env.ADMIN_PASS_HASH; /* sha256 لكلمة الم
 const JWT_SECRET = process.env.JWT_SECRET; /* سر توقيع الـ tokens */
 const BUILD_HOOK = process.env.NETLIFY_BUILD_HOOK;
 
+function dbLog(message) {
+  if (!SB_SERVICE_KEY) return;
+  fetch(`${SB_URL}/rest/v1/_debug_log`, {
+    method: 'POST',
+    headers: {
+      'apikey'       : SB_SERVICE_KEY,
+      'Authorization': `Bearer ${SB_SERVICE_KEY}`,
+      'Content-Type' : 'application/json',
+      'Prefer'       : 'return=minimal'
+    },
+    body: JSON.stringify({ message })
+  }).catch(() => {});
+}
+
 function triggerRebuild() {
-  if (!BUILD_HOOK) { console.log('[rebuild] NETLIFY_BUILD_HOOK not set — skipped'); return; }
+  if (!BUILD_HOOK) {
+    dbLog('triggerRebuild: BUILD_HOOK not set');
+    return;
+  }
   fetch(BUILD_HOOK, { method: 'POST' })
-    .then(r => console.log('[rebuild] hook fired, status:', r.status))
-    .catch(e => console.error('[rebuild] hook error:', e.message));
+    .then(r => dbLog(`triggerRebuild: hook status ${r.status}`))
+    .catch(e => dbLog(`triggerRebuild: fetch error — ${e.message}`));
 }
 
 const ALLOWED_ORIGINS = [
