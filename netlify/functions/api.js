@@ -26,8 +26,10 @@ const JWT_SECRET = process.env.JWT_SECRET; /* سر توقيع الـ tokens */
 const BUILD_HOOK = process.env.NETLIFY_BUILD_HOOK;
 
 function triggerRebuild() {
-  if (!BUILD_HOOK) return;
-  fetch(BUILD_HOOK, { method: 'POST' }).catch(() => {});
+  if (!BUILD_HOOK) { console.log('[rebuild] NETLIFY_BUILD_HOOK not set — skipped'); return; }
+  fetch(BUILD_HOOK, { method: 'POST' })
+    .then(r => console.log('[rebuild] hook fired, status:', r.status))
+    .catch(e => console.error('[rebuild] hook error:', e.message));
 }
 
 const ALLOWED_ORIGINS = [
