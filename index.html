@@ -5802,17 +5802,13 @@ async function sbDeleteProduct(id){
   catch(e){ console.error('delete_product:',e); }
 }
 async function sbSaveCat(cat){
-  /* الفئات تُحفظ محلياً فقط الآن */
   try{
-    await fetch(SB_URL+'/rest/v1/categories',{method:'POST',
-      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
-      body:JSON.stringify({id:cat.id,name:cat.name,description:cat.desc||'',sort_order:CATS.length})});
+    await apiCall('save_category',{category:{id:cat.id,name:cat.name,description:cat.desc||'',sort_order:CATS.length}},true);
   }catch(e){console.error('sbSaveCat:',e);}
 }
 async function sbDeleteCat(id){
   try{
-    await fetch(SB_URL+'/rest/v1/categories?id=eq.'+encodeURIComponent(id),
-      {method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
+    await apiCall('delete_category',{id},true);
   }catch(e){console.error('sbDeleteCat:',e);}
 }
 async function sbSaveBlog(post){

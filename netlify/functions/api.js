@@ -363,6 +363,29 @@ exports.handler = async function(event) {
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }
 
+  /* SAVE CATEGORY */
+  if (action === 'save_category') {
+    const { category } = body;
+    if (!category?.id || !category?.name) return res(headers, 400, { error: 'بيانات الفئة ناقصة' });
+    try {
+      await sb('POST', '/categories', {
+        id: category.id, name: category.name,
+        description: category.description || '', sort_order: category.sort_order
+      });
+      return res(headers, 200, { ok: true });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
+  /* DELETE CATEGORY */
+  if (action === 'delete_category') {
+    const { id } = body;
+    if (!id) return res(headers, 400, { error: 'id مطلوب' });
+    try {
+      await sb('DELETE', `/categories?id=eq.${encodeURIComponent(id)}`, null);
+      return res(headers, 200, { ok: true });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
   /* GET ORDERS */
   if (action === 'get_orders') {
     try {
