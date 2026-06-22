@@ -271,6 +271,76 @@ exports.handler = async function(event) {
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }
 
+  /* MIGRATE BASE64 IMAGES — batch of 10 */
+  if (action === 'migrate_images_batch') {
+    const BATCH  = 10;
+    const BUCKET = 'products';
+    const EXT_MAP = {
+      'image/jpeg':'jpg','image/jpg':'jpg','image/png':'png',
+      'image/webp':'webp','image/gif':'gif','image/avif':'avif','image/svg+xml':'svg'
+    };
+
+    let batch;
+    try {
+      batch = await sb('GET',
+        `/products?select=id,image&image=like.data:%25&limit=${BATCH}&order=id.asc`, null);
+    } catch (e) {
+      return res(headers, 500, { error: 'fetch batch failed: ' + e.message });
+    }
+
+    const migrated = [];
+    const failed   = [];
+
+    for (const p of batch) {
+      try {
+        const commaIdx = p.image.indexOf(',');
+        if (commaIdx === -1) throw new Error('no comma in data URI');
+        const header    = p.image.slice(0, commaIdx);
+        const b64       = p.image.slice(commaIdx + 1);
+        const mimeMatch = header.match(/data:([^;]+)/);
+        const mime      = mimeMatch ? mimeMatch[1].toLowerCase() : 'image/jpeg';
+        const extension = EXT_MAP[mime] || 'jpg';
+        const storagePath = `og-migrated/${p.id}.${extension}`;
+        const buffer    = Buffer.from(b64, 'base64');
+
+        const upRes = await fetch(`${SB_URL}/storage/v1/object/${BUCKET}/${storagePath}`, {
+          method: 'POST',
+          headers: {
+            apikey:         SB_SERVICE_KEY,
+            Authorization:  `Bearer ${SB_SERVICE_KEY}`,
+            'Content-Type': mime,
+            'x-upsert':     'true'
+          },
+          body: buffer
+        });
+        if (!upRes.ok) {
+          const errText = await upRes.text();
+          throw new Error(`storage ${upRes.status}: ${errText.slice(0, 150)}`);
+        }
+
+        const publicUrl = `${SB_URL}/storage/v1/object/public/${BUCKET}/${storagePath}`;
+        await sb('PATCH', `/products?id=eq.${encodeURIComponent(p.id)}`, { image: publicUrl });
+        migrated.push(p.id);
+      } catch (e) {
+        failed.push({ id: p.id, error: e.message });
+      }
+    }
+
+    let remaining;
+    try {
+      const rem = await sb('GET',
+        '/products?select=id&image=like.data:%25&limit=1000', null);
+      remaining = rem.length;
+    } catch (_) { remaining = null; }
+
+    return res(headers, 200, {
+      migrated_this_batch: migrated.length,
+      migrated_ids:        migrated,
+      failed,
+      remaining_base64:    remaining
+    });
+  }
+
   /* TOGGLE HIDE */
   if (action === 'toggle_hide') {
     const { id, hidden } = body;

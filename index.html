@@ -1277,6 +1277,19 @@ src="https://www.facebook.com/tr?id=851806290780479&ev=PageView&noscript=1"
       </div>
         </div></div>
       </div><!-- /accProducts -->
+
+      <!-- IMAGE MIGRATION TOOL -->
+      <div class="acc-section" id="accMigration" style="margin-top:14px;border-color:#e67e22">
+        <div class="acc-header" onclick="toggleAccordion('accMigration')" style="background:#fef9f0">
+          <span class="acc-header-title" style="color:#e67e22">🖼 ترحيل صور base64</span>
+          <span class="acc-chevron" style="font-size:12px;color:#e67e22">▼</span>
+        </div>
+        <div class="acc-body" style="padding:16px">
+          <p style="font-size:13px;color:#666;margin:0 0 12px">ترحيل 10 منتجات في كل ضغطة من base64 إلى Supabase Storage. اضغط حتى يظهر remaining: 0.</p>
+          <button class="btn primary" id="migrateBtn" onclick="runMigration()">🚀 ترحيل دفعة (10 منتجات)</button>
+          <div id="migrateLog" style="font-family:monospace;font-size:12px;background:#1a1a1a;color:#0f0;padding:12px;border-radius:8px;white-space:pre-wrap;display:none;margin-top:12px;max-height:200px;overflow:auto;direction:ltr"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -3007,6 +3020,25 @@ window.resetAdminForm=function(){
   adminImgData='';document.getElementById('adminImage').value='';
   document.getElementById('adminImagePreview').textContent='اختر صورة المنتج';
   document.getElementById('adminFormTitle').textContent='إضافة منتج جديد';
+};
+window.runMigration=async function(){
+  const btn=document.getElementById('migrateBtn');
+  const log=document.getElementById('migrateLog');
+  btn.disabled=true;
+  log.style.display='block';
+  try{
+    const r=await apiCall('migrate_images_batch',{},true);
+    log.textContent+=`✓ migrated: ${r.migrated_this_batch} | remaining: ${r.remaining_base64}\n`;
+    if(r.migrated_ids.length)log.textContent+=`  ids: ${r.migrated_ids.join(', ')}\n`;
+    if(r.failed.length)log.textContent+=`✗ failed:\n${r.failed.map(f=>`  ${f.id}: ${f.error}`).join('\n')}\n`;
+    if(r.remaining_base64===0){
+      log.textContent+='✅ done! trigger a Netlify deploy to rebuild OG pages.\n';
+      btn.textContent='✅ اكتمل';
+      btn.disabled=false;
+      return;
+    }
+  }catch(e){log.textContent+=`❌ ${e.message}\n`;}
+  btn.disabled=false;
 };
 window.saveAdminProduct=async function(){
   const id=document.getElementById('adminProductId').value||('p'+Date.now());
