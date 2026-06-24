@@ -1,6 +1,13 @@
 [build]
-  functions = "netlify/functions"
-  publish   = "."
+  command         = "mkdir -p dist && cp index.html dist/ && cp -r netlify dist/ && node scripts/generate-og-pages.js"
+  functions       = "netlify/functions"
+  publish         = "dist"
 
 [functions]
   node_bundler = "esbuild"
+
+# SPA catch-all — serves index.html for any path with no matching file
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
