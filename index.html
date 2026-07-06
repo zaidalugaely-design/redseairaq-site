@@ -2466,6 +2466,7 @@ function safeJson(k,fb){try{const r=localStorage.getItem(k);return r?JSON.parse(
 function validList(l){return Array.isArray(l)&&l.every(p=>p&&p.id&&p.name&&p.category&&typeof p.price==='number');}
 let products=validList(safeJson('rsi_prods',null))?safeJson('rsi_prods',[]):JSON.parse(JSON.stringify(DEF_PRODUCTS));
 let cart=safeJson('rsi_cart',[]);if(!Array.isArray(cart))cart=[];
+const selectedVariants={};  /* مصدر الحقيقة الوحيد لاختيار الـ variant — بدل قراءة الـ DOM */
 let adminImgData='';
 
 /* ════════════════════════
@@ -2601,12 +2602,13 @@ window.openCat=function(id){
   location.hash='#/products';
   setTimeout(()=>{const s=document.getElementById('categoryFilter');if(s){s.value=id;renderProducts();}},60);
 };
-function varIdx(pid){const el=document.getElementById('var-'+pid);return el?Number(el.value||0):0;}
+function varIdx(pid){return selectedVariants[pid]??0;}
 function safeVarIdx(p){const i=varIdx(p.id);return p.variants&&p.variants.length?Math.min(Math.max(0,i),p.variants.length-1):0;}
 function varPrice(p){const i=safeVarIdx(p);return p.variants&&p.variants.length?(p.variants[i]&&p.variants[i].price)||p.price:p.price;}
 function varName(p){const i=safeVarIdx(p);return p.variants&&p.variants.length?(p.variants[i]&&p.variants[i].name)||'':'';}
 
-window.onVarChange=function(pid){
+window.onVarChange=function(pid,sel){
+  selectedVariants[pid]=Number(sel.value||0);  /* يكتب state أولاً قبل أي قراءة */
   const p=byId(pid),el=document.getElementById('pr-'+pid);
   if(p&&el){
     const cur=getCur(p);
@@ -2614,7 +2616,8 @@ window.onVarChange=function(pid){
     el.innerHTML=money(varPrice(p),cur)+'<small>'+(isPre?t('preorder_usd'):t('cod'))+'</small>';
   }
 };
-window.onDetailVarChange=function(pid){
+window.onDetailVarChange=function(pid,sel){
+  selectedVariants[pid]=Number(sel.value||0);  /* يكتب state أولاً */
   const p=byId(pid),el=document.getElementById('dpr-'+pid);
   if(p&&el)el.textContent=money(varPrice(p),getCur(p));
 };
@@ -2638,8 +2641,8 @@ function prodCard(p){
       <span class="brand-mini">RED SEA</span>
       <h3 onclick="go('product/${esc(p.id)}')">${esc(p.name)}</h3>
       <p>${esc(p.desc||'')}</p>
-      ${hv?`<select class="select" id="var-${p.id}" onchange="onVarChange('${p.id}')">
-        ${p.variants.map((v,i)=>`<option value="${i}">${v.name} — ${money(v.price,cur)}</option>`).join('')}</select>`:''}
+      ${hv?`<select class="select" id="var-${p.id}" onchange="onVarChange('${p.id}',this)">
+        ${p.variants.map((v,i)=>`<option value="${i}"${i===(selectedVariants[p.id]||0)?' selected':''}>${v.name} — ${money(v.price,cur)}</option>`).join('')}</select>`:''}
       <div class="product-bottom">
         <div class="price${isPre?' preorder-price':''}" id="pr-${p.id}">${money(hv?p.variants[0].price:p.price,cur)}<small>${isPre?t('preorder_usd'):t('cod')}</small></div>
         ${isPre?`<button class="small-btn preorder-btn" onclick="addToCart('${p.id}')">${t('preorder_book')}</button>`:`<button class="small-btn" ${ok?'':'disabled'} onclick="addToCart('${p.id}')">${(p.stock==='available'||p.stock==='available_nd')?t('add_to_cart'):stockLbl(p.stock)}</button>`}
@@ -2778,8 +2781,8 @@ function renderProductDetail(id){
         <p>${esc(p.desc||'')}</p>
         ${isPre?`<div class="preorder-banner"><svg class="ico" viewBox="0 0 24 24" style="width:18px;height:18px;color:#854d0e"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span>${t('preorder_info')}</span></div>`:''}
         ${hv?`<div class="variant-panel"><label>${t('choose_variant')}</label>
-          <select class="select" id="var-${p.id}" onchange="onDetailVarChange('${p.id}')">
-            ${p.variants.map((v,i)=>`<option value="${i}">${v.name} — ${money(v.price,cur)}</option>`).join('')}
+          <select class="select" id="var-${p.id}" onchange="onDetailVarChange('${p.id}',this)">
+            ${p.variants.map((v,i)=>`<option value="${i}"${i===(selectedVariants[p.id]||0)?' selected':''}>${v.name} — ${money(v.price,cur)}</option>`).join('')}
           </select>
           <div class="detail-price${isPre?' preorder-detail':''}" id="dpr-${p.id}">${money(p.variants[0].price,cur)}</div></div>`:
           `<div class="detail-price${isPre?' preorder-detail':''}">${money(p.price,cur)}</div>`}
