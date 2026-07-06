@@ -2807,7 +2807,7 @@ function renderProductDetail(id){
    CART
    ════════════════════════ */
 window.addToCart=function(id){
-  const p=byId(id); if(!p||(p.stock!=='available'&&p.stock!=='preorder'))return;
+  const p=byId(id); if(!p||(p.stock!=='available'&&p.stock!=='available_nd'&&p.stock!=='preorder'))return;
   const vi=varIdx(id), hv=p.variants&&p.variants.length;
   const key=hv?`${id}__${vi}`:id;
   const price=hv?p.variants[vi].price:p.price;
