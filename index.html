@@ -2602,8 +2602,10 @@ window.openCat=function(id){
   setTimeout(()=>{const s=document.getElementById('categoryFilter');if(s){s.value=id;renderProducts();}},60);
 };
 function varIdx(pid){const el=document.getElementById('var-'+pid);return el?Number(el.value||0):0;}
-function varPrice(p){const i=varIdx(p.id);return p.variants&&p.variants.length?p.variants[i].price:p.price;}
-function varName(p){const i=varIdx(p.id);return p.variants&&p.variants.length?p.variants[i].name:'';}
+function safeVarIdx(p){const i=varIdx(p.id);return p.variants&&p.variants.length?Math.min(Math.max(0,i),p.variants.length-1):0;}
+function varPrice(p){const i=safeVarIdx(p);return p.variants&&p.variants.length?(p.variants[i]&&p.variants[i].price)||p.price:p.price;}
+function varName(p){const i=safeVarIdx(p);return p.variants&&p.variants.length?(p.variants[i]&&p.variants[i].name)||'':'';}
+
 window.onVarChange=function(pid){
   const p=byId(pid),el=document.getElementById('pr-'+pid);
   if(p&&el){
@@ -2807,16 +2809,24 @@ function renderProductDetail(id){
    CART
    ════════════════════════ */
 window.addToCart=function(id){
-  const p=byId(id); if(!p||(p.stock!=='available'&&p.stock!=='available_nd'&&p.stock!=='preorder'))return;
-  const vi=varIdx(id), hv=p.variants&&p.variants.length;
-  const key=hv?`${id}__${vi}`:id;
-  const price=hv?p.variants[vi].price:p.price;
-  const opt=hv?p.variants[vi].name:'';
-  const cur=getCur(p);
-  const item=cart.find(x=>x.key===key);
-  if(item){item.qty+=1;item.cur=cur;}
-  else cart.push({key,id,variantIndex:hv?vi:null,option:opt,price,qty:1,cur,preorder:p.stock==='preorder'});
-  saveCart(); toast(t('cart_added'));
+  try{
+    const p=byId(id);
+    if(!p||(p.stock!=='available'&&p.stock!=='available_nd'&&p.stock!=='preorder'))return;
+    const hv=p.variants&&p.variants.length>0;
+    const vi=hv?safeVarIdx(p):0;
+    const variant=hv?p.variants[vi]:null;
+    const price=(variant&&variant.price)||p.price||0;
+    const opt=(variant&&variant.name)||'';
+    const cur=getCur(p);
+    const key=hv?`${id}__${vi}`:id;
+    const item=cart.find(x=>x.key===key);
+    if(item){item.qty+=1;item.cur=cur;}
+    else cart.push({key,id,variantIndex:hv?vi:null,option:opt,price,qty:1,cur,preorder:p.stock==='preorder'});
+    saveCart(); toast(t('cart_added'));
+  }catch(e){
+    console.error('[addToCart]',id,e);
+    toast('حدث خطأ — حاول مجدداً');
+  }
 };
 window.chQty=function(key,d){const it=cart.find(x=>x.key===key);if(!it)return;it.qty+=d;if(it.qty<=0)cart=cart.filter(x=>x.key!==key);saveCart();renderCart();};
 window.rmItem=function(key){cart=cart.filter(x=>x.key!==key);saveCart();renderCart();toast(t('cart_removed'));};
