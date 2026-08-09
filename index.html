@@ -2632,7 +2632,9 @@ function router(){
 function catCard(c){
   const cnt=products.filter(p=>p.category===c.id).length;
   /* icon قد يكون SVG (يبدأ بـ <svg) أو emoji قديم */
-  const iconHtml = (typeof c.icon==='string' && c.icon.indexOf('<svg')===0) ? c.icon : `<span style="font-size:28px">${c.icon||''}</span>`;
+  /* linear SVG set keyed by real category id, when available — falls back to
+     whatever is stored in Supabase (SVG or legacy emoji text) otherwise */
+  const iconHtml = CAT_ICONS[c.id] || ((typeof c.icon==='string' && c.icon.indexOf('<svg')===0) ? c.icon : `<span style="font-size:28px">${c.icon||''}</span>`);
   return`<article class="category-card" onclick="openCat('${c.id}')">
     <span class="cat-count">${cnt} ${t('cat_item')}</span>
     <div class="cat-icon">${iconHtml}</div>
@@ -2809,7 +2811,7 @@ function renderProductDetail(id){
   const caut=['control','supplements','colors'].includes(p.category);
   const cur=getCur(p);
   const isPre=p.stock==='preorder';
-  const catIconHtml=(c && typeof c.icon==='string' && c.icon.indexOf('<svg')===0)?c.icon:`<span style="font-size:72px">${c?c.icon:'📦'}</span>`;
+  const catIconHtml=(c&&CAT_ICONS[c.id])||((c && typeof c.icon==='string' && c.icon.indexOf('<svg')===0)?c.icon:`<span style="font-size:72px">${c?c.icon:'📦'}</span>`);
   document.getElementById('productDetail').innerHTML=`
     <div class="breadcrumb"><a href="#/products">${t('nav_products')}</a><span>›</span><a href="javascript:openCat('${esc(p.category)}')">${esc(catName(c)||'')}</a><span>›</span><span>${esc(p.name)}</span></div>
     <div class="product-detail">
