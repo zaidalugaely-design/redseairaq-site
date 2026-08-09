@@ -2659,16 +2659,21 @@ function router(){
 /* ════════════════════════
    RENDER HELPERS
    ════════════════════════ */
+/* only products actually visible to a customer (hidden=false) count toward a
+   category's shown total and toward whether the category shows up at all */
+function catVisibleCount(c){ return products.filter(p=>!p.hidden&&p.category===c.id).length; }
+function visibleCats(){ return CATS.filter(c=>catVisibleCount(c)>0); }
 function catCard(c){
-  const cnt=products.filter(p=>p.category===c.id).length;
+  const cnt=catVisibleCount(c);
   /* verified Lucide set keyed by real category id — if a category's id has no
      match, show no icon at all rather than fall back to the mismatched/duplicated
      emoji stored in Supabase categories.icon */
   const iconHtml = CAT_ICONS[c.id] || '';
+  const name=catName(c);
   return`<article class="category-card" onclick="openCat('${c.id}')">
     <span class="cat-count">${cnt} ${t('cat_item')}</span>
     <div class="cat-icon">${iconHtml}</div>
-    <h3>${catName(c)}</h3>${c.desc?`<p>${c.desc}</p>`:''}
+    <h3>${name}</h3>${(c.desc&&!descIsDup(name,c.desc))?`<p>${c.desc}</p>`:''}
   </article>`;
 }
 window.openCat=function(id){
@@ -2726,7 +2731,7 @@ function prodCard(p){
 }
 
 function renderHome(){
-  document.getElementById('homeCategories').innerHTML=CATS.slice(0,3).map(catCard).join('');
+  document.getElementById('homeCategories').innerHTML=visibleCats().slice(0,3).map(catCard).join('');
   var homeProds=[];
   var homeCats=['tanks','salt','filtration','control','tools','food','lighting','supplements','colors','rocks','pumps','test'];
   homeCats.forEach(function(cat){
@@ -2768,7 +2773,7 @@ window.renderProducts=function(){
   }
   setTimeout(function(){if(typeof imgFadeIn==='function')imgFadeIn();if(typeof initReveal==='function')initReveal();},20);
 };
-function renderCategoriesPage(){document.getElementById('categoriesGrid').innerHTML=CATS.map(catCard).join('');}
+function renderCategoriesPage(){document.getElementById('categoriesGrid').innerHTML=visibleCats().map(catCard).join('');}
 async function renderProdibio(){
   var grid=document.getElementById('pb-products-grid');
   if(!grid)return;
@@ -2808,7 +2813,10 @@ async function renderProdibio(){
 }
 function renderCatSelects(){
   const s=document.getElementById('categoryFilter');
-  if(s)s.innerHTML=`<option value="">${t('all_categories')}</option>`+CATS.map(c=>`<option value="${c.id}">${catName(c)}</option>`).join('');
+  /* customer-facing filter only lists categories with something visible in them —
+     admin's own category dropdown keeps every category so a hidden/empty one can
+     still be assigned to a product */
+  if(s)s.innerHTML=`<option value="">${t('all_categories')}</option>`+visibleCats().map(c=>`<option value="${c.id}">${catName(c)}</option>`).join('');
   const a=document.getElementById('adminCategory');
   if(a)a.innerHTML=CATS.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
 }
