@@ -2511,12 +2511,37 @@ function loadCustomCats(){
 }
 function saveCustomCats(){
   var custom = CATS.filter(function(c){
-    return !['salt','supplements','colors','filtration','control','tools'].includes(c.id);
+    return !DEFAULT_CAT_IDS.includes(c.id);
   });
   localStorage.setItem('rsi_custom_cats', JSON.stringify(custom));
 }
 
-const SUGG_MAP={tanks:['salt','filtration','lighting'],salt:['tools','supplements','test'],supplements:['salt','tools','colors'],colors:['supplements','control','food'],filtration:['control','tools','pumps'],control:['filtration','tools','test'],tools:['salt','supplements','test'],food:['colors','supplements'],lighting:['tanks','pumps'],rocks:['tanks','salt'],pumps:['filtration','lighting'],test:['tools','control']};
+/* معرّفات حقيقية فقط (13 فئة Supabase). probidio وcat_1778361718370 وcat_1782669820912
+   بلا اقتراحات مقترنة عمداً — لا مقابل قديم لها، ولم تُخمَّن. rocks/test أُسقطتا بلا
+   استبدال لنفس السبب الموثّق بـhomeCats: rocks بلا مقابل إطلاقاً، وtest غامضة ومكرّرة لـtools. */
+const SUGG_MAP={
+  cat_tanks:['salt','filtration','cat_lighting'],
+  salt:['tools','supplements'],
+  supplements:['salt','tools','colors'],
+  colors:['supplements','control','cat_1777422837524'],
+  filtration:['control','tools','cat_1777829753816'],
+  control:['filtration','tools'],
+  tools:['salt','supplements'],
+  cat_1777422837524:['colors','supplements'],
+  cat_lighting:['cat_tanks','cat_1777829753816'],
+  cat_1777829753816:['filtration','cat_lighting']
+};
+function validateCategoryRefs(){
+  Object.keys(SUGG_MAP).forEach(function(k){
+    if(!CATS.find(function(c){return c.id===k;})) console.warn('[SUGG_MAP] مفتاح غير موجود ضمن الفئات المحمّلة —',k);
+    SUGG_MAP[k].forEach(function(v){
+      if(!CATS.find(function(c){return c.id===v;})) console.warn('[SUGG_MAP] قيمة غير موجودة ضمن الفئات المحمّلة —',v,'في مفتاح',k);
+    });
+  });
+  DEFAULT_CAT_IDS.forEach(function(id){
+    if(!CATS.find(function(c){return c.id===id;})) console.warn('[DEFAULT_CAT_IDS] معرّف غير موجود ضمن الفئات المحمّلة —',id);
+  });
+}
 const DEF_PRODUCTS=[
   {id:'p1',category:'salt',name:'Coral Pro Salt 22kg',price:105000,currency:'IQD',badge:'الأكثر طلباً',stock:'available',image:'assets/products/coral-pro-salt-22kg.webp',desc:'ملح بحري احترافي مُحسَّن لأحواض المرجان، بمستويات مرتفعة من الكالسيوم والمغنيسيوم والقلوية.',specs:['يُحضِّر تقريباً ٦٦٠ لتر','مستويات مرتفعة من العناصر الأساسية','ثبات عالٍ في التركيب الكيميائي'],variants:[]},
   {id:'p2',category:'supplements',name:'Reef Energy AB+',price:40000,currency:'IQD',badge:'جديد',stock:'available',image:'assets/products/reef-energy-ab-plus-500ml.webp',desc:'غذاء مرجاني متكامل يدعم النمو اليومي ويحسن حيوية المرجان وألوانه.',specs:['غذاء يومي متكامل للمرجان','يدعم النمو ويحسن الألوان','سهل الجرعات والتطبيق'],variants:[{name:'500ml',price:40000},{name:'1000ml',price:75000}]},
@@ -5697,7 +5722,12 @@ async function sbDeleteRef(id){
 /* ════════════════════════
    CUSTOM CATEGORIES
    ════════════════════════ */
-var DEFAULT_CAT_IDS = ['tanks','salt','filtration','control','tools','food','lighting','supplements','colors','rocks','pumps','test'];
+/* الـ13 معرّف الحقيقي المُهيَّأ مسبقاً بـSupabase (يطابق مفاتيح CAT_ICONS حرفياً) —
+   لا طريقة موثوقة لاشتقاقها من البيانات المحمّلة: كل من الفئات المهيَّأة مسبقاً
+   وأي فئة يُضيفها الأدمن لاحقاً (addCustomCat) يستخدمان نفس صيغة المعرّف
+   'cat_'+Date.now()، فالاعتماد على شكل المعرّف لتمييزهما غير ممكن. القائمة تبقى
+   ثابتة لكن صحيحة الآن؛ validateCategoryRefs() تُحذّر إن ابتعدت عن الفئات المحمّلة. */
+var DEFAULT_CAT_IDS = ['salt','supplements','filtration','tools','control','probidio','cat_tanks','cat_lighting','cat_1777829753816','cat_1778361718370','cat_1782669820912','cat_1777422837524','colors'];
 
 window.showAddCatForm = function(){
   var f = document.getElementById('addCatForm');
@@ -5746,11 +5776,14 @@ function renderCatManagerList(){
   var container = document.getElementById('catManagerList');
   if(!container) return;
   var customCats = CATS.filter(function(c){ return !DEFAULT_CAT_IDS.includes(c.id); });
+  /* أسماء الفئات الافتراضية تُشتق من CATS المحمّلة فعلياً بدل نص ثابت — كانت تذكر
+     6 أسماء فقط رغم أن DEFAULT_CAT_IDS يضم 13 معرّفاً */
+  var defaultNames = DEFAULT_CAT_IDS.map(function(id){ var c=catById(id); return c?c.name:null; }).filter(Boolean).join('، ');
   if(!customCats.length){
-    container.innerHTML='<div style="color:var(--muted);font-size:13.5px;padding:8px">الفئات الافتراضية: الأملاح، المكملات، التلوين، التنقية، المغذيات، القياس</div>';
+    container.innerHTML='<div style="color:var(--muted);font-size:13.5px;padding:8px">الفئات الافتراضية: '+esc(defaultNames)+'</div>';
     return;
   }
-  var defaultHtml = '<div style="color:var(--muted);font-size:12px;margin-bottom:10px;font-weight:800">الافتراضية: الأملاح · المكملات · التلوين · التنقية · المغذيات · القياس</div>';
+  var defaultHtml = '<div style="color:var(--muted);font-size:12px;margin-bottom:10px;font-weight:800">الافتراضية: '+esc(defaultNames)+'</div>';
   var customHtml = customCats.map(function(c){
     var count = products.filter(function(p){return p.category===c.id;}).length;
     return '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--pearl);border:1px solid var(--line);border-radius:12px;padding:11px 14px;margin-bottom:8px">'
@@ -5830,6 +5863,7 @@ async function syncFromSupabase(){
     ]);
     if(catData&&catData.length){
       CATS=catData.map(function(c){return{id:c.id,icon:c.icon||'📦',name:c.name,name_en:c.name_en||'',name_ku:c.name_ku||'',desc:c.description||''};});
+      validateCategoryRefs();
     }
     if(prodData&&prodData.length){
       products=prodData.map(function(p){
