@@ -2733,12 +2733,31 @@ function prodCard(p){
 function renderHome(){
   document.getElementById('homeCategories').innerHTML=visibleCats().slice(0,3).map(catCard).join('');
   var homeProds=[];
-  var homeCats=['tanks','salt','filtration','control','tools','food','lighting','supplements','colors','rocks','pumps','test'];
+  /* real Supabase category ids only — see CLAUDE.md: these must never be hand-written
+     again. 'rocks' had no matching category at all and 'test' was an ambiguous
+     duplicate of 'tools', so both were dropped rather than guessed. */
+  var homeCats=['cat_tanks','salt','filtration','control','tools','cat_1777422837524','cat_lighting','supplements','colors','cat_1777829753816'];
   homeCats.forEach(function(cat){
+    if(!CATS.find(function(c){return c.id===cat;})){
+      console.warn('[renderHome] homeCats: category id not found among loaded categories —',cat);
+      return;
+    }
     /* لا تعرض المخفية */
     var p=products.find(function(x){return !x.hidden&&x.category===cat&&(x.stock==='available'||x.stock==='available_nd'||x.stock==='preorder');});
     if(p&&homeProds.length<6) homeProds.push(p);
   });
+  if(homeProds.length<6){
+    /* still short — fill from the remaining visible categories, richest first, so the
+       section stays diverse instead of just falling through to an arbitrary list */
+    var usedCats={}; homeProds.forEach(function(p){usedCats[p.category]=true;});
+    visibleCats().filter(function(c){return !usedCats[c.id];})
+      .sort(function(a,b){return catVisibleCount(b)-catVisibleCount(a);})
+      .forEach(function(c){
+        if(homeProds.length>=6)return;
+        var p=products.find(function(x){return !x.hidden&&x.category===c.id&&(x.stock==='available'||x.stock==='available_nd'||x.stock==='preorder');});
+        if(p&&!homeProds.find(function(x){return x.id===p.id;}))homeProds.push(p);
+      });
+  }
   if(homeProds.length<6){
     products.forEach(function(p){
       if(!p.hidden&&homeProds.length<6&&!homeProds.find(function(x){return x.id===p.id;}))homeProds.push(p);
