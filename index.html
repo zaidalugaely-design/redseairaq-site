@@ -1030,7 +1030,7 @@ src="https://www.facebook.com/tr?id=851806290780479&ev=PageView&noscript=1"
       <div class="section-title"><span class="section-kicker" data-i18n="categories_kicker">الفئات</span><h2 data-i18n="categories_title">الفئات الرئيسية</h2><p data-i18n="categories_desc">ملح · مكملات · تلوين مرجان · تنقية مياه · أجهزة قياس</p></div>
       <button class="btn" onclick="go('categories')" data-i18n="btn_all_cats">كل الفئات</button>
     </div>
-    <div class="category-grid" id="homeCategories"></div>
+    <div class="category-grid" id="homeCategories"><p data-i18n="cats_loading" style="grid-column:1/-1;text-align:center;color:var(--muted);padding:24px 0">جاري تحميل الفئات...</p></div>
   </div>
   <div class="section container reveal sd-1" style="padding-top:0">
     <div class="section-head">
@@ -1072,7 +1072,7 @@ src="https://www.facebook.com/tr?id=851806290780479&ev=PageView&noscript=1"
   <div class="section-head">
     <div class="section-title"><span class="section-kicker" data-i18n="categories_kicker">الفئات</span><h2 data-i18n="categories_title">الفئات الرئيسية</h2><p data-i18n="cat_page_desc">رتبنا المنتجات حسب الاستخدام لتختار ما يحتاجه حوضك</p></div>
   </div>
-  <div class="category-grid" id="categoriesGrid"></div>
+  <div class="category-grid" id="categoriesGrid"><p data-i18n="cats_loading" style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px 0">جاري تحميل الفئات...</p></div>
 </section>
 
 <!-- PRODUCT DETAIL -->
@@ -1951,6 +1951,8 @@ const T = {
     cats_title:'🗂 إدارة الفئات',
     cart_empty:'السلة فارغة',
     no_results:'لا توجد منتجات مطابقة.',
+    cats_loading:'جاري تحميل الفئات...',
+    cats_load_failed:'تعذّر تحميل الفئات — تحقّق من اتصالك بالإنترنت وحدّث الصفحة',
     order_phone:'رقم الهاتف *',
     order_city:'اختر المحافظة *',
     order_area:'المنطقة / أقرب نقطة دالة *',
@@ -2113,6 +2115,8 @@ const T = {
     cats_title:'🗂 Manage Categories',
     cart_empty:'Cart is Empty',
     no_results:'No matching products.',
+    cats_loading:'Loading categories...',
+    cats_load_failed:"Couldn't load categories — check your connection and refresh the page",
     order_phone:'Phone Number *',
     order_city:'Select Province *',
     order_area:'Area / Nearest Landmark *',
@@ -2275,6 +2279,8 @@ const T = {
     cats_title:'🗂 بەڕێوەبردنی جۆرەکان',
     cart_empty:'سەبەتە بەتاڵە',
     no_results:'هیچ کاڵایەک نەدۆزرایەوە.',
+    cats_loading:'جۆرەکان بار دەکرێن...',
+    cats_load_failed:'نەتوانرا جۆرەکان بار بکرێن — پەیوەندیت بە ئینتەرنێت بپشکنە و پەڕەکە نوێ بکەرەوە',
     order_phone:'ژمارەی تەلەفۆن *',
     order_city:'پارێزگا هەڵبژێرە *',
     order_area:'ناوچە / نزیکترین شوێن *',
@@ -2482,20 +2488,16 @@ const CAT_ICONS = {
   // تلوين المرجان — palette
   'colors': '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/></svg>'
 };
-let CATS=[
-  {id:'tanks',      icon:CAT_ICONS.tanks,      name:'الأحواض المتكاملة',  desc:'أحواض مرجانية متكاملة جاهزة للتشغيل بأعلى جودة.'},
-  {id:'salt',       icon:CAT_ICONS.salt,       name:'الأملاح البحرية',    desc:'أملاح Red Sea لتحضير مياه مستقرة وصحية.'},
-  {id:'filtration', icon:CAT_ICONS.filtration, name:'تنقية المياه',       desc:'كربون ومنتجات تحسين صفاء الماء وإزالة الملوثات.'},
-  {id:'control',    icon:CAT_ICONS.control,    name:'إدارة المغذيات',     desc:'حلول للنترات والفوسفات وتحسين بيئة الحوض.'},
-  {id:'tools',      icon:CAT_ICONS.tools,      name:'أجهزة القياس',       desc:'أدوات قياس ضرورية لمتابعة بيئة الحوض البحري.'},
-  {id:'food',       icon:CAT_ICONS.food,       name:'غذاء المرجان',       desc:'تغذية متكاملة للمرجان ودعم النمو والألوان.'},
-  {id:'lighting',   icon:CAT_ICONS.lighting,   name:'الإضاءة',            desc:'أنظمة إضاءة LED احترافية للمرجان والشعاب.'},
-  {id:'supplements',icon:CAT_ICONS.supplements,name:'المكملات الأساسية',  desc:'كالسيوم، قلوية، مغنيسيوم وبرامج العناية.'},
-  {id:'colors',     icon:CAT_ICONS.colors,     name:'تلوين المرجان',      desc:'عناصر نادرة تدعم تلوين المرجان وتحسن مظهره.'},
-  {id:'rocks',      icon:CAT_ICONS.rocks,      name:'الصخور والركائز',    desc:'صخور حية وركائز مناسبة للأحواض البحرية.'},
-  {id:'pumps',      icon:CAT_ICONS.pumps,      name:'المضخات والتدوير',   desc:'مضخات تدوير وموجات لحركة مياه مثالية.'},
-  {id:'test',       icon:CAT_ICONS.test,       name:'اختبارات الماء',     desc:'كيتات اختبار دقيقة لمراقبة جودة الماء.'}
-];
+/* CATS تُعبَّأ حصراً من Supabase عبر syncFromSupabase() — بلا أي قيمة احتياطية وهمية.
+   إن فشلت المزامنة تبقى فارغة عمداً؛ renderCategoriesPage()/renderHome() تعرضان عندها
+   رسالة فشل صريحة مع زر إعادة محاولة (catsFailHtml) بدل فئات لا وجود لها فعلياً. */
+let CATS=[];
+function catsFailHtml(){
+  return '<div style="grid-column:1/-1;text-align:center;padding:32px 20px">'
+    +'<p style="color:var(--muted);margin-bottom:16px;font-size:14px">'+t('cats_load_failed')+'</p>'
+    +'<button class="btn primary" onclick="location.reload()" style="font-size:14px;padding:10px 22px">'+t('edu_retry')+'</button>'
+    +'</div>';
+}
 /* Load custom categories from localStorage */
 function loadCustomCats(){
   var saved = safeJson('rsi_custom_cats',[]);
@@ -2731,7 +2733,7 @@ function prodCard(p){
 }
 
 function renderHome(){
-  document.getElementById('homeCategories').innerHTML=visibleCats().slice(0,3).map(catCard).join('');
+  document.getElementById('homeCategories').innerHTML=CATS.length?visibleCats().slice(0,3).map(catCard).join(''):catsFailHtml();
   var homeProds=[];
   /* real Supabase category ids only — see CLAUDE.md: these must never be hand-written
      again. 'rocks' had no matching category at all and 'test' was an ambiguous
@@ -2792,7 +2794,7 @@ window.renderProducts=function(){
   }
   setTimeout(function(){if(typeof imgFadeIn==='function')imgFadeIn();if(typeof initReveal==='function')initReveal();},20);
 };
-function renderCategoriesPage(){document.getElementById('categoriesGrid').innerHTML=visibleCats().map(catCard).join('');}
+function renderCategoriesPage(){document.getElementById('categoriesGrid').innerHTML=CATS.length?visibleCats().map(catCard).join(''):catsFailHtml();}
 async function renderProdibio(){
   var grid=document.getElementById('pb-products-grid');
   if(!grid)return;
