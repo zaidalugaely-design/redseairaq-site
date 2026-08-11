@@ -14,15 +14,14 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "mcp__supabase__*",
-      "mcp__netlify__*"
-    ],
-    "ask": [
+      "mcp__netlify__*",
       "Bash(git push *)",
       "Bash(git merge *)",
       "Bash(git checkout *)",
       "Bash(git tag *)",
       "Bash(git revert *)"
     ],
+    "ask": [],
     "deny": [
       "Bash(git reset --hard *)",
       "Bash(git push --force *)",
