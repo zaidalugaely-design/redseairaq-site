@@ -1230,7 +1230,6 @@ src="https://www.facebook.com/tr?id=851806290780479&ev=PageView&noscript=1"
               <button class="btn" onclick="exportProductsJSON()" data-i18n="btn_export">تصدير المنتجات</button>
               <button class="btn" onclick="document.getElementById('adminImportFile').click()" data-i18n="btn_import">استيراد المنتجات</button>
               <input type="file" id="adminImportFile" accept="application/json" style="display:none" onchange="importProductsJSON(event)">
-              <button class="btn danger" onclick="resetProductsToDefault()" data-i18n="btn_reset">استرجاع الأصلية</button>
             </div>
           </div>
       <div class="admin-grid">
@@ -1932,7 +1931,6 @@ const T = {
     btn_new_product:'＋ منتج جديد',
     btn_export:'تصدير المنتجات',
     btn_import:'استيراد المنتجات',
-    btn_reset:'استرجاع الأصلية',
     btn_del_img:'حذف الصورة',
     btn_save_product:'حفظ المنتج',
     btn_new_article:'＋ مقال جديد',
@@ -2000,6 +1998,7 @@ const T = {
     edu_error_load:'خطأ في تحميل البيانات',
     edu_pull_retry:'اسحب للأسفل للمحاولة مجدداً',
     edu_retry:'🔄 إعادة التحميل',
+    shop_retry_hint:'تحقّق من اتصالك بالإنترنت وحاول مجدداً.',
     edu_no_cards:'لا توجد بطاقات بعد',
     edu_feeding:'التغذية:',
     cart_added:'تمت الإضافة للسلة ✓', cart_removed:'تم الحذف', cart_cleared:'تم إفراغ السلة',
@@ -2094,7 +2093,6 @@ const T = {
     btn_new_product:'＋ New Product',
     btn_export:'Export Products',
     btn_import:'Import Products',
-    btn_reset:'Restore Defaults',
     btn_del_img:'Remove Image',
     btn_save_product:'Save Product',
     btn_new_article:'＋ New Article',
@@ -2162,6 +2160,7 @@ const T = {
     edu_error_load:'Error Loading Data',
     edu_pull_retry:'Pull down to retry',
     edu_retry:'🔄 Reload',
+    shop_retry_hint:'Check your internet connection and try again.',
     edu_no_cards:'No cards yet',
     edu_feeding:'Feeding:',
     cart_added:'Added to cart ✓', cart_removed:'Removed', cart_cleared:'Cart cleared',
@@ -2256,7 +2255,6 @@ const T = {
     btn_new_product:'＋ کاڵای نوێ',
     btn_export:'هەناردەی کاڵاکان',
     btn_import:'هاوردەی کاڵاکان',
-    btn_reset:'گەڕانەوە بۆ بنچینە',
     btn_del_img:'سڕینەوەی وێنە',
     btn_save_product:' پاشەکەوتکردنی کاڵا',
     btn_new_article:'＋ وتاری نوێ',
@@ -2324,6 +2322,7 @@ const T = {
     edu_error_load:'هەڵە لە بارکردنی داتا',
     edu_pull_retry:'بکێشە خوارەوە بۆ هەوڵدانەوە',
     edu_retry:'🔄 دووبارە بارکردن',
+    shop_retry_hint:'پەیوەندی ئینتەرنێتەکەت بپشکنە و دووبارە هەوڵبدەرەوە.',
     edu_no_cards:'هێشتا بطاقەیەک نییە',
     edu_feeding:'خواردن:',
     cart_added:'زیادکرا بۆ سەبەتە ✓', cart_removed:'سڕایەوە', cart_cleared:'سەبەتە بەتاڵکرا',
@@ -2482,20 +2481,10 @@ const CAT_ICONS = {
   // تلوين المرجان — palette
   'colors': '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/></svg>'
 };
-let CATS=[
-  {id:'tanks',      icon:CAT_ICONS.tanks,      name:'الأحواض المتكاملة',  desc:'أحواض مرجانية متكاملة جاهزة للتشغيل بأعلى جودة.'},
-  {id:'salt',       icon:CAT_ICONS.salt,       name:'الأملاح البحرية',    desc:'أملاح Red Sea لتحضير مياه مستقرة وصحية.'},
-  {id:'filtration', icon:CAT_ICONS.filtration, name:'تنقية المياه',       desc:'كربون ومنتجات تحسين صفاء الماء وإزالة الملوثات.'},
-  {id:'control',    icon:CAT_ICONS.control,    name:'إدارة المغذيات',     desc:'حلول للنترات والفوسفات وتحسين بيئة الحوض.'},
-  {id:'tools',      icon:CAT_ICONS.tools,      name:'أجهزة القياس',       desc:'أدوات قياس ضرورية لمتابعة بيئة الحوض البحري.'},
-  {id:'food',       icon:CAT_ICONS.food,       name:'غذاء المرجان',       desc:'تغذية متكاملة للمرجان ودعم النمو والألوان.'},
-  {id:'lighting',   icon:CAT_ICONS.lighting,   name:'الإضاءة',            desc:'أنظمة إضاءة LED احترافية للمرجان والشعاب.'},
-  {id:'supplements',icon:CAT_ICONS.supplements,name:'المكملات الأساسية',  desc:'كالسيوم، قلوية، مغنيسيوم وبرامج العناية.'},
-  {id:'colors',     icon:CAT_ICONS.colors,     name:'تلوين المرجان',      desc:'عناصر نادرة تدعم تلوين المرجان وتحسن مظهره.'},
-  {id:'rocks',      icon:CAT_ICONS.rocks,      name:'الصخور والركائز',    desc:'صخور حية وركائز مناسبة للأحواض البحرية.'},
-  {id:'pumps',      icon:CAT_ICONS.pumps,      name:'المضخات والتدوير',   desc:'مضخات تدوير وموجات لحركة مياه مثالية.'},
-  {id:'test',       icon:CAT_ICONS.test,       name:'اختبارات الماء',     desc:'كيتات اختبار دقيقة لمراقبة جودة الماء.'}
-];
+/* لا بيانات فئات وهمية — المصدر الوحيد هو Supabase عبر syncFromSupabase().
+   قبل اكتمال المزامنة أو إن فشلت بلا cache صالح: CATS فارغة، وواجهات
+   الفئات/المنتجات تعرض حالة فارغة صادقة مع زر إعادة محاولة بدل بيانات وهمية. */
+let CATS=[];
 /* Load custom categories from localStorage */
 function loadCustomCats(){
   var saved = safeJson('rsi_custom_cats',[]);
@@ -2515,20 +2504,13 @@ function saveCustomCats(){
 }
 
 const SUGG_MAP={tanks:['salt','filtration','lighting'],salt:['tools','supplements','test'],supplements:['salt','tools','colors'],colors:['supplements','control','food'],filtration:['control','tools','pumps'],control:['filtration','tools','test'],tools:['salt','supplements','test'],food:['colors','supplements'],lighting:['tanks','pumps'],rocks:['tanks','salt'],pumps:['filtration','lighting'],test:['tools','control']};
-const DEF_PRODUCTS=[
-  {id:'p1',category:'salt',name:'Coral Pro Salt 22kg',price:105000,currency:'IQD',badge:'الأكثر طلباً',stock:'available',image:'assets/products/coral-pro-salt-22kg.webp',desc:'ملح بحري احترافي مُحسَّن لأحواض المرجان، بمستويات مرتفعة من الكالسيوم والمغنيسيوم والقلوية.',specs:['يُحضِّر تقريباً ٦٦٠ لتر','مستويات مرتفعة من العناصر الأساسية','ثبات عالٍ في التركيب الكيميائي'],variants:[]},
-  {id:'p2',category:'supplements',name:'Reef Energy AB+',price:40000,currency:'IQD',badge:'جديد',stock:'available',image:'assets/products/reef-energy-ab-plus-500ml.webp',desc:'غذاء مرجاني متكامل يدعم النمو اليومي ويحسن حيوية المرجان وألوانه.',specs:['غذاء يومي متكامل للمرجان','يدعم النمو ويحسن الألوان','سهل الجرعات والتطبيق'],variants:[{name:'500ml',price:40000},{name:'1000ml',price:75000}]},
-  {id:'p3',category:'colors',name:'Coral Colors ABCD',price:35000,currency:'IQD',badge:'سيت كامل',stock:'available',image:'assets/products/coral-colors-abcd.webp',desc:'مجموعة عناصر نادرة متكاملة تعزز تلوين المرجان وتحسن مظهره.',specs:['مجموعة كاملة A/B/C/D','عناصر نادرة لتعزيز التلوين','مناسب للأنظمة المستقرة'],variants:[{name:'100ml × 4',price:35000},{name:'500ml × 4',price:120000}]},
-  {id:'p4',category:'filtration',name:'Reef Spec Carbon',price:25000,currency:'IQD',badge:'',stock:'available',image:'assets/products/reef-spec-carbon.webp',desc:'كربون نشط عالي النقاء يضمن صفاء استثنائياً للمياه مع امتصاص فعّال للملوثات.',specs:['صفاء مائي استثنائي','امتصاص الملوثات العضوية والروائح','مناسب لجميع الأحواض'],variants:[{name:'500g',price:25000},{name:'1kg',price:45000}]},
-  {id:'p5',category:'supplements',name:'Reef Foundation ABC',price:90000,currency:'IQD',badge:'أساسي',stock:'available',image:'assets/products/foundation-abc.webp',desc:'الثالوث الأساسي للكالسيوم والقلوية والمغنيسيوم — يحافظ على الاستقرار الكيميائي.',specs:['Calcium / Alkalinity / Magnesium','أساس نمو الهيكل المرجاني','مناسب للجرعات المنتظمة'],variants:[{name:'500ml × 3',price:90000},{name:'1000ml × 3',price:165000}]},
-  {id:'p6',category:'control',name:'NO3PO4-X NoPox',price:25000,currency:'IQD',badge:'',stock:'available',image:'assets/products/nopox-1000ml.webp',desc:'محلول Red Sea لخفض النترات والفوسفات ومكافحة نمو الطحالب.',specs:['خفض فعّال للنترات والفوسفات','يقلل نمو الطحالب الضارة','يُستخدم بجرعات دقيقة'],variants:[{name:'500ml',price:25000},{name:'1000ml',price:45000}]},
-  {id:'p7',category:'supplements',name:'Reef Care Program',price:95000,currency:'IQD',badge:'برنامج',stock:'available',image:'assets/products/reef-care-program.webp',desc:'برنامج رعاية مرجاني متكامل بخطة واضحة مصمم لتبسيط صيانة حوضك.',specs:['برنامج متكامل للرعاية المرجانية','مقسَّم حسب حجم الحوض','قابل للتوسع'],variants:[{name:'S — 150L',price:95000},{name:'M — 300L',price:170000},{name:'L — 600L',price:600000}]},
-  {id:'p8',category:'tools',name:'Salinity Refractometer',price:85000,currency:'IQD',badge:'قياس',stock:'available',image:'assets/products/refractometer.webp',desc:'جهاز قياس ملوحة دقيق وسهل الاستخدام، ضروري عند تحضير الماء لأي حوض بحري.',specs:['قياس سريع ودقيق للملوحة','أداة أساسية عند تحضير الماء','مناسب لجميع الأحواض'],variants:[]}
-];
 
 function safeJson(k,fb){try{const r=localStorage.getItem(k);return r?JSON.parse(r)||fb:fb;}catch(e){localStorage.removeItem(k);return fb;}}
 function validList(l){return Array.isArray(l)&&l.every(p=>p&&p.id&&p.name&&p.category&&typeof p.price==='number');}
-let products=validList(safeJson('rsi_prods',null))?safeJson('rsi_prods',[]):JSON.parse(JSON.stringify(DEF_PRODUCTS));
+/* لا بيانات منتجات وهمية — المصدر الوحيد هو Supabase عبر syncFromSupabase().
+   بلا cache صالح: products فارغة، وواجهات المتجر تعرض حالة فارغة صادقة
+   مع زر إعادة محاولة بدل منتجات وهمية (انظر shopEmptyStateHtml/retryShopLoad). */
+let products=validList(safeJson('rsi_prods',null))?safeJson('rsi_prods',[]):[];
 let cart=safeJson('rsi_cart',[]);if(!Array.isArray(cart))cart=[];
 const selectedVariants={};  /* مصدر الحقيقة الوحيد لاختيار الـ variant — بدل قراءة الـ DOM */
 let adminImgData='';
@@ -2730,8 +2712,29 @@ function prodCard(p){
   </article>`;
 }
 
+/* حالة فارغة صادقة عند فشل المزامنة مع Supabase بلا cache صالح —
+   بدل عرض بيانات وهمية (لا CATS ولا DEF_PRODUCTS احتياطية بعد الآن). */
+function shopEmptyStateHtml(){
+  return '<div style="grid-column:1/-1;text-align:center;padding:60px 20px">'
+    +'<div style="font-size:42px;margin-bottom:16px">⚠️</div>'
+    +'<p style="font-size:16px;font-weight:700;color:#c0392b;margin-bottom:8px">'+t('edu_error_load')+'</p>'
+    +'<p style="color:var(--muted);margin-bottom:24px;font-size:14px">'+t('shop_retry_hint')+'</p>'
+    +'<button class="btn primary" onclick="retryShopLoad()" style="font-size:14px;padding:12px 24px">'+t('edu_retry')+'</button>'
+    +'</div>';
+}
+window.retryShopLoad=async function(){
+  await syncFromSupabase();
+  var route=(location.hash||'').replace('#/','').split('/')[0]||'home';
+  if(route==='home')renderHome();
+  else if(route==='products')renderProducts();
+  else if(route==='categories')renderCategoriesPage();
+};
 function renderHome(){
-  document.getElementById('homeCategories').innerHTML=visibleCats().slice(0,3).map(catCard).join('');
+  document.getElementById('homeCategories').innerHTML=CATS.length?visibleCats().slice(0,3).map(catCard).join(''):shopEmptyStateHtml();
+  if(!products.length){
+    document.getElementById('featuredProducts').innerHTML=shopEmptyStateHtml();
+    return;
+  }
   var homeProds=[];
   /* real Supabase category ids only — see CLAUDE.md: these must never be hand-written
      again. 'rocks' had no matching category at all and 'test' was an ambiguous
@@ -2768,6 +2771,11 @@ function renderHome(){
 }
 window.renderProducts=function(){
   const grid=document.getElementById('productsGrid'); if(!grid)return;
+  if(!products.length){
+    grid.innerHTML=shopEmptyStateHtml();
+    const old=document.getElementById('suggWrap'); if(old)old.remove();
+    return;
+  }
   const q=(document.getElementById('searchInput')?.value||'').trim().toLowerCase();
   const cat=document.getElementById('categoryFilter')?.value||'';
   const srt=document.getElementById('sortFilter')?.value||'default';
@@ -2792,7 +2800,7 @@ window.renderProducts=function(){
   }
   setTimeout(function(){if(typeof imgFadeIn==='function')imgFadeIn();if(typeof initReveal==='function')initReveal();},20);
 };
-function renderCategoriesPage(){document.getElementById('categoriesGrid').innerHTML=visibleCats().map(catCard).join('');}
+function renderCategoriesPage(){document.getElementById('categoriesGrid').innerHTML=CATS.length?visibleCats().map(catCard).join(''):shopEmptyStateHtml();}
 async function renderProdibio(){
   var grid=document.getElementById('pb-products-grid');
   if(!grid)return;
@@ -3198,11 +3206,6 @@ window.exportProductsJSON=function(){dlFile('red-sea-iraq-products.json',JSON.st
 window.importProductsJSON=function(e){
   const f=e.target.files[0];if(!f)return;
   const rd=new FileReader();rd.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(!validList(d))throw new Error('invalid');if(!confirm('استيراد سيستبدل القائمة. متأكد؟'))return;products=d;saveProd();renderAdmin();renderHome();renderProducts();toast('تم الاستيراد ✓')}catch{toast('ملف غير صحيح');}};rd.readAsText(f);e.target.value='';
-};
-window.resetProductsToDefault=function(){
-  if(!confirm('استرجاع المنتجات الأصلية؟ سيُحذف ما أضفته.'))return;
-  products=JSON.parse(JSON.stringify(DEF_PRODUCTS));
-  saveProd();renderAdmin();renderHome();renderProducts();toast('تم الاسترجاع ✓');
 };
 var _showArchived=false;
 var _archivedOrders=safeJson('rsi_archived_orders',[]);
