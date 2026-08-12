@@ -491,6 +491,12 @@ main{margin-bottom:64px}
 .toast{position:fixed;bottom:22px;right:22px;background:var(--bg-elevated);color:var(--text-primary);border-radius:var(--radius-card);padding:14px 20px;font-weight:900;font-size:14px;box-shadow:var(--shadow);transform:translateY(90px);opacity:0;transition:.25s;z-index:200;max-width:320px}
 .toast.show{transform:none;opacity:1}
 
+/* DATA STATUS BAR — بيانات طازجة: حالة تحميل قصيرة أو إشعار بيانات غير محدّثة */
+.data-status-bar{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;padding:9px 16px;font-size:13px;font-weight:800;text-align:center}
+.data-status-bar.loading{background:var(--bg-elevated);color:var(--text-secondary)}
+.data-status-bar.stale{background:var(--warning);color:#241900}
+.data-status-bar button{background:transparent;border:1px solid currentColor;color:inherit;border-radius:var(--radius-control);padding:5px 12px;font-size:12px;font-weight:900;cursor:pointer;font-family:inherit}
+
 /* SKIP LINK */
 .skip-link{position:absolute;top:-60px;right:12px;background:var(--brand-red);color:var(--text-primary);padding:10px 14px;border-radius:var(--radius-control);z-index:500;font-weight:900}
 .skip-link:focus{top:12px}
@@ -892,6 +898,7 @@ src="https://www.facebook.com/tr?id=851806290780479&ev=PageView&noscript=1"
 </head>
 <body>
 <div id="scrollProgress"></div>
+<div id="dataStatusBar" class="data-status-bar" role="status" aria-live="polite" style="display:none"></div>
 
 <a class="skip-link" href="#mainContent">تخطي إلى المحتوى</a>
 
@@ -1999,6 +2006,9 @@ const T = {
     edu_pull_retry:'اسحب للأسفل للمحاولة مجدداً',
     edu_retry:'🔄 إعادة التحميل',
     shop_retry_hint:'تحقّق من اتصالك بالإنترنت وحاول مجدداً.',
+    data_loading:'⏳ جاري تحديث الأسعار والمنتجات...',
+    data_stale_notice:'⚠️ تعذّر تحديث البيانات — قد لا تكون الأسعار والمنتجات المعروضة محدّثة.',
+    cart_item_removed_notice:'⚠️ تمت إزالة منتج واحد أو أكثر من سلتك لأنه لم يعد متوفراً.',
     edu_no_cards:'لا توجد بطاقات بعد',
     edu_feeding:'التغذية:',
     cart_added:'تمت الإضافة للسلة ✓', cart_removed:'تم الحذف', cart_cleared:'تم إفراغ السلة',
@@ -2161,6 +2171,9 @@ const T = {
     edu_pull_retry:'Pull down to retry',
     edu_retry:'🔄 Reload',
     shop_retry_hint:'Check your internet connection and try again.',
+    data_loading:'⏳ Updating prices and products...',
+    data_stale_notice:'⚠️ Could not refresh data — prices and products shown may be out of date.',
+    cart_item_removed_notice:'⚠️ One or more items were removed from your cart because they are no longer available.',
     edu_no_cards:'No cards yet',
     edu_feeding:'Feeding:',
     cart_added:'Added to cart ✓', cart_removed:'Removed', cart_cleared:'Cart cleared',
@@ -2323,6 +2336,9 @@ const T = {
     edu_pull_retry:'بکێشە خوارەوە بۆ هەوڵدانەوە',
     edu_retry:'🔄 دووبارە بارکردن',
     shop_retry_hint:'پەیوەندی ئینتەرنێتەکەت بپشکنە و دووبارە هەوڵبدەرەوە.',
+    data_loading:'⏳ نرخ و بەرهەمەکان نوێ دەکرێنەوە...',
+    data_stale_notice:'⚠️ نەتوانرا داتا نوێ بکرێتەوە — لەوانەیە نرخ و بەرهەمە پیشاندراوەکان نوێ نەبن.',
+    cart_item_removed_notice:'⚠️ یەک یان زیاتر لە بەرهەمەکان لە سەبەتەکەت لابرا چونکە چیتر بەردەست نییە.',
     edu_no_cards:'هێشتا بطاقەیەک نییە',
     edu_feeding:'خواردن:',
     cart_added:'زیادکرا بۆ سەبەتە ✓', cart_removed:'سڕایەوە', cart_cleared:'سەبەتە بەتاڵکرا',
@@ -2481,10 +2497,31 @@ const CAT_ICONS = {
   // تلوين المرجان — palette
   'colors': '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/></svg>'
 };
+/* ════════════════════════
+   CACHE — نسخة بنية البيانات المخزّنة محلياً
+   الكاش احتياطي فقط (يُستخدم عند فشل الجلب من Supabase)، وليس مصدراً أساسياً للعرض.
+   أي تغيير مستقبلي في بنية بيانات المنتجات/الفئات: ارفع CACHE_VERSION ليُبطَل الكاش القديم تلقائياً
+   بدل أن يُقرأ بشكل خاطئ (بيانات بصيغة قديمة تحمل رقم إصدار مختلف تُتجاهل وتُعامل كأنها غير موجودة).
+   ════════════════════════ */
+const CACHE_VERSION = 2;
+function cacheGet(key){
+  try{
+    var raw = localStorage.getItem(key);
+    if(!raw) return null;
+    var obj = JSON.parse(raw);
+    if(!obj || obj.v !== CACHE_VERSION) return null;
+    return obj.data;
+  }catch(e){ return null; }
+}
+function cacheSet(key, data){
+  try{ localStorage.setItem(key, JSON.stringify({v:CACHE_VERSION, data:data, ts:Date.now()})); }catch(e){}
+}
+function validCats(l){return Array.isArray(l)&&l.every(function(c){return c&&c.id&&c.name;});}
+
 /* لا بيانات فئات وهمية — المصدر الوحيد هو Supabase عبر syncFromSupabase().
    قبل اكتمال المزامنة أو إن فشلت بلا cache صالح: CATS فارغة، وواجهات
    الفئات/المنتجات تعرض حالة فارغة صادقة مع زر إعادة محاولة بدل بيانات وهمية. */
-let CATS=[];
+let CATS=validCats(cacheGet('rsi_cats'))?cacheGet('rsi_cats'):[];
 /* Load custom categories from localStorage */
 function loadCustomCats(){
   var saved = safeJson('rsi_custom_cats',[]);
@@ -2510,7 +2547,7 @@ function validList(l){return Array.isArray(l)&&l.every(p=>p&&p.id&&p.name&&p.cat
 /* لا بيانات منتجات وهمية — المصدر الوحيد هو Supabase عبر syncFromSupabase().
    بلا cache صالح: products فارغة، وواجهات المتجر تعرض حالة فارغة صادقة
    مع زر إعادة محاولة بدل منتجات وهمية (انظر shopEmptyStateHtml/retryShopLoad). */
-let products=validList(safeJson('rsi_prods',null))?safeJson('rsi_prods',[]):[];
+let products=validList(cacheGet('rsi_prods'))?cacheGet('rsi_prods'):[];
 let cart=safeJson('rsi_cart',[]);if(!Array.isArray(cart))cart=[];
 const selectedVariants={};  /* مصدر الحقيقة الوحيد لاختيار الـ variant — بدل قراءة الـ DOM */
 let adminImgData='';
@@ -2578,7 +2615,7 @@ function catName(c){
 }
 function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(window._t);window._t=setTimeout(()=>el.classList.remove('show'),2600);}
 function saveCart(){localStorage.setItem('rsi_cart',JSON.stringify(cart));updateCartBadge();}
-function saveProd(){localStorage.setItem('rsi_prods',JSON.stringify(products));localStorage.setItem('rsi_prods_updated',Date.now());renderCatSelects();updateCartBadge();}
+function saveProd(){cacheSet('rsi_prods',products);renderCatSelects();updateCartBadge();}
 
 /* ════════════════════════
    ROUTING
@@ -2931,7 +2968,8 @@ window.addToCart=function(id){
     const cur=getCur(p);
     const key=hv?`${id}__${vi}`:id;
     const item=cart.find(x=>x.key===key);
-    if(item){item.qty+=1;item.cur=cur;}
+    /* تجميد السعر والعملة لحظة الإضافة — لا تُحدَّث بعد ذلك حتى عند تكرار إضافة نفس المنتج */
+    if(item){item.qty+=1;}
     else cart.push({key,id,variantIndex:hv?vi:null,option:opt,price,qty:1,cur,preorder:p.stock==='preorder'});
     saveCart(); toast(t('cart_added'));
   }catch(e){
@@ -2957,10 +2995,16 @@ function updateCartBadge(){const n=cart.reduce((a,i)=>a+i.qty,0);const el=docume
 
 function renderCart(){
   const root=document.getElementById('cartContent');
-  if(!cart.length){root.innerHTML='<div style="text-align:center;color:var(--muted);padding:60px 20px"><svg viewBox="0 0 24 24" style="width:64px;height:64px;color:var(--muted);margin-bottom:18px;opacity:.5" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg><p style="font-size:16px;font-weight:800">'+t('cart_empty')+'</p><br><button class="btn primary" onclick="go(\'products\')">'+t('btn_browse')+'</button></div>';return;}
+  /* السلات القديمة: منتج حُذف أو صار مخفياً منذ آخر زيارة — يُزال بهدوء من السلة مع سطر إشعار واحد،
+     ودون أي تعديل على أسعار بقية العناصر (السعر المجمَّد لبقية العناصر لا يتغيّر أبداً). */
+  const _beforeLen=cart.length;
+  cart=cart.filter(i=>{const p=byId(i.id);return p&&!p.hidden;});
+  if(cart.length!==_beforeLen) saveCart();
+  const removedNotice=cart.length!==_beforeLen?'<div style="background:#fef3c7;color:#7a5200;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13.5px;font-weight:700">'+t('cart_item_removed_notice')+'</div>':'';
+  if(!cart.length){root.innerHTML=removedNotice+'<div style="text-align:center;color:var(--muted);padding:60px 20px"><svg viewBox="0 0 24 24" style="width:64px;height:64px;color:var(--muted);margin-bottom:18px;opacity:.5" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg><p style="font-size:16px;font-weight:800">'+t('cart_empty')+'</p><br><button class="btn primary" onclick="go(\'products\')">'+t('btn_browse')+'</button></div>';return;}
   const tv=totals();
   const cities=['بغداد','البصرة','نينوى','أربيل','النجف','كربلاء','الأنبار','كركوك','ديالى','بابل','واسط','ذي قار','ميسان','المثنى','القادسية','صلاح الدين','السليمانية','دهوك'];
-  root.innerHTML=`
+  root.innerHTML=removedNotice+`
     <div class="cart-list">
       ${cart.map(i=>{
         const p=byId(i.id);if(!p)return'';
@@ -3038,7 +3082,9 @@ window.doOrder=async function(mode){
       const p=byId(i.id);
       const n=p&&i.option?`${p.name} — ${i.option}`:(p?p.name:i.id);
       const cur=i.cur||(p?getCur(p):'IQD');
-      return{n,q:i.qty,p:i.price,lt:i.price*i.qty,preorder:!!i.preorder||(p&&p.stock==='preorder'),cur};
+      /* id + variantIndex: يستخدمها الخادم فقط لمقارنة السعر الحالي بالسعر المجمَّد أدناه —
+         لا تُستخدم أبداً لإعادة قراءة p (السعر المجمَّد) نفسه. */
+      return{n,q:i.qty,p:i.price,lt:i.price*i.qty,preorder:!!i.preorder||(p&&p.stock==='preorder'),cur,id:i.id,variantIndex:i.variantIndex==null?null:i.variantIndex};
     }),
     usd:tv.usd, iqd:tv.iqd, hasUSD:tv.hasUSD, hasIQD:tv.hasIQD,
     sub:tv.sub, del:tv.del, tot:tv.tot,
@@ -3296,8 +3342,11 @@ function ordersTable(orders,showingArchived){
       var lt = it.lt||it.lineTotal||0;
       var ic = it.cur||(it.preorder?'USD':'IQD');
       var preLabel = it.preorder?' <span style="background:#fef3c7;color:#854d0e;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:900">حجز مسبق</span>':'';
+      /* السعر الحالي بقاعدة البيانات وقت إرسال الطلب — للمقارنة اليدوية بالأدمن فقط،
+         لا يغيّر السعر المجمَّد الذي دفعه الزبون (lt/it.p) أبداً */
+      var priceChangeNote = it.price_changed?' <span style="background:#fff2f2;color:#9f1218;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:900">السعر الحالي الآن: '+money(it.current_price,ic)+'</span>':'';
       return '<div style="padding:7px 0;border-bottom:1px solid #f0f5fa;font-size:13.5px;display:flex;justify-content:space-between;align-items:center;gap:10px">'
-        +'<span><b style="color:var(--navy)">'+n+'</b>'+preLabel+' <span style="color:var(--muted)">×'+q+'</span></span>'
+        +'<span><b style="color:var(--navy)">'+n+'</b>'+preLabel+priceChangeNote+' <span style="color:var(--muted)">×'+q+'</span></span>'
         +'<b style="color:var(--navy);font-family:Montserrat,sans-serif;white-space:nowrap">'+money(lt,ic)+'</b>'
         +'</div>';
     }).join(''):'<span style="color:var(--muted);font-size:13px">لا تفاصيل</span>';
@@ -5821,7 +5870,26 @@ window.updateOrderStatus = async function(orderId, newStatus){
 /* ════════════════════════════════════════════════════
    SUPABASE SYNC LAYER
    ════════════════════════════════════════════════════ */
+/* بيانات طازجة دائماً: شريط حالة صغير أعلى الصفحة — "جاري التحديث" أثناء الجلب،
+   أو إشعار "بيانات قد لا تكون محدّثة" + زر إعادة محاولة عند فشل الجلب مع وجود كاش احتياطي فقط. */
+function showDataStatus(kind){
+  var bar=document.getElementById('dataStatusBar');
+  if(!bar)return;
+  if(kind==='loading'){
+    bar.className='data-status-bar loading';
+    bar.innerHTML='<span>'+t('data_loading')+'</span>';
+    bar.style.display='flex';
+  }else if(kind==='stale'){
+    bar.className='data-status-bar stale';
+    bar.innerHTML='<span>'+t('data_stale_notice')+'</span><button onclick="retryShopLoad()">'+t('edu_retry')+'</button>';
+    bar.style.display='flex';
+  }else{
+    bar.style.display='none';
+  }
+}
 async function syncFromSupabase(){
+  showDataStatus('loading');
+  var shopOk=true;
   try{
     var [catData,prodData,blogData,refData]=await Promise.all([
       sbGet('/rest/v1/categories?order=sort_order.asc&limit=100'),
@@ -5829,10 +5897,14 @@ async function syncFromSupabase(){
       sbGet('/rest/v1/blog_posts?order=created_at.desc&limit=100'),
       sbGet('/rest/v1/reference_topics?order=sort_order.asc,created_at.desc&limit=200')
     ]);
-    if(catData&&catData.length){
+    /* Array.isArray (لا !length) — استجابة فارغة صحيحة من Supabase (مثلاً كل المنتجات حُذفت)
+       يجب أن تُستبدل بها products/CATS فعلياً وتُعرض كحالة فارغة صادقة، لا أن تُعامل كفشل جلب
+       فتُبقي على بيانات قديمة قد تكون محذوفة/متوقفة. */
+    if(Array.isArray(catData)){
       CATS=catData.map(function(c){return{id:c.id,icon:c.icon||'📦',name:c.name,name_en:c.name_en||'',name_ku:c.name_ku||'',desc:c.description||''};});
-    }
-    if(prodData&&prodData.length){
+      cacheSet('rsi_cats',CATS);
+    }else{ shopOk=false; }
+    if(Array.isArray(prodData)){
       products=prodData.map(function(p){
         var stock = p.stock||'available';
         /* العملة: استخدم المحفوظة، أو IQD افتراضياً للمتوفر، أو USD للحجز المسبق */
@@ -5846,8 +5918,9 @@ async function syncFromSupabase(){
           variants:typeof p.variants==='string'?JSON.parse(p.variants||'[]'):p.variants||[]
         };
       });
-      localStorage.setItem('rsi_prods',JSON.stringify(products));
-      localStorage.setItem('rsi_prods_updated',Date.now());
+      cacheSet('rsi_prods',products);
+    }else{ shopOk=false; }
+    if(shopOk){
       var _ar=(location.hash||'').replace('#/','').split('/')[0]||'home';
       if(_ar==='products')renderProducts();
       else if(_ar==='home')renderHome();
@@ -5874,13 +5947,17 @@ async function syncFromSupabase(){
       };});
       saveRef();
     }
-  }catch(e){console.warn('Supabase sync failed:',e.message);}
+  }catch(e){console.warn('Supabase sync failed:',e.message); shopOk=false;}
   /* Enable search after data loaded */
   var si = document.getElementById('searchInput');
 
   if(si){ si.disabled=false; si.placeholder=t('products_search'); }
   var pl = document.getElementById('productsLoading');
   if(pl){ pl.style.display='none'; }
+  /* فشل الجلب: إن وُجد كاش احتياطي (products/CATS ما زالت تحمل بيانات من مزامنة سابقة ناجحة)
+     يبقى معروضاً مع إشعار صريح وزر إعادة محاولة — لا يُخفى التحذير أبداً. بلا أي بيانات على الإطلاق،
+     renderHome/renderProducts/renderCategoriesPage تعرض أصلاً حالتها الفارغة الصادقة بزر إعادة محاولة خاص بها. */
+  showDataStatus((!shopOk && (products.length||CATS.length)) ? 'stale' : 'none');
 }
 
 /* ── Education data — isolated from shop sync so a shop error can't kill it ── */

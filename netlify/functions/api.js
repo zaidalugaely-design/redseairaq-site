@@ -183,10 +183,35 @@ exports.handler = async function(event) {
     const { order } = body;
     if (!order?.id) return res(headers, 400, { error: 'بيانات الطلب ناقصة' });
     try {
+      /* تجميد السعر في السلة: order.items[].p هو السعر الذي رآه الزبون ودفعه فعلاً — لا يُعدَّل هنا أبداً.
+         نضيف current_price (السعر الحالي في قاعدة البيانات وقت إرسال الطلب) لكل عنصر كمعلومة إضافية
+         للأدمن فقط عبر لوحة الإدارة — best-effort، وفشلها لا يوقف حفظ الطلب أبداً. */
+      let items = Array.isArray(order.items) ? order.items : [];
+      try {
+        const ids = [...new Set(items.map(i => i.id).filter(Boolean))];
+        if (ids.length) {
+          const idParam = ids.map(id => encodeURIComponent(id)).join(',');
+          const current = await sb('GET', `/products?id=in.(${idParam})&select=id,price,variants`, null);
+          const byId = {};
+          (current || []).forEach(p => { byId[p.id] = p; });
+          items = items.map(it => {
+            const p = it.id ? byId[it.id] : null;
+            if (!p) return it;
+            let variants = p.variants;
+            if (typeof variants === 'string') { try { variants = JSON.parse(variants || '[]'); } catch (_) { variants = []; } }
+            let currentPrice = p.price;
+            if (it.variantIndex != null && Array.isArray(variants) && variants[it.variantIndex]) {
+              currentPrice = variants[it.variantIndex].price;
+            }
+            return { ...it, current_price: currentPrice, price_changed: currentPrice != null && currentPrice !== it.p };
+          });
+        }
+      } catch (_) { /* best-effort — لا يوقف حفظ الطلب */ }
+
       await sb('POST', '/orders', {
         id: order.id, customer_phone: order.ph, customer_city: order.city,
         customer_area: order.area, customer_notes: order.notes || '',
-        items: JSON.stringify(order.items), subtotal: order.sub,
+        items: JSON.stringify(items), subtotal: order.sub,
         delivery: order.del, total: order.tot, status: 'new',
         created_at: new Date().toISOString()
       });
