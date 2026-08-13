@@ -2524,7 +2524,6 @@ const CAT_ICONS = {
    ════════════════════════ */
 const CACHE_VERSION = 1;
 const BUILD_ID = (document.querySelector('meta[name="version"]')||{}).content || 'dev';
-const STALE_MS = 60*60*1000; /* ساعة — بعدها مع فشل الجلب: لا يُعرض سعر قديم كسعر ساري */
 function cacheGet(key){
   try{
     var raw = localStorage.getItem(key);
@@ -2578,9 +2577,6 @@ function validList(l){return Array.isArray(l)&&l.every(p=>p&&p.id&&p.name&&p.cat
    بلا cache صالح: products فارغة، وواجهات المتجر تعرض حالة فارغة صادقة
    مع زر إعادة محاولة بدل منتجات وهمية (انظر shopEmptyStateHtml/retryShopLoad). */
 let products=validList(cacheGet('rsi_shop_prods_c3'))?cacheGet('rsi_shop_prods_c3'):[];
-/* بيانات معروضة الآن قديمة بلا تأكيد صلاحيتها من Supabase (فشل الجلب + عمر الكاش تجاوز الساعة) —
-   عند true: لا تُعرض الأسعار كأسعار سارية، وزر الشراء يتحول لزر واتساب "اسأل عن السعر" (انظر syncFromSupabase). */
-let dataDegraded=false;
 /* تشخيص المزامنة — سطر صغير خافت أسفل الصفحة (#syncDiag)، مؤقت لتشخيص مشكلة "السعر القديم"
    من متصفح المالك مباشرة بلا أدوات مطوّر. احذفه (هذه المتغيرات + renderSyncDiag() + استدعاءاتها
    + عنصر #syncDiag بالـ HTML) بعد التأكد أن المشكلة لا تتكرر لأي زائر لفترة كافية. */
@@ -2778,11 +2774,8 @@ function prodCard(p){
       ${hv?`<select class="select" id="var-${p.id}" onchange="onVarChange('${p.id}',this)">
         ${p.variants.map((v,i)=>`<option value="${i}"${i===(selectedVariants[p.id]||0)?' selected':''}>${v.name} — ${money(v.price,cur)}</option>`).join('')}</select>`:''}
       <div class="product-bottom">
-        ${dataDegraded
-          ?`<div class="price" id="pr-${p.id}">${t('price_unavailable')}</div>
-        <button class="small-btn" onclick="askPriceUnknown('${p.id}')">${t('ask_price')}</button>`
-          :`<div class="price${isPre?' preorder-price':''}" id="pr-${p.id}">${money(hv?p.variants[0].price:p.price,cur)}<small>${isPre?t('preorder_usd'):t('cod')}</small></div>
-        ${isPre?`<button class="small-btn preorder-btn" onclick="addToCart('${p.id}')">${t('preorder_book')}</button>`:`<button class="small-btn" ${ok?'':'disabled'} onclick="addToCart('${p.id}')">${(p.stock==='available'||p.stock==='available_nd')?t('add_to_cart'):stockLbl(p.stock)}</button>`}`}
+        <div class="price${isPre?' preorder-price':''}" id="pr-${p.id}">${money(hv?p.variants[0].price:p.price,cur)}<small>${isPre?t('preorder_usd'):t('cod')}</small></div>
+        ${isPre?`<button class="small-btn preorder-btn" onclick="addToCart('${p.id}')">${t('preorder_book')}</button>`:`<button class="small-btn" ${ok?'':'disabled'} onclick="addToCart('${p.id}')">${(p.stock==='available'||p.stock==='available_nd')?t('add_to_cart'):stockLbl(p.stock)}</button>`}
         <button class="small-btn ghost" onclick="shareProduct('${p.id}')" title="مشاركة المنتج" aria-label="مشاركة"><svg class="ico" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
       </div>
     </div>
@@ -2961,8 +2954,7 @@ function renderProductDetail(id){
         <h1>${esc(p.name)}</h1>
         ${descIsDup(p.name,p.desc)?'':`<p>${esc(p.desc)}</p>`}
         ${isPre?`<div class="preorder-banner"><svg class="ico" viewBox="0 0 24 24" style="width:18px;height:18px;color:#854d0e"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span>${t('preorder_info')}</span></div>`:''}
-        ${dataDegraded?`<div class="detail-price" id="dpr-${p.id}">${t('price_unavailable')}</div>`:
-          hv?`<div class="variant-panel"><label>${t('choose_variant')}</label>
+        ${hv?`<div class="variant-panel"><label>${t('choose_variant')}</label>
           <select class="select" id="var-${p.id}" onchange="onDetailVarChange('${p.id}',this)">
             ${p.variants.map((v,i)=>`<option value="${i}"${i===(selectedVariants[p.id]||0)?' selected':''}>${v.name} — ${money(v.price,cur)}</option>`).join('')}
           </select>
@@ -2979,9 +2971,8 @@ function renderProductDetail(id){
         </div>
         ${caut?`<div class="detail-section"><div class="dose-note">${t('chem_note')}</div></div>`:''}
         <div class="detail-actions">
-          ${dataDegraded?`<button class="btn primary" onclick="askPriceUnknown('${p.id}')">${t('ask_price')}</button>`:
-          `<button class="btn primary" onclick="addToCart('${p.id}')">${isPre?t('preorder_book'):t('add_to_cart')}</button>
-          <button class="btn" onclick="askProduct('${p.id}')">${t('ask_product')}</button>`}
+          <button class="btn primary" onclick="addToCart('${p.id}')">${isPre?t('preorder_book'):t('add_to_cart')}</button>
+          <button class="btn" onclick="askProduct('${p.id}')">${t('ask_product')}</button>
           <button class="btn ghost" onclick="shareProduct('${p.id}')"><svg class="ico" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> ${t('btn_share')}</button>
           <button class="btn ghost" onclick="history.back()">${t('back_store')}</button>
         </div>
@@ -2996,9 +2987,6 @@ function renderProductDetail(id){
    ════════════════════════ */
 window.addToCart=function(id){
   try{
-    /* حاجز أخير: مهما كان مصدر الاستدعاء، بيانات متدهورة (فشل الجلب منذ أكثر من ساعة)
-       تمنع الإضافة للسلة بسعر قد يكون قديماً — استحالة إرسال طلب بسعر غير مؤكَّد. */
-    if(dataDegraded){ askPriceUnknown(id); return; }
     const p=byId(id);
     if(!p||(p.stock!=='available'&&p.stock!=='available_nd'&&p.stock!=='preorder'))return;
     const hv=p.variants&&p.variants.length>0;
@@ -3153,13 +3141,6 @@ window.askProduct=function(id){
   const txt=encodeURIComponent(`استفسار عن منتج
 المنتج: ${p.name}${opt?' — '+opt:''}
 السعر: ${money(varPrice(p),cur)}${p.stock==='preorder'?' (حجز مسبق · بالدولار)':''}`);
-  window.open(`https://wa.me/${CFG.wa}?text=${txt}`,'_blank','noopener');
-};
-/* السعر المعروض حالياً غير مؤكَّد (dataDegraded) — لا نُرسل أي رقم سعر عبر واتساب، الزبون يسأل والفريق يرد بالسعر الحقيقي */
-window.askPriceUnknown=function(id){
-  const p=byId(id);if(!p){window.open(`https://wa.me/${CFG.wa}`,'_blank','noopener');return;}
-  const txt=encodeURIComponent(`استفسار عن السعر — تعذّر تحميل السعر الحالي من الموقع
-المنتج: ${p.name}`);
   window.open(`https://wa.me/${CFG.wa}?text=${txt}`,'_blank','noopener');
 };
 window.sendQuickMessage=function(){
@@ -5950,9 +5931,6 @@ async function syncFromSupabase(){
   showDataStatus('loading');
   var shopOk=true;
   var syncErrReason='';
-  /* عمر الكاش الحالي *قبل* محاولة الجلب — هو المرجع لحساب "منذ متى لم تُؤكَّد صحة هذي البيانات"
-     إن فشل الجلب أدناه. لا علاقة له بعمر البيانات إن نجح الجلب (عندها تُصبح طازجة فوراً). */
-  var priorTs = cacheTs('rsi_shop_prods_c3') || cacheTs('rsi_shop_cats_c3');
   try{
     var [catData,prodData,blogData,refData]=await Promise.all([
       sbGet('/rest/v1/categories?order=sort_order.asc&limit=100'),
@@ -6013,25 +5991,18 @@ async function syncFromSupabase(){
   if(pl){ pl.style.display='none'; }
 
   if(shopOk){
-    dataDegraded=false;
     lastSyncOkAt=Date.now();
     lastSyncError='';
     showDataStatus('none');
   }else{
-    var age = priorTs ? (Date.now()-priorTs) : Infinity;
     var hasCache = products.length||CATS.length;
-    dataDegraded = !!hasCache && age>STALE_MS;
     lastSyncError=syncErrReason||'unknown';
     /* فشل الجلب: إن وُجد كاش احتياطي يبقى معروضاً (المنتجات والفئات) مع إشعار صريح وزر إعادة
-       محاولة — لا يُخفى التحذير أبداً. أقل من ساعة: تحذير خفيف والسعر يبقى ظاهراً (فترة سماح
-       قصيرة، انقطاع عابر لا يستدعي حجب الشراء). أكثر من ساعة: dataDegraded=true فتُخفي
-       prodCard/renderProductDetail السعر وتُعطّلان الشراء (انظرهما أدناه). بلا أي كاش إطلاقاً،
-       renderHome/renderProducts/renderCategoriesPage تعرض أصلاً حالتها الفارغة الصادقة بزر
-       إعادة محاولة خاص بها، فلا داعي لشريط إضافي. */
-    showDataStatus(hasCache ? (dataDegraded?'degraded':'stale') : 'none');
+       محاولة — لا يُخفى التحذير أبداً ولا يُعطَّل الشراء. بلا أي كاش إطلاقاً، renderHome/
+       renderProducts/renderCategoriesPage تعرض أصلاً حالتها الفارغة الصادقة بزر إعادة محاولة
+       خاص بها، فلا داعي لشريط إضافي. */
+    showDataStatus(hasCache ? 'stale' : 'none');
   }
-  /* إعادة رسم الصفحة الحالية دائماً — نجح الجلب أو فشل — لأن حالة dataDegraded قد تكون تغيّرت
-     ويجب أن تنعكس فوراً على السعر/زر الشراء المعروضين، لا فقط عند نجاح المزامنة. */
   renderCurrentRoute();
   renderSyncDiag();
 }
@@ -6069,7 +6040,7 @@ let resyncInFlight = false;
 function patchProductDetailPrice(id){
   var p=byId(id); if(!p) return;
   var el=document.getElementById('dpr-'+id);
-  if(!el) return; /* الزائر لم يعد على صفحة هذا المنتج، أو dataDegraded يغيّر البنية — no-op آمن */
+  if(!el) return; /* الزائر لم يعد على صفحة هذا المنتج — no-op آمن */
   var cur=getCur(p);
   var hv=p.variants&&p.variants.length;
   if(hv){
@@ -6086,30 +6057,23 @@ function patchProductDetailPrice(id){
     el.textContent=money(p.price,cur);
   }
 }
-function handleSilentRevalidateFailure(priorTs, reason){
-  var age = priorTs ? (Date.now()-priorTs) : Infinity;
+function handleSilentRevalidateFailure(reason){
   var hasCache = products.length||CATS.length;
-  var wasDegraded = dataDegraded;
-  dataDegraded = !!hasCache && age>STALE_MS;
   lastSyncError = reason||'unknown';
-  if(dataDegraded!==wasDegraded){
-    showDataStatus(hasCache?(dataDegraded?'degraded':'stale'):'none');
-    renderCurrentRoute(); /* تغيّر بنيوي (إخفاء السعر/تبديل الزر) يحتاج رسماً كاملاً، لا patch */
-  }
+  showDataStatus(hasCache?'stale':'none');
   renderSyncDiag();
 }
 async function silentRevalidate(){
   if(resyncInFlight) return;
   if(lastSyncOkAt && (Date.now()-lastSyncOkAt)<RESYNC_THROTTLE_MS) return;
   resyncInFlight=true;
-  var priorTs = cacheTs('rsi_shop_prods_c3') || cacheTs('rsi_shop_cats_c3');
   try{
     var [catData,prodData]=await Promise.all([
       sbGet('/rest/v1/categories?order=sort_order.asc&limit=100'),
       sbGet('/rest/v1/products?order=sort_order.asc,created_at.desc&limit=500')
     ]);
     if(!Array.isArray(catData)||!Array.isArray(prodData)){
-      handleSilentRevalidateFailure(priorTs,'silent revalidate: request failed');
+      handleSilentRevalidateFailure('silent revalidate: request failed');
       return;
     }
     var newCats=catData.map(function(c){return{id:c.id,icon:c.icon||'📦',name:c.name,name_en:c.name_en||'',name_ku:c.name_ku||'',desc:c.description||''};});
@@ -6125,18 +6089,16 @@ async function silentRevalidate(){
         variants:typeof p.variants==='string'?JSON.parse(p.variants||'[]'):p.variants||[]
       };
     });
-    var wasDegraded=dataDegraded;
     var catsChanged=JSON.stringify(newCats)!==JSON.stringify(CATS);
     var prodsChanged=JSON.stringify(newProds)!==JSON.stringify(products);
     lastSyncOkAt=Date.now();
     lastSyncError='';
-    dataDegraded=false;
-    if(wasDegraded) showDataStatus('none');
-    if(!catsChanged && !prodsChanged && !wasDegraded){ renderSyncDiag(); return; }
+    showDataStatus('none');
+    if(!catsChanged && !prodsChanged){ renderSyncDiag(); return; }
     CATS=newCats; cacheSet('rsi_shop_cats_c3',CATS);
     products=newProds; cacheSet('rsi_shop_prods_c3',products);
     var route=(location.hash||'').replace('#/','').split('/')[0]||'home';
-    if(route==='product' && !wasDegraded){
+    if(route==='product'){
       var pid=(location.hash||'').split('/')[2];
       if(pid) patchProductDetailPrice(decodeURIComponent(pid));
       else renderCurrentRoute();
@@ -6146,7 +6108,7 @@ async function silentRevalidate(){
     if(catsChanged) renderCatSelects();
     renderSyncDiag();
   }catch(e){
-    handleSilentRevalidateFailure(priorTs, e.message);
+    handleSilentRevalidateFailure(e.message);
   }finally{
     resyncInFlight=false;
   }
