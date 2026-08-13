@@ -2967,7 +2967,7 @@ function renderProductDetail(id){
             ${p.variants.map((v,i)=>`<option value="${i}"${i===(selectedVariants[p.id]||0)?' selected':''}>${v.name} — ${money(v.price,cur)}</option>`).join('')}
           </select>
           <div class="detail-price${isPre?' preorder-detail':''}" id="dpr-${p.id}">${money(p.variants[0].price,cur)}</div></div>`:
-          `<div class="detail-price${isPre?' preorder-detail':''}">${money(p.price,cur)}</div>`}
+          `<div class="detail-price${isPre?' preorder-detail':''}" id="dpr-${p.id}">${money(p.price,cur)}</div>`}
         <div class="detail-meta">
           <div class="meta-box"><b>${t('detail_status')}</b><span>${stockLbl(p.stock)}</span></div>
           <div class="meta-box"><b>${t('detail_category')}</b><span>${catName(c)||'-'}</span></div>
@@ -6051,6 +6051,113 @@ function renderSyncDiag(){
     +' · source: '+source
     +' · build: '+BUILD_ID;
 }
+
+/* ════════════════════════════════════════════════════
+   إعادة مزامنة تلقائية صامتة — لا يحتاج الزائر لإعادة تحميل يدوية أبداً
+   ════════════════════════════════════════════════════
+   تُشغَّل عند: عودة التبويب مرئياً (visibilitychange)، الاسترجاع من ذاكرة الصفحة
+   (pageshow بـevent.persisted، الأهم — bfcache تجمّد الصفحة والأسعار المعروضة بلا تنفيذ
+   أي كود عند "رجوع" المتصفح)، وعودة الاتصال (online). مستقلة تماماً عن syncFromSupabase()
+   (المستخدمة فقط لأول تحميل ولـretryShopLoad اليدوي) — لا تلمسها كي لا تُغيَّر سلوكها
+   المُختبَر أصلاً. الكبح: لا تُعاد إن مضى أقل من RESYNC_THROTTLE_MS على lastSyncOkAt
+   (آخر مزامنة *ناجحة*؛ فشل سابق لا يكبح المحاولة التالية). لا تلمس cart إطلاقاً — الأسعار
+   المجمَّدة بالسلة مبدأ لا يُنقض (انظر توثيق addToCart أعلاه). بلا وميض: لا رسم إطلاقاً إن
+   لم تتغيّر البيانات فعلياً (مقارنة JSON.stringify). داخل صفحة منتج: تحديث السعر في مكانه
+   عبر patchProductDetailPrice بدل renderCurrentRoute الكامل. */
+const RESYNC_THROTTLE_MS = 30000;
+let resyncInFlight = false;
+function patchProductDetailPrice(id){
+  var p=byId(id); if(!p) return;
+  var el=document.getElementById('dpr-'+id);
+  if(!el) return; /* الزائر لم يعد على صفحة هذا المنتج، أو dataDegraded يغيّر البنية — no-op آمن */
+  var cur=getCur(p);
+  var hv=p.variants&&p.variants.length;
+  if(hv){
+    var vi=selectedVariants[p.id]||0;
+    if(!p.variants[vi]) vi=0;
+    el.textContent=money(p.variants[vi].price,cur);
+    var sel=document.getElementById('var-'+id);
+    if(sel){
+      Array.prototype.forEach.call(sel.options,function(opt,i){
+        if(p.variants[i]) opt.textContent=p.variants[i].name+' — '+money(p.variants[i].price,cur);
+      });
+    }
+  }else{
+    el.textContent=money(p.price,cur);
+  }
+}
+function handleSilentRevalidateFailure(priorTs, reason){
+  var age = priorTs ? (Date.now()-priorTs) : Infinity;
+  var hasCache = products.length||CATS.length;
+  var wasDegraded = dataDegraded;
+  dataDegraded = !!hasCache && age>STALE_MS;
+  lastSyncError = reason||'unknown';
+  if(dataDegraded!==wasDegraded){
+    showDataStatus(hasCache?(dataDegraded?'degraded':'stale'):'none');
+    renderCurrentRoute(); /* تغيّر بنيوي (إخفاء السعر/تبديل الزر) يحتاج رسماً كاملاً، لا patch */
+  }
+  renderSyncDiag();
+}
+async function silentRevalidate(){
+  if(resyncInFlight) return;
+  if(lastSyncOkAt && (Date.now()-lastSyncOkAt)<RESYNC_THROTTLE_MS) return;
+  resyncInFlight=true;
+  var priorTs = cacheTs('rsi_shop_prods_c3') || cacheTs('rsi_shop_cats_c3');
+  try{
+    var [catData,prodData]=await Promise.all([
+      sbGet('/rest/v1/categories?order=sort_order.asc&limit=100'),
+      sbGet('/rest/v1/products?order=sort_order.asc,created_at.desc&limit=500')
+    ]);
+    if(!Array.isArray(catData)||!Array.isArray(prodData)){
+      handleSilentRevalidateFailure(priorTs,'silent revalidate: request failed');
+      return;
+    }
+    var newCats=catData.map(function(c){return{id:c.id,icon:c.icon||'📦',name:c.name,name_en:c.name_en||'',name_ku:c.name_ku||'',desc:c.description||''};});
+    var newProds=prodData.map(function(p){
+      var stock=p.stock||'available';
+      var currency=(p.currency==='USD'||p.currency==='IQD')?p.currency:(stock==='preorder'?'USD':'IQD');
+      return{
+        id:p.id,category:p.category,name:p.name,price:p.price,
+        badge:p.badge||'',stock:stock,image:p.image||'',
+        desc:p.description||'', currency:currency,
+        hidden:!!p.hidden,
+        specs:typeof p.specs==='string'?JSON.parse(p.specs||'[]'):p.specs||[],
+        variants:typeof p.variants==='string'?JSON.parse(p.variants||'[]'):p.variants||[]
+      };
+    });
+    var wasDegraded=dataDegraded;
+    var catsChanged=JSON.stringify(newCats)!==JSON.stringify(CATS);
+    var prodsChanged=JSON.stringify(newProds)!==JSON.stringify(products);
+    lastSyncOkAt=Date.now();
+    lastSyncError='';
+    dataDegraded=false;
+    if(wasDegraded) showDataStatus('none');
+    if(!catsChanged && !prodsChanged && !wasDegraded){ renderSyncDiag(); return; }
+    CATS=newCats; cacheSet('rsi_shop_cats_c3',CATS);
+    products=newProds; cacheSet('rsi_shop_prods_c3',products);
+    var route=(location.hash||'').replace('#/','').split('/')[0]||'home';
+    if(route==='product' && !wasDegraded){
+      var pid=(location.hash||'').split('/')[2];
+      if(pid) patchProductDetailPrice(decodeURIComponent(pid));
+      else renderCurrentRoute();
+    }else{
+      renderCurrentRoute();
+    }
+    if(catsChanged) renderCatSelects();
+    renderSyncDiag();
+  }catch(e){
+    handleSilentRevalidateFailure(priorTs, e.message);
+  }finally{
+    resyncInFlight=false;
+  }
+}
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='visible') silentRevalidate();
+});
+window.addEventListener('pageshow',function(e){
+  if(e.persisted) silentRevalidate();
+});
+window.addEventListener('online',silentRevalidate);
 
 /* ── Education data — isolated from shop sync so a shop error can't kill it ── */
 async function syncEducationData(){
