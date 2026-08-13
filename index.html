@@ -1794,8 +1794,6 @@ src="https://www.facebook.com/tr?id=851806290780479&ev=PageView&noscript=1"
     <span>© 2026 Red Sea Iraq · All Rights Reserved</span>
     <a href="#/admin-9x7k2" style="opacity:.25;font-size:11px">Admin</a>
   </div>
-  <!-- تشخيص مزامنة مؤقت — انظر CLAUDE.md قسم "تشخيص السعر القديم" لسبب وجوده وطريقة حذفه -->
-  <div id="syncDiag" style="text-align:center;font-size:10px;color:var(--text-muted,#888);opacity:.55;padding:4px 12px 10px;line-height:1.7;direction:ltr"></div>
 </footer>
 
 <div class="toast" id="toast"></div>
@@ -2577,10 +2575,8 @@ function validList(l){return Array.isArray(l)&&l.every(p=>p&&p.id&&p.name&&p.cat
    بلا cache صالح: products فارغة، وواجهات المتجر تعرض حالة فارغة صادقة
    مع زر إعادة محاولة بدل منتجات وهمية (انظر shopEmptyStateHtml/retryShopLoad). */
 let products=validList(cacheGet('rsi_shop_prods_c3'))?cacheGet('rsi_shop_prods_c3'):[];
-/* تشخيص المزامنة — سطر صغير خافت أسفل الصفحة (#syncDiag)، مؤقت لتشخيص مشكلة "السعر القديم"
-   من متصفح المالك مباشرة بلا أدوات مطوّر. احذفه (هذه المتغيرات + renderSyncDiag() + استدعاءاتها
-   + عنصر #syncDiag بالـ HTML) بعد التأكد أن المشكلة لا تتكرر لأي زائر لفترة كافية. */
-let lastSyncOkAt=null, lastSyncError='';
+/* آخر مزامنة ناجحة — يُستخدم فقط لكبح إعادة المزامنة الصامتة (RESYNC_THROTTLE_MS أدناه) */
+let lastSyncOkAt=null;
 let cart=safeJson('rsi_cart',[]);if(!Array.isArray(cart))cart=[];
 const selectedVariants={};  /* مصدر الحقيقة الوحيد لاختيار الـ variant — بدل قراءة الـ DOM */
 let adminImgData='';
@@ -5930,7 +5926,6 @@ function renderCurrentRoute(){
 async function syncFromSupabase(){
   showDataStatus('loading');
   var shopOk=true;
-  var syncErrReason='';
   try{
     var [catData,prodData,blogData,refData]=await Promise.all([
       sbGet('/rest/v1/categories?order=sort_order.asc&limit=100'),
@@ -5944,7 +5939,7 @@ async function syncFromSupabase(){
     if(Array.isArray(catData)){
       CATS=catData.map(function(c){return{id:c.id,icon:c.icon||'📦',name:c.name,name_en:c.name_en||'',name_ku:c.name_ku||'',desc:c.description||''};});
       cacheSet('rsi_shop_cats_c3',CATS);
-    }else{ shopOk=false; syncErrReason='categories request failed (network/HTTP)'; }
+    }else{ shopOk=false; }
     if(Array.isArray(prodData)){
       products=prodData.map(function(p){
         var stock = p.stock||'available';
@@ -5960,7 +5955,7 @@ async function syncFromSupabase(){
         };
       });
       cacheSet('rsi_shop_prods_c3',products);
-    }else{ shopOk=false; syncErrReason=syncErrReason||'products request failed (network/HTTP)'; }
+    }else{ shopOk=false; }
     if(blogData&&blogData.length){
       blogPosts=blogData.map(function(b){return{
         id:b.id,title:b.title,category:b.category||'',excerpt:b.excerpt||'',
@@ -5982,7 +5977,7 @@ async function syncFromSupabase(){
       };});
       saveRef();
     }
-  }catch(e){console.warn('Supabase sync failed:',e.message); shopOk=false; syncErrReason=e.message;}
+  }catch(e){console.warn('Supabase sync failed:',e.message); shopOk=false;}
   /* Enable search after data loaded */
   var si = document.getElementById('searchInput');
 
@@ -5992,11 +5987,9 @@ async function syncFromSupabase(){
 
   if(shopOk){
     lastSyncOkAt=Date.now();
-    lastSyncError='';
     showDataStatus('none');
   }else{
     var hasCache = products.length||CATS.length;
-    lastSyncError=syncErrReason||'unknown';
     /* فشل الجلب: إن وُجد كاش احتياطي يبقى معروضاً (المنتجات والفئات) مع إشعار صريح وزر إعادة
        محاولة — لا يُخفى التحذير أبداً ولا يُعطَّل الشراء. بلا أي كاش إطلاقاً، renderHome/
        renderProducts/renderCategoriesPage تعرض أصلاً حالتها الفارغة الصادقة بزر إعادة محاولة
@@ -6004,23 +5997,6 @@ async function syncFromSupabase(){
     showDataStatus(hasCache ? 'stale' : 'none');
   }
   renderCurrentRoute();
-  renderSyncDiag();
-}
-/* تشخيص مزامنة مؤقت — انظر ملاحظة lastSyncOkAt أعلاه لطريقة الحذف. lang=ltr عمداً
-   (أرقام/إنجليزية تقنية) لسهولة قراءته ونسخه عند الإبلاغ عن مشكلة. */
-function renderSyncDiag(){
-  var el=document.getElementById('syncDiag');
-  if(!el)return;
-  var now=Date.now();
-  var cacheTsVal=cacheTs('rsi_shop_prods_c3');
-  var ageStr=cacheTsVal?Math.round((now-cacheTsVal)/1000)+'s':'n/a';
-  var lastOkStr=lastSyncOkAt?Math.round((now-lastSyncOkAt)/1000)+'s ago':'never this session';
-  var source=lastSyncError?'localStorage cache (last fetch failed)':'Supabase (fresh)';
-  el.textContent='sync: '+(lastSyncError?'FAILED — '+lastSyncError:'OK')
-    +' · last ok: '+lastOkStr
-    +' · data age: '+ageStr
-    +' · source: '+source
-    +' · build: '+BUILD_ID;
 }
 
 /* ════════════════════════════════════════════════════
@@ -6057,11 +6033,9 @@ function patchProductDetailPrice(id){
     el.textContent=money(p.price,cur);
   }
 }
-function handleSilentRevalidateFailure(reason){
+function handleSilentRevalidateFailure(){
   var hasCache = products.length||CATS.length;
-  lastSyncError = reason||'unknown';
   showDataStatus(hasCache?'stale':'none');
-  renderSyncDiag();
 }
 async function silentRevalidate(){
   if(resyncInFlight) return;
@@ -6073,7 +6047,7 @@ async function silentRevalidate(){
       sbGet('/rest/v1/products?order=sort_order.asc,created_at.desc&limit=500')
     ]);
     if(!Array.isArray(catData)||!Array.isArray(prodData)){
-      handleSilentRevalidateFailure('silent revalidate: request failed');
+      handleSilentRevalidateFailure();
       return;
     }
     var newCats=catData.map(function(c){return{id:c.id,icon:c.icon||'📦',name:c.name,name_en:c.name_en||'',name_ku:c.name_ku||'',desc:c.description||''};});
@@ -6092,9 +6066,8 @@ async function silentRevalidate(){
     var catsChanged=JSON.stringify(newCats)!==JSON.stringify(CATS);
     var prodsChanged=JSON.stringify(newProds)!==JSON.stringify(products);
     lastSyncOkAt=Date.now();
-    lastSyncError='';
     showDataStatus('none');
-    if(!catsChanged && !prodsChanged){ renderSyncDiag(); return; }
+    if(!catsChanged && !prodsChanged){ return; }
     CATS=newCats; cacheSet('rsi_shop_cats_c3',CATS);
     products=newProds; cacheSet('rsi_shop_prods_c3',products);
     var route=(location.hash||'').replace('#/','').split('/')[0]||'home';
@@ -6106,9 +6079,9 @@ async function silentRevalidate(){
       renderCurrentRoute();
     }
     if(catsChanged) renderCatSelects();
-    renderSyncDiag();
   }catch(e){
-    handleSilentRevalidateFailure(e.message);
+    console.warn('silentRevalidate failed:',e.message);
+    handleSilentRevalidateFailure();
   }finally{
     resyncInFlight=false;
   }
