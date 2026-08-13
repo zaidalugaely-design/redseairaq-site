@@ -36,7 +36,6 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="version" content="1777348570">
 <meta name="theme-color" content="#0A1220">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2510,24 +2509,17 @@ const CAT_ICONS = {
    CACHE — نسخة بنية البيانات المخزّنة محلياً
    الكاش احتياطي فقط (يُستخدم عند فشل الجلب من Supabase)، وليس مصدراً أساسياً للعرض.
 
-   المفاتيح 'rsi_shop_prods_c3'/'rsi_shop_cats_c3' مختلفة كلياً عن المفاتيح القديمة
-   ('rsi_prods'/'rsi_cats' بصيغة main، أو نفس الاسمين بصيغة مغلّفة بإصدار من نسخة سابقة) —
-   هذا يُبطل تلقائياً أي بيانات قديمة عند أي زائر حالي فور أول تحميل بعد هذا النشر، بلا
-   حاجة لمسح يدوي، ودون أي احتمال قراءة خاطئة لصيغة قديمة بمفتاح جديد.
-
-   BUILD_ID (من <meta name="version">، يُختم فعلياً وقت بناء Netlify — انظر
-   scripts/stamp-build-version.js) يُخزَّن داخل كل قيمة كاش. أي نشر جديد يحمل قيمة مختلفة،
-   فيُبطل تلقائياً كاش كل الزوار من النشر السابق دون انتظار تغيير بنية البيانات أو رفع
-   CACHE_VERSION يدوياً. ارفع CACHE_VERSION فقط عند تغيير حقيقي في *شكل* الكائن المخزَّن.
-   ════════════════════════ */
+   المفتاحان 'rsi_shop_products'/'rsi_shop_categories' ثابتان، بلا ربط بمعرّف بناء —
+   مختلفان عن كل الأسماء المستخدمة سابقاً ('rsi_prods'/'rsi_cats'، و'rsi_shop_prods_c3'/
+   'rsi_shop_cats_c3') حتى لا يُقرأ أي تخزين قديم فاسد عند أي زائر بعد هذا النشر.
+   ارفع CACHE_VERSION فقط عند تغيير حقيقي في *شكل* الكائن المخزَّن. */
 const CACHE_VERSION = 1;
-const BUILD_ID = (document.querySelector('meta[name="version"]')||{}).content || 'dev';
 function cacheGet(key){
   try{
     var raw = localStorage.getItem(key);
     if(!raw) return null;
     var obj = JSON.parse(raw);
-    if(!obj || obj.v !== CACHE_VERSION || obj.build !== BUILD_ID) return null;
+    if(!obj || obj.v !== CACHE_VERSION) return null;
     return obj.data;
   }catch(e){ return null; }
 }
@@ -2536,19 +2528,19 @@ function cacheTs(key){
     var raw = localStorage.getItem(key);
     if(!raw) return null;
     var obj = JSON.parse(raw);
-    if(!obj || obj.v !== CACHE_VERSION || obj.build !== BUILD_ID) return null;
+    if(!obj || obj.v !== CACHE_VERSION) return null;
     return obj.ts || null;
   }catch(e){ return null; }
 }
 function cacheSet(key, data){
-  try{ localStorage.setItem(key, JSON.stringify({v:CACHE_VERSION, build:BUILD_ID, data:data, ts:Date.now()})); }catch(e){}
+  try{ localStorage.setItem(key, JSON.stringify({v:CACHE_VERSION, data:data, ts:Date.now()})); }catch(e){}
 }
 function validCats(l){return Array.isArray(l)&&l.every(function(c){return c&&c.id&&c.name;});}
 
 /* لا بيانات فئات وهمية — المصدر الوحيد هو Supabase عبر syncFromSupabase().
    قبل اكتمال المزامنة أو إن فشلت بلا cache صالح: CATS فارغة، وواجهات
    الفئات/المنتجات تعرض حالة فارغة صادقة مع زر إعادة محاولة بدل بيانات وهمية. */
-let CATS=validCats(cacheGet('rsi_shop_cats_c3'))?cacheGet('rsi_shop_cats_c3'):[];
+let CATS=validCats(cacheGet('rsi_shop_categories'))?cacheGet('rsi_shop_categories'):[];
 /* Load custom categories from localStorage */
 function loadCustomCats(){
   var saved = safeJson('rsi_custom_cats',[]);
@@ -2574,7 +2566,7 @@ function validList(l){return Array.isArray(l)&&l.every(p=>p&&p.id&&p.name&&p.cat
 /* لا بيانات منتجات وهمية — المصدر الوحيد هو Supabase عبر syncFromSupabase().
    بلا cache صالح: products فارغة، وواجهات المتجر تعرض حالة فارغة صادقة
    مع زر إعادة محاولة بدل منتجات وهمية (انظر shopEmptyStateHtml/retryShopLoad). */
-let products=validList(cacheGet('rsi_shop_prods_c3'))?cacheGet('rsi_shop_prods_c3'):[];
+let products=validList(cacheGet('rsi_shop_products'))?cacheGet('rsi_shop_products'):[];
 /* آخر مزامنة ناجحة — يُستخدم فقط لكبح إعادة المزامنة الصامتة (RESYNC_THROTTLE_MS أدناه) */
 let lastSyncOkAt=null;
 let cart=safeJson('rsi_cart',[]);if(!Array.isArray(cart))cart=[];
@@ -2644,7 +2636,7 @@ function catName(c){
 }
 function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(window._t);window._t=setTimeout(()=>el.classList.remove('show'),2600);}
 function saveCart(){localStorage.setItem('rsi_cart',JSON.stringify(cart));updateCartBadge();}
-function saveProd(){cacheSet('rsi_shop_prods_c3',products);renderCatSelects();updateCartBadge();}
+function saveProd(){cacheSet('rsi_shop_products',products);renderCatSelects();updateCartBadge();}
 
 /* ════════════════════════
    ROUTING
@@ -5938,7 +5930,7 @@ async function syncFromSupabase(){
        فتُبقي على بيانات قديمة قد تكون محذوفة/متوقفة. */
     if(Array.isArray(catData)){
       CATS=catData.map(function(c){return{id:c.id,icon:c.icon||'📦',name:c.name,name_en:c.name_en||'',name_ku:c.name_ku||'',desc:c.description||''};});
-      cacheSet('rsi_shop_cats_c3',CATS);
+      cacheSet('rsi_shop_categories',CATS);
     }else{ shopOk=false; }
     if(Array.isArray(prodData)){
       products=prodData.map(function(p){
@@ -5954,7 +5946,7 @@ async function syncFromSupabase(){
           variants:typeof p.variants==='string'?JSON.parse(p.variants||'[]'):p.variants||[]
         };
       });
-      cacheSet('rsi_shop_prods_c3',products);
+      cacheSet('rsi_shop_products',products);
     }else{ shopOk=false; }
     if(blogData&&blogData.length){
       blogPosts=blogData.map(function(b){return{
@@ -6068,8 +6060,8 @@ async function silentRevalidate(){
     lastSyncOkAt=Date.now();
     showDataStatus('none');
     if(!catsChanged && !prodsChanged){ return; }
-    CATS=newCats; cacheSet('rsi_shop_cats_c3',CATS);
-    products=newProds; cacheSet('rsi_shop_prods_c3',products);
+    CATS=newCats; cacheSet('rsi_shop_categories',CATS);
+    products=newProds; cacheSet('rsi_shop_products',products);
     var route=(location.hash||'').replace('#/','').split('/')[0]||'home';
     if(route==='product'){
       var pid=(location.hash||'').split('/')[2];
