@@ -861,6 +861,54 @@ main{margin-bottom:64px}
 @keyframes pbFadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:900px){.pb-products-grid{grid-template-columns:repeat(2,1fr)}.pb-why-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:540px){.pb-products-grid{grid-template-columns:1fr}.pb-why-grid{grid-template-columns:1fr}.pb-hero{padding:60px 16px 40px}}
+
+/* HOME RAILS — horizontal-scroll for featured products + categories, homepage
+   only. ID selectors (higher specificity than the shared .product-grid/
+   .category-grid class rules, including inside their @media(max-width:1080px)/
+   640px blocks above) so the Products and Categories pages keep their normal
+   wrapped grid at every breakpoint — only #featuredProducts/#homeCategories
+   on the home page become rails. Markup/card markup and CAT_ICONS untouched;
+   this only changes the two containers. Gated behind @media(scripting:enabled)
+   so a no-JS visitor — and any browser without support for the "scripting"
+   media feature — falls through to the unconditional .product-grid/
+   .category-grid grid-wrap rule above as a normal wrapped row. (In this SPA
+   both containers are only ever populated by renderHome() in the first place,
+   so a true no-JS visit renders neither layout with any cards in it — this
+   gate keeps the CSS itself JS-independent as asked, even though there is
+   no visible fallback content to show it on in this app today.) */
+@media (scripting:enabled){
+  #featuredProducts,#homeCategories{
+    display:flex;
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    scroll-snap-type:x mandatory;
+    scroll-behavior:smooth;
+    scrollbar-width:none;
+    -ms-overflow-style:none;
+    -webkit-mask-image:linear-gradient(to right,transparent,#000 40px,#000 100%);
+    mask-image:linear-gradient(to right,transparent,#000 40px,#000 100%);
+  }
+  #featuredProducts::-webkit-scrollbar,#homeCategories::-webkit-scrollbar{display:none}
+  #featuredProducts>*,#homeCategories>*{flex:0 0 auto;scroll-snap-align:start;width:168px}
+  @media(min-width:700px){
+    #featuredProducts>*,#homeCategories>*{width:220px}
+  }
+  @media(prefers-reduced-motion:reduce){
+    #featuredProducts,#homeCategories{scroll-behavior:auto}
+  }
+}
+/* Category rail accent (2B) — categories carry no colour field in Supabase
+   (id/icon/name/name_en/name_ku/desc only per CLAUDE.md), so a genuine
+   "this category's own colour" can't be read without touching renderHome()'s
+   data flow or the category objects, both explicitly out of scope for this
+   pass. Positional cycling through 4 existing tokens is the closest CSS-only
+   proxy available — every 4th card repeats a colour rather than each having
+   a truly distinct one. Not gated behind scripting: it's plain card styling,
+   not rail-scroll mechanics, and inert on an empty/no-JS container regardless. */
+#homeCategories>*{border-bottom:3px solid var(--action)}
+#homeCategories>*:nth-child(4n+2){border-bottom-color:var(--success)}
+#homeCategories>*:nth-child(4n+3){border-bottom-color:var(--warning)}
+#homeCategories>*:nth-child(4n+4){border-bottom-color:var(--accent-cyan)}
 </style>
 
 <!-- Structured Data for Google -->
@@ -1046,14 +1094,14 @@ src="https://www.facebook.com/tr?id=851806290780479&ev=PageView&noscript=1"
       <div class="section-title"><span class="section-kicker" data-i18n="categories_kicker">الفئات</span><h2 data-i18n="categories_title">الفئات الرئيسية</h2><p data-i18n="categories_desc">ملح · مكملات · تلوين مرجان · تنقية مياه · أجهزة قياس</p></div>
       <button class="btn" onclick="go('categories')" data-i18n="btn_all_cats">كل الفئات</button>
     </div>
-    <div class="category-grid" id="homeCategories"></div>
+    <div class="category-grid" id="homeCategories" tabindex="0"></div>
   </div>
   <div class="section container reveal sd-1" style="padding-top:0">
     <div class="section-head">
       <div class="section-title"><span class="section-kicker" data-i18n="featured_kicker">الأكثر طلبًا</span><h2 data-i18n="featured_title">منتجات مختارة هذا الأسبوع</h2><p data-i18n="featured_desc">أبرز منتجات Red Sea المطلوبة لأحواض المرجان والمياه المالحة</p></div>
       <button class="btn" onclick="go('products')" data-i18n="btn_all_prods">كل المنتجات</button>
     </div>
-    <div class="product-grid" id="featuredProducts"></div>
+    <div class="product-grid" id="featuredProducts" tabindex="0"></div>
   </div>
   <!-- شريط الضمانات — مكان ثانوي مدمج -->
   <div class="container reveal sd-2" style="padding:20px 20px 0">
