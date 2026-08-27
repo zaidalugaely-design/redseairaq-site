@@ -21,7 +21,14 @@ function esc(str) {
 
 function safeImage(url) {
   if (typeof url === 'string' && url.startsWith('https://')) return url;
-  return `${SITE}/logo.jpg`;
+  return `${SITE}/og-default.jpg`;
+}
+
+function imageType(url) {
+  const ext = String(url).split('?')[0].split('.').pop().toLowerCase();
+  if (ext === 'png') return 'image/png';
+  if (ext === 'webp') return 'image/webp';
+  return 'image/jpeg';
 }
 
 function fetchProducts() {
@@ -49,7 +56,9 @@ function page(p) {
   const title   = esc(p.name || 'Red Sea Iraq');
   const desc    = esc((p.description || 'منتج Red Sea الأصلي — الوكيل الحصري في العراق').slice(0, 160));
   console.log('RAW image for', p.id, ':', JSON.stringify(p.image));
-  const image   = esc(safeImage(p.image));
+  const rawImage = safeImage(p.image);
+  const image    = esc(rawImage);
+  const imgType  = imageType(rawImage);
   const ogUrl   = `${SITE}/p/${encodeURIComponent(id)}.html`;
   const hashUrl = `${SITE}/#/product/${encodeURIComponent(id)}`;
   const hashRel = `/#/product/${encodeURIComponent(id)}`;
@@ -60,9 +69,9 @@ function page(p) {
 <meta property="og:title" content="${title}">
 <meta property="og:description" content="${desc}">
 <meta property="og:image" content="${image}">
-<meta property="og:image:width" content="600">
-<meta property="og:image:height" content="600">
-<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="${imgType}">
 <meta property="og:url" content="${ogUrl}">
 <meta property="og:site_name" content="Red Sea Iraq">
 <meta name="twitter:card" content="summary_large_image">
