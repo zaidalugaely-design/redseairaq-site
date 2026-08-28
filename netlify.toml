@@ -6,6 +6,9 @@
 [functions]
   node_bundler = "esbuild"
 
+[images]
+  remote_images = ["https://glhmmrovxyijtzjaldtf\\.supabase\\.co/.*"]
+
 # SPA catch-all — serves index.html for any path with no matching file
 [[redirects]]
   from   = "/*"
