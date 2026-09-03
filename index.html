@@ -1902,7 +1902,7 @@ const T = {
     trust3_title:'دفع عند الاستلام', trust3_desc:'ادفع لما تستلم المنتج بيدك',
     trust4_title:'دعم مباشر واتساب', trust4_desc:'تأكيد سريع وإجابة على كل استفساراتك',
     categories_kicker:'الفئات', categories_title:'الفئات الرئيسية',
-    categories_desc:'ملح · مكملات · تلوين مرجان · تنقية مياه · أجهزة قياس',
+    categories_desc:'الأحواض والإضاءة · أجهزة القياس والمعدات · تنقية ومعالجة المياه · التغذية والمكملات',
     all_categories:'كل الفئات', all_products:'كل المنتجات',
     featured_kicker:'الأكثر طلبًا', featured_title:'منتجات مختارة هذا الأسبوع',
     featured_desc:'أبرز منتجات Red Sea المطلوبة لأحواض المرجان والمياه المالحة',
@@ -2070,7 +2070,7 @@ const T = {
     trust3_title:'Cash on Delivery', trust3_desc:'Pay only when you receive your order',
     trust4_title:'Direct WhatsApp Support', trust4_desc:'Fast confirmation and answers to all your questions',
     categories_kicker:'Categories', categories_title:'Main Categories',
-    categories_desc:'Salt · Supplements · Coral Colors · Filtration · Testing Tools',
+    categories_desc:'Aquariums & Lighting · Measurement & Equipment · Water Treatment · Feeding & Supplements',
     all_categories:'All Categories', all_products:'All Products',
     featured_kicker:'Most Ordered', featured_title:'Top Products This Week',
     featured_desc:'Best-selling Red Sea products for marine and reef aquariums',
@@ -2238,7 +2238,7 @@ const T = {
     trust3_title:'پارەدان لەکاتی وەرگرتن', trust3_desc:'تەنها لەکاتی وەرگرتن پارە بدە',
     trust4_title:'پشتیوانی ڕاستەوخۆی واتساپ', trust4_desc:'وەڵامدانەوەی خێرا',
     categories_kicker:'جۆره‌کان', categories_title:'جۆره‌کانی سه‌ره‌کی',
-    categories_desc:'خوێ · پێکهاتەکان · ره‌نگی مه‌رجان · پاككردنه‌وه‌ی ئاو · ئامێره‌کان',
+    categories_desc:'ئاکوەریوم و ڕووناکی · ئامێری پێوانە و کەرەستەکان · پاراستن و چارەسەری ئاو · خۆراک و پێکهاتەکان',
     all_categories:'هه‌موو جۆره‌کان', all_products:'هه‌موو کاڵاکان',
     featured_kicker:'زیاتر داواکراو', featured_title:'کاڵاکانی هه‌ڵبژێردراو',
     featured_desc:'باشترین کاڵاکانی Red Sea',
@@ -2469,44 +2469,17 @@ const CFG={delivery:5000,wa:'9647726669956'};
 // كل أيقونة فريدة — لا تكرار بين الفئات
 // الاستخدام: ضع النص داخل عنصر، واللون يُورَّث عبر currentColor
 const CAT_ICONS = {
-  // الأملاح البحرية — droplets
-  'salt': '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"/></svg>',
+  // الأحواض والإضاءة — fish (يمثل الهوية البصرية المهيمنة للفئة المدمجة)
+  'aquariums_lighting': '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 12c.94-3.46 4.94-6 8.5-6 3.56 0 6.06 2.54 7 6-.94 3.47-3.44 6-7 6s-7.56-2.53-8.5-6Z"/><path d="M18 12v.5"/><path d="M16 17.93a9.77 9.77 0 0 1 0-11.86"/><path d="M7 10.67C7 8 5.58 5.97 2.73 5.5c-1 1.5-1 5 .23 6.5-1.24 1.5-1.24 5-.23 6.5C5.58 18.03 7 16 7 13.33"/><path d="M10.46 7.26C10.2 5.88 9.17 4.24 8 3h5.8a2 2 0 0 1 1.98 1.67l.23 1.4"/><path d="m16.01 17.93-.23 1.4A2 2 0 0 1 13.8 21H9.5a5.96 5.96 0 0 0 1.49-3.98"/></svg>',
 
-  // المكملات الأساسية — flask-conical
-  'supplements': '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2"/><path d="M6.453 15h11.094"/><path d="M8.5 2h7"/></svg>',
+  // أجهزة القياس والمعدات — gauge
+  'equipment': '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>',
 
-  // تنقية المياه — funnel
-  'filtration': '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"/></svg>',
+  // تنقية ومعالجة المياه — funnel
+  'water_treatment': '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"/></svg>',
 
-  // أجهزة القياس — gauge
-  'tools': '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>',
-
-  // إدارة المغذيات — sliders-horizontal
-  'control': '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/></svg>',
-
-  // المعالجة البيولوجية — sprout
-  'probidio': '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9.536V7a4 4 0 0 1 4-4h1.5a.5.5 0 0 1 .5.5V5a4 4 0 0 1-4 4 4 4 0 0 0-4 4c0 2 1 3 1 5a5 5 0 0 1-1 3"/><path d="M4 9a5 5 0 0 1 8 4 5 5 0 0 1-8-4"/><path d="M5 21h14"/></svg>',
-
-  // الأحواض المتكاملة — fish
-  'cat_tanks': '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 12c.94-3.46 4.94-6 8.5-6 3.56 0 6.06 2.54 7 6-.94 3.47-3.44 6-7 6s-7.56-2.53-8.5-6Z"/><path d="M18 12v.5"/><path d="M16 17.93a9.77 9.77 0 0 1 0-11.86"/><path d="M7 10.67C7 8 5.58 5.97 2.73 5.5c-1 1.5-1 5 .23 6.5-1.24 1.5-1.24 5-.23 6.5C5.58 18.03 7 16 7 13.33"/><path d="M10.46 7.26C10.2 5.88 9.17 4.24 8 3h5.8a2 2 0 0 1 1.98 1.67l.23 1.4"/><path d="m16.01 17.93-.23 1.4A2 2 0 0 1 13.8 21H9.5a5.96 5.96 0 0 0 1.49-3.98"/></svg>',
-
-  // الإضاءة — lightbulb
-  'cat_lighting': '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>',
-
-  // تدوير المياه (مضخات) — fan
-  'cat_1777829753816': '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.827 16.379a6.082 6.082 0 0 1-8.618-7.002l5.412 1.45a6.082 6.082 0 0 1 7.002-8.618l-1.45 5.412a6.082 6.082 0 0 1 8.618 7.002l-5.412-1.45a6.082 6.082 0 0 1-7.002 8.618l1.45-5.412Z"/><path d="M12 12v.01"/></svg>',
-
-  // أدوات — wrench
-  'cat_1778361718370': '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/></svg>',
-
-  // علاج — pill
-  'cat_1782669820912': '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>',
-
-  // غذاء مرجان — utensils
-  'cat_1777422837524': '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>',
-
-  // تلوين المرجان — palette
-  'colors': '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/></svg>'
+  // التغذية والمكملات — flask-conical
+  'feeding_supplements': '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2"/><path d="M6.453 15h11.094"/><path d="M8.5 2h7"/></svg>'
 };
 /* ════════════════════════
    CACHE — نسخة بنية البيانات المخزّنة محلياً
@@ -2565,12 +2538,12 @@ function loadCustomCats(){
 }
 function saveCustomCats(){
   var custom = CATS.filter(function(c){
-    return !['salt','supplements','colors','filtration','control','tools'].includes(c.id);
+    return !DEFAULT_CAT_IDS.includes(c.id);
   });
   localStorage.setItem('rsi_custom_cats', JSON.stringify(custom));
 }
 
-const SUGG_MAP={tanks:['salt','filtration','lighting'],salt:['tools','supplements','test'],supplements:['salt','tools','colors'],colors:['supplements','control','food'],filtration:['control','tools','pumps'],control:['filtration','tools','test'],tools:['salt','supplements','test'],food:['colors','supplements'],lighting:['tanks','pumps'],rocks:['tanks','salt'],pumps:['filtration','lighting'],test:['tools','control']};
+const SUGG_MAP={aquariums_lighting:['equipment','water_treatment','feeding_supplements'],equipment:['aquariums_lighting','water_treatment','feeding_supplements'],water_treatment:['equipment','feeding_supplements','aquariums_lighting'],feeding_supplements:['water_treatment','equipment','aquariums_lighting']};
 
 function safeJson(k,fb){try{const r=localStorage.getItem(k);return r?JSON.parse(r)||fb:fb;}catch(e){localStorage.removeItem(k);return fb;}}
 function validList(l){return Array.isArray(l)&&l.every(p=>p&&p.id&&p.name&&p.category&&typeof p.price==='number');}
@@ -2803,16 +2776,15 @@ window.retryShopLoad=async function(){
   await syncFromSupabase(); /* يُعيد رسم الصفحة الحالية داخلياً بالفعل */
 };
 function renderHome(){
-  document.getElementById('homeCategories').innerHTML=CATS.length?visibleCats().slice(0,3).map(catCard).join(''):shopEmptyStateHtml();
+  document.getElementById('homeCategories').innerHTML=CATS.length?visibleCats().map(catCard).join(''):shopEmptyStateHtml();
   if(!products.length){
     document.getElementById('featuredProducts').innerHTML=shopEmptyStateHtml();
     return;
   }
   var homeProds=[];
-  /* real Supabase category ids only — see CLAUDE.md: these must never be hand-written
-     again. 'rocks' had no matching category at all and 'test' was an ambiguous
-     duplicate of 'tools', so both were dropped rather than guessed. */
-  var homeCats=['cat_tanks','salt','filtration','control','tools','cat_1777422837524','cat_lighting','supplements','colors','cat_1777829753816'];
+  /* الفئات الأربع النهائية بعد دمج الـ13 فئة القديمة — انظر CLAUDE.md.
+     معرّفات Supabase الحقيقية فقط، لا تُكتب يدوياً بمعرّفات مختلفة أبداً. */
+  var homeCats=['aquariums_lighting','equipment','water_treatment','feeding_supplements'];
   homeCats.forEach(function(cat){
     if(!CATS.find(function(c){return c.id===cat;})){
       console.warn('[renderHome] homeCats: category id not found among loaded categories —',cat);
@@ -2884,7 +2856,10 @@ async function renderProdibio(){
     ctaBtn.href='https://api.whatsapp.com/send?phone=9647726669956&text='+ctaMsg;
   }
   try{
-    var data=await sbGet('/rest/v1/products?category=eq.probidio&hidden=not.is.true&select=*&order=sort_order.asc,created_at.desc&limit=100');
+    /* لا يوجد بعد الآن معرّف فئة مستقل لمنتجات PRODIBIO (دُمجت ضمن water_treatment) —
+       القائمة أدناه هي نفس السبعة منتجات التي كانت سابقاً بفئة probidio بالضبط، بمعرّفاتها
+       الثابتة، حتى تبقى صفحة PRODIBIO تعرض نفس المنتجات تماماً دون أي تغيير بالسلوك. */
+    var data=await sbGet('/rest/v1/products?id=in.(p1780761808459,p1780762291292,p1780763169396,p1780763513769,p1780763680543,p1780763941757,p1782008005906)&hidden=not.is.true&select=*&order=sort_order.asc,created_at.desc&limit=100');
     if(!data||!data.length){
       grid.innerHTML='<p class="pb-empty">لا توجد منتجات</p>';
       return;
@@ -2946,7 +2921,7 @@ function renderProductDetail(id){
   if(ogTitle) ogTitle.setAttribute('content', p.name + ' — Red Sea Iraq');
   if(ogDesc)  ogDesc.setAttribute('content', p.desc || 'منتج Red Sea الأصلي — الوكيل الحصري في العراق');
   const c=catById(p.category), hv=p.variants&&p.variants.length;
-  const caut=['control','supplements','colors'].includes(p.category);
+  const caut=['water_treatment','feeding_supplements'].includes(p.category);
   const cur=getCur(p);
   const isPre=p.stock==='preorder';
   const catIconHtml=(c&&CAT_ICONS[c.id])||((c && typeof c.icon==='string' && c.icon.indexOf('<svg')===0)?c.icon:`<span style="font-size:72px">${c?c.icon:'📦'}</span>`);
@@ -5795,7 +5770,7 @@ async function sbDeleteRef(id){
 /* ════════════════════════
    CUSTOM CATEGORIES
    ════════════════════════ */
-var DEFAULT_CAT_IDS = ['tanks','salt','filtration','control','tools','food','lighting','supplements','colors','rocks','pumps','test'];
+var DEFAULT_CAT_IDS = ['aquariums_lighting','equipment','water_treatment','feeding_supplements'];
 
 window.showAddCatForm = function(){
   var f = document.getElementById('addCatForm');
@@ -5845,10 +5820,10 @@ function renderCatManagerList(){
   if(!container) return;
   var customCats = CATS.filter(function(c){ return !DEFAULT_CAT_IDS.includes(c.id); });
   if(!customCats.length){
-    container.innerHTML='<div style="color:var(--muted);font-size:13.5px;padding:8px">الفئات الافتراضية: الأملاح، المكملات، التلوين، التنقية، المغذيات، القياس</div>';
+    container.innerHTML='<div style="color:var(--muted);font-size:13.5px;padding:8px">الفئات الافتراضية: الأحواض والإضاءة، أجهزة القياس والمعدات، تنقية ومعالجة المياه، التغذية والمكملات</div>';
     return;
   }
-  var defaultHtml = '<div style="color:var(--muted);font-size:12px;margin-bottom:10px;font-weight:800">الافتراضية: الأملاح · المكملات · التلوين · التنقية · المغذيات · القياس</div>';
+  var defaultHtml = '<div style="color:var(--muted);font-size:12px;margin-bottom:10px;font-weight:800">الافتراضية: الأحواض والإضاءة · أجهزة القياس والمعدات · تنقية ومعالجة المياه · التغذية والمكملات</div>';
   var customHtml = customCats.map(function(c){
     var count = products.filter(function(p){return p.category===c.id;}).length;
     return '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--pearl);border:1px solid var(--line);border-radius:12px;padding:11px 14px;margin-bottom:8px">'
