@@ -1,5 +1,5 @@
 [build]
-  command         = "mkdir -p dist && cp index.html dist/ && cp og-default.jpg dist/ && cp -r netlify dist/ && node scripts/stamp-build-version.js && node scripts/generate-og-pages.js"
+  command         = "rm -rf dist && mkdir -p dist && cp index.html dist/ && cp og-default.jpg dist/ && cp -r netlify dist/ && node scripts/stamp-build-version.js && node scripts/generate-og-pages.js"
   functions       = "netlify/functions"
   publish         = "dist"
 

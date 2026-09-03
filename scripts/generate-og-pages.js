@@ -96,6 +96,7 @@ function page(p) {
   const hashRel = `/#/product/${encodeURIComponent(id)}`;
 
   return `<!DOCTYPE html><html lang="ar"><head>
+<!-- generated: ${new Date().toISOString()} -->
 <meta charset="utf-8">
 <meta property="og:type" content="product">
 <meta property="og:title" content="${title}">
