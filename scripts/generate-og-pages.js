@@ -36,6 +36,32 @@ function imageType(url) {
   return 'image/jpeg';
 }
 
+/* صور og:image الأصلية فوق ~300 كيلوبايت يرفضها واتساب بصمت (بلا صورة بالمعاينة
+   إطلاقاً، لا خطأ ظاهر). لهذا كل صورة منتج كانت > 300KB (فُحصت كل صور Supabase Storage
+   لمجلد red-sea-images فعلياً، سبتمبر 2026 — 26 صورة) لها نسخة مصغّرة/مضغوطة دائمة
+   (JPEG، حد أقصى 1200×1200، أقل من 300KB) مولَّدة *مسبقاً* بـ og-thumbs/{id}.jpg بنفس
+   الـ bucket — لا معالجة حيّة وقت الطلب. الصورة الأصلية عالية الجودة تبقى كما هي
+   وتُستخدم بصفحة المنتج نفسها (index.html لم يُمس). og:image يستخدم النسخة المصغّرة
+   لأي id بالقائمة أدناه، وإلا الصورة الأصلية مباشرة (آمنة لأي منتج ≤300KB أصلاً).
+
+   القائمة *ثابتة يدوياً* عمداً — لا استعلام حي وقت البناء: لا توجد سياسة RLS تسمح
+   بعملية LIST على مجلد Storage بالمفتاح العام (فقط GET لملف محدد بالمسار مسموح
+   للـ bucket العام، جُرّب فعلياً وتأكد الفرق)، وإضافة سياسة كهذي تعديل صلاحيات لا
+   يستحق التعقيد لقائمة تتغيّر نادراً.
+
+   **أي صورة منتج جديدة تُرفع مستقبلاً وحجمها > 300KB تحتاج نفس المعالجة يدوياً:**
+   أعد نشر/شغّل دالة `generate-og-thumbnails` (Supabase Edge Function، Deno +
+   ImageScript، تفاصيل الطريقة كاملة موثّقة بجلسة "معالجة صور og:image الكبيرة"،
+   سبتمبر 2026) على الصورة الجديدة، ثم أضف الـ id هنا. */
+const OG_THUMB_IDS = new Set([
+  'p1', 'p4',
+  'rsa_r35150', 'rsa_r35184', 'rsa_r35185', 'rsa_r35310', 'rsa_r35320',
+  'rsa_r40580', 'rsa_r42089', 'rsa_r42195', 'rsa_r42196', 'rsa_r42197',
+  'rsa_r42437', 'rsa_r43764', 'rsa_r45118', 'rsa_r45132', 'rsa_r45139',
+  'rsa_r45146', 'rsa_r45164', 'rsa_r45173', 'rsa_r45198', 'rsa_r45206',
+  'rsa_r45214', 'rsa_r45221', 'rsa_r50504', 'rsa_r50506',
+]);
+
 function fetchProducts() {
   return new Promise((resolve, reject) => {
     const reqUrl = new URL(
@@ -61,9 +87,10 @@ function page(p) {
   const title   = esc(p.name || 'Red Sea Iraq');
   const desc    = esc((p.description || 'منتج Red Sea الأصلي — الوكيل الحصري في العراق').slice(0, 160));
   console.log('RAW image for', p.id, ':', JSON.stringify(p.image));
-  const rawImage = safeImage(p.image);
+  const hasThumb = OG_THUMB_IDS.has(id);
+  const rawImage = hasThumb ? `${SB_URL}/storage/v1/object/public/products/og-thumbs/${id}.jpg` : safeImage(p.image);
   const image    = esc(rawImage);
-  const imgType  = imageType(rawImage);
+  const imgType  = hasThumb ? 'image/jpeg' : imageType(rawImage);
   const ogUrl   = `${SITE}/p/${encodeURIComponent(id)}.html`;
   const hashUrl = `${SITE}/#/product/${encodeURIComponent(id)}`;
   const hashRel = `/#/product/${encodeURIComponent(id)}`;
