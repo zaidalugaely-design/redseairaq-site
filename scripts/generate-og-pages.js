@@ -26,11 +26,14 @@ function safeImage(url) {
   return DEFAULT_IMAGE;
 }
 
-/* يمرّر الصورة عبر Netlify Image CDN (w=1200 فقط، بلا ارتفاع/قصّ — النسبة كما هي)
-   لتفادي رفض زاحف واتساب الصامت للصور الكبيرة (REEFER 300+). لا تُفكّ أي ترميز من
-   url قبل encodeURIComponent — بعض الروابط تحتوي %20 أصلاً وفكّها يكسرها. */
-function ogImage(url) {
-  return `https://redseairaq.com/.netlify/images?url=${encodeURIComponent(url)}&w=1200&fm=jpg&q=80`;
+/* /.netlify/images?url=... يرجع 400 فعلياً للصور المصدر الكبيرة (تأكد على rsa_r35320،
+   8.9MB — أكبر صورة بمجلد red-sea-images، أكبر من حد Netlify Image CDN لجلب/تحويل
+   المصدر). نستخدم رابط Supabase الأصلي مباشرة بدل المرور بهذا المحوّل. */
+function imageType(url) {
+  const ext = String(url).split('?')[0].split('.').pop().toLowerCase();
+  if (ext === 'png') return 'image/png';
+  if (ext === 'webp') return 'image/webp';
+  return 'image/jpeg';
 }
 
 function fetchProducts() {
@@ -59,8 +62,8 @@ function page(p) {
   const desc    = esc((p.description || 'منتج Red Sea الأصلي — الوكيل الحصري في العراق').slice(0, 160));
   console.log('RAW image for', p.id, ':', JSON.stringify(p.image));
   const rawImage = safeImage(p.image);
-  /* og-default.jpg محلية ومضبوطة سلفاً — لا تمرّ عبر المحوّل */
-  const image    = esc(rawImage === DEFAULT_IMAGE ? rawImage : ogImage(rawImage));
+  const image    = esc(rawImage);
+  const imgType  = imageType(rawImage);
   const ogUrl   = `${SITE}/p/${encodeURIComponent(id)}.html`;
   const hashUrl = `${SITE}/#/product/${encodeURIComponent(id)}`;
   const hashRel = `/#/product/${encodeURIComponent(id)}`;
@@ -71,7 +74,7 @@ function page(p) {
 <meta property="og:title" content="${title}">
 <meta property="og:description" content="${desc}">
 <meta property="og:image" content="${image}">
-<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:type" content="${imgType}">
 <meta property="og:url" content="${ogUrl}">
 <meta property="og:site_name" content="Red Sea Iraq">
 <meta name="twitter:card" content="summary_large_image">
