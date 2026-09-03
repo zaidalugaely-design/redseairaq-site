@@ -254,6 +254,8 @@ exports.handler = async function(event) {
         badge: item.badge || '', stock: item.stock,
         image: item.image || '', description: item.desc || '',
         hidden: !!item.hidden,
+        is_prodibio: !!item.is_prodibio,
+        requires_caution: !!item.requires_caution,
         specs: JSON.stringify(item.specs || []),
         variants: JSON.stringify(item.variants || []),
         updated_at: new Date().toISOString()

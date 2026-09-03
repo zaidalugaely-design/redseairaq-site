@@ -1273,6 +1273,16 @@ src="https://www.facebook.com/tr?id=851806290780479&ev=PageView&noscript=1"
               <option value="soon">قريباً</option>
               <option value="out">غير متوفر</option>
             </select>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;padding:2px 2px">
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+                <input type="checkbox" id="adminIsProdibio" style="width:16px;height:16px">
+                منتج PRODIBIO
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+                <input type="checkbox" id="adminRequiresCaution" style="width:16px;height:16px">
+                يحتاج تحذير جرعة
+              </label>
+            </div>
             <input class="input" id="adminBadge" placeholder="شارة اختيارية: جديد / الأكثر طلباً">
             <textarea class="textarea" id="adminDesc" placeholder="وصف مختصر ومحترف للمنتج"></textarea>
             <div style="display:flex;justify-content:flex-end;margin-top:-4px">
@@ -2856,10 +2866,10 @@ async function renderProdibio(){
     ctaBtn.href='https://api.whatsapp.com/send?phone=9647726669956&text='+ctaMsg;
   }
   try{
-    /* لا يوجد بعد الآن معرّف فئة مستقل لمنتجات PRODIBIO (دُمجت ضمن water_treatment) —
-       القائمة أدناه هي نفس السبعة منتجات التي كانت سابقاً بفئة probidio بالضبط، بمعرّفاتها
-       الثابتة، حتى تبقى صفحة PRODIBIO تعرض نفس المنتجات تماماً دون أي تغيير بالسلوك. */
-    var data=await sbGet('/rest/v1/products?id=in.(p1780761808459,p1780762291292,p1780763169396,p1780763513769,p1780763680543,p1780763941757,p1782008005906)&hidden=not.is.true&select=*&order=sort_order.asc,created_at.desc&limit=100');
+    /* عمود products.is_prodibio (منطقي، افتراضي false) هو المصدر الوحيد لتحديد منتجات
+       PRODIBIO — لا معرّف فئة مستقل بعد دمج الفئات ولا قائمة معرّفات ثابتة بالكود.
+       الأدمن يُعلِّم أي منتج جديد عبر خانة "منتج PRODIBIO" بنموذج إضافة/تعديل المنتج. */
+    var data=await sbGet('/rest/v1/products?is_prodibio=eq.true&hidden=not.is.true&select=*&order=sort_order.asc,created_at.desc&limit=100');
     if(!data||!data.length){
       grid.innerHTML='<p class="pb-empty">لا توجد منتجات</p>';
       return;
@@ -2921,7 +2931,7 @@ function renderProductDetail(id){
   if(ogTitle) ogTitle.setAttribute('content', p.name + ' — Red Sea Iraq');
   if(ogDesc)  ogDesc.setAttribute('content', p.desc || 'منتج Red Sea الأصلي — الوكيل الحصري في العراق');
   const c=catById(p.category), hv=p.variants&&p.variants.length;
-  const caut=['water_treatment','feeding_supplements'].includes(p.category);
+  const caut=!!p.requires_caution;
   const cur=getCur(p);
   const isPre=p.stock==='preorder';
   const catIconHtml=(c&&CAT_ICONS[c.id])||((c && typeof c.icon==='string' && c.icon.indexOf('<svg')===0)?c.icon:`<span style="font-size:72px">${c?c.icon:'📦'}</span>`);
@@ -3201,6 +3211,8 @@ window.generateAdminDesc=async function(){
 window.resetAdminForm=function(){
   ['adminProductId','adminName','adminPrice','adminBadge','adminDesc','adminSpecs','adminVariants'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const s=document.getElementById('adminStock');if(s)s.value='available';
+  const pb=document.getElementById('adminIsProdibio');if(pb)pb.checked=false;
+  const cw=document.getElementById('adminRequiresCaution');if(cw)cw.checked=false;
   adminImgData='';document.getElementById('adminImage').value='';
   document.getElementById('adminImagePreview').textContent='اختر صورة المنتج';
   document.getElementById('adminFormTitle').textContent='إضافة منتج جديد';
@@ -3239,12 +3251,14 @@ window.saveAdminProduct=async function(){
   const desc=(document.getElementById('adminDesc').value||'').trim();
   const specs=parseSpec(document.getElementById('adminSpecs').value||'');
   const variants=parseVar(document.getElementById('adminVariants').value||'');
+  const is_prodibio=!!document.getElementById('adminIsProdibio')?.checked;
+  const requires_caution=!!document.getElementById('adminRequiresCaution')?.checked;
   /* لضمان تطابق ما يُعرض للزبون (variants[0].price) مع ما يُعدّله الأدمن (adminPrice) */
   if(variants.length) variants[0].price=price;
   if(!name||!price||!category){toast('اكتب اسم المنتج والسعر والفئة');return;}
   const ex=products.find(p=>p.id===id);
   const image=adminImgData||(ex&&ex.image)||'';
-  const item={id,category,name,price,currency,badge,stock,image,desc:desc||'وصف المنتج.',specs:specs.length?specs:['منتج أصلي من Red Sea'],variants};
+  const item={id,category,name,price,currency,badge,stock,image,desc:desc||'وصف المنتج.',specs:specs.length?specs:['منتج أصلي من Red Sea'],variants,is_prodibio,requires_caution};
   const idx=products.findIndex(p=>p.id===id);
   if(idx>=0)products[idx]=item;else products.unshift(item);
   saveProd();await sbSaveProduct(item);renderAdmin();resetAdminForm();renderHome();renderProducts();toast('تم حفظ المنتج ✓ ('+(currency==='IQD'?'دينار':'دولار')+')');
@@ -3258,6 +3272,8 @@ window.editAdminProduct=function(id){
   document.getElementById('adminCurrency').value=p.currency||'auto';
   document.getElementById('adminStock').value=p.stock;
   document.getElementById('adminBadge').value=p.badge||'';
+  const pb=document.getElementById('adminIsProdibio');if(pb)pb.checked=!!p.is_prodibio;
+  const cw=document.getElementById('adminRequiresCaution');if(cw)cw.checked=!!p.requires_caution;
   document.getElementById('adminDesc').value=p.desc||'';
   document.getElementById('adminSpecs').value=(p.specs||[]).join('\n');
   document.getElementById('adminVariants').value=(p.variants||[]).map(v=>`${v.name}=${v.price}`).join('\n');
@@ -5951,7 +5967,7 @@ async function syncFromSupabase(){
           id:p.id,category:p.category,name:p.name,price:p.price,
           badge:p.badge||'',stock:stock,image:p.image||'',
           desc:p.description||'', currency:currency,
-          hidden:!!p.hidden,
+          hidden:!!p.hidden, is_prodibio:!!p.is_prodibio, requires_caution:!!p.requires_caution,
           specs:typeof p.specs==='string'?JSON.parse(p.specs||'[]'):p.specs||[],
           variants:typeof p.variants==='string'?JSON.parse(p.variants||'[]'):p.variants||[]
         };
@@ -6095,7 +6111,7 @@ async function silentRevalidate(){
         id:p.id,category:p.category,name:p.name,price:p.price,
         badge:p.badge||'',stock:stock,image:p.image||'',
         desc:p.description||'', currency:currency,
-        hidden:!!p.hidden,
+        hidden:!!p.hidden, is_prodibio:!!p.is_prodibio, requires_caution:!!p.requires_caution,
         specs:typeof p.specs==='string'?JSON.parse(p.specs||'[]'):p.specs||[],
         variants:typeof p.variants==='string'?JSON.parse(p.variants||'[]'):p.variants||[]
       };
