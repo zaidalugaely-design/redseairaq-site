@@ -3340,14 +3340,21 @@ function ordersTable(orders,showingArchived){
   if(!orders||!orders.length) return '<div style="color:var(--muted);padding:20px">لا توجد طلبات</div>';
   return orders.map(function(o,i){
     var bg      = i%2===0?'#fff':'#f8fafc';
-    var phone   = o.customer_phone||o.ph||'';
-    var city    = o.customer_city||o.city||'';
-    var area    = o.customer_area||o.area||'';
-    var notes   = o.customer_notes||o.notes||'';
+    /* بيانات الطلب كلها قادمة من الزبون عبر save_order (بلا auth) — يجب أن تمر
+       عبر esc() هنا بلا أي استثناء قبل إدراجها بالـHTML، مهما بدت "بريئة" (رقم هاتف،
+       اسم منطقة...). لا تُضف أي حقل جديد من بيانات الطلب لهذه الدالة بدون esc(). */
+    var phone   = esc(o.customer_phone||o.ph||'');
+    var city    = esc(o.customer_city||o.city||'');
+    var area    = esc(o.customer_area||o.area||'');
+    var notes   = esc(o.customer_notes||o.notes||'');
     var total   = o.total||o.tot||0;
     var delivery= o.delivery||o.del||0;
     var status  = o.status||'new';
-    var oid     = o.id||'-';
+    /* oid يُدرَج أيضاً داخل onclick="...('+oid+'...)" — سياق JS-string-inside-HTML-attribute
+       حيث esc() وحدها لا تكفي (فك ترميز HTML entities يحدث قبل تفسير JS). الحماية الحقيقية
+       لهذا السياق تحديداً هي التحقق من صيغة id بصرامة على الخادم (save_order بـapi.js يرفض
+       أي id لا يطابق RSI-YYMMDD-NNNN) — esc() هنا طبقة دفاع إضافية فقط. */
+    var oid     = esc(o.id||'-');
     var dateStr = (o.created_at||o.created)?new Date(o.created_at||o.created).toLocaleString('ar-IQ'):'-';
     var items   = o.items ? (typeof o.items==='string' ? (function(){try{return JSON.parse(o.items);}catch(e){return [];}}()) : o.items) : [];
 
@@ -3376,8 +3383,8 @@ function ordersTable(orders,showingArchived){
     if(!totalDisplay) totalDisplay = money(total,'IQD');
 
     var itemsHtml = items.length?items.map(function(it){
-      var n  = it.n||it.name||'-';
-      var q  = it.q||it.qty||1;
+      var n  = esc(it.n||it.name||'-');
+      var q  = Number(it.q||it.qty)||1;
       var lt = it.lt||it.lineTotal||0;
       var ic = it.cur||(it.preorder?'USD':'IQD');
       var preLabel = it.preorder?' <span style="background:#fef3c7;color:#854d0e;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:900">حجز مسبق</span>':'';
@@ -3557,6 +3564,7 @@ window.setBotQ=function(q){
 };
 
 window.runBot=async function(){
+  if(!_adminToken){toast('سجل الدخول أولاً');return;}
   const inp  = document.getElementById('botInput');
   const resp = document.getElementById('botResponse');
   const q    = (inp.value||'').trim();
@@ -3593,7 +3601,7 @@ window.runBot=async function(){
   try{
     const res = await fetch('/.netlify/functions/admin-bot', {
       method : 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer '+_adminToken },
       body   : JSON.stringify({ command: q, products: prodSnapshot })
     });
 

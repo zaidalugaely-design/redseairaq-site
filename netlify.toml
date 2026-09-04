@@ -9,6 +9,18 @@
 [images]
   remote_images = ["https://glhmmrovxyijtzjaldtf\\.supabase\\.co/.*"]
 
+# ترويسات أمان فعلية — X-Frame-Options وframe-ancestors لا قيمة أمنية لهما كـ<meta>
+# بالـHTML (المتصفح يتجاهلهما بصمت بهذه الصيغة، مؤكَّد فعلياً بتحذيرات console).
+# CSP هنا مقصودة تبقى مقتصرة على frame-ancestors فقط — بقية السياسة (script-src،
+# img-src، إلخ) تبقى مُدارة عبر الـ<meta> بـindex.html كما هي، لتفادي وجود نسختين
+# للسياسة الكاملة يمكن أن تتباعدا عن بعض؛ CSP من مصدرين تُطبَّق بتقاطع الأشد تقييداً
+# لكل توجيه (AND) فلا خطر بتخفيف أي قيد موجود بالـmeta.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    Content-Security-Policy = "frame-ancestors 'none'"
+
 # SPA catch-all — serves index.html for any path with no matching file
 [[redirects]]
   from   = "/*"

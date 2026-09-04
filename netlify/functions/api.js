@@ -115,23 +115,67 @@ async function sb(method, path, body) {
   return text ? JSON.parse(text) : null;
 }
 
-/* ── Rate limiting بسيط في الذاكرة ── */
-const attempts = new Map();
-function checkRateLimit(ip) {
+/* ── تنظيف مدخلات الزوار قبل الحفظ (طبقة دفاع ثانية — بجانب esc() عند العرض) ──
+   يزيل < و > فقط (لا يُشفّر بالكيانات HTML) لتفادي أي ازدواج ترميز لاحق عند
+   عرض القيمة عبر esc() بالواجهة — إزالة < > تكفي وحدها لمنع بناء أي وسم HTML. */
+function stripTags(v) {
+  if (typeof v !== 'string') return v;
+  return v.replace(/[<>]/g, '').trim();
+}
+
+/* ── قفل تسجيل دخول الأدمن — دائم بقاعدة البيانات (جدول admin_login_attempts,
+   RLS مفعّل، لا يصله إلا service_role) بدل Map بالذاكرة اللي يُصفَّر عند كل
+   تدوير لحاوية serverless أو لا يُشارَك بين حاويات متزامنة. نفس منطق القديم
+   بالضبط (5 محاولات ثم قفل 60 ثانية) لكن بتخزين فعلي عابر لإعادة التشغيل. ──*/
+async function checkRateLimit(ip) {
+  let rows = [];
+  try {
+    rows = await sb('GET', `/admin_login_attempts?identifier=eq.${encodeURIComponent(ip)}&select=attempt_count,locked_until`, null) || [];
+  } catch (_) { rows = []; }
+  const rec = rows[0] || { attempt_count: 0, locked_until: null };
   const now = Date.now();
-  const rec = attempts.get(ip) || { count: 0, until: 0 };
-  if (now < rec.until) return { blocked: true, secs: Math.ceil((rec.until - now) / 1000) };
-  if (rec.count >= 5) {
-    attempts.set(ip, { count: 0, until: now + 60000 });
+  const until = rec.locked_until ? new Date(rec.locked_until).getTime() : 0;
+  if (now < until) return { blocked: true, secs: Math.ceil((until - now) / 1000) };
+  if ((rec.attempt_count || 0) >= 5) {
+    try {
+      await sb('POST', '/admin_login_attempts', {
+        identifier: ip, attempt_count: 0,
+        locked_until: new Date(now + 60000).toISOString(),
+        last_attempt_at: new Date(now).toISOString()
+      });
+    } catch (_) {}
     return { blocked: true, secs: 60 };
   }
   return { blocked: false };
 }
-function recordFail(ip) {
-  const rec = attempts.get(ip) || { count: 0, until: 0 };
-  attempts.set(ip, { ...rec, count: rec.count + 1 });
+async function recordFail(ip) {
+  let rows = [];
+  try {
+    rows = await sb('GET', `/admin_login_attempts?identifier=eq.${encodeURIComponent(ip)}&select=attempt_count`, null) || [];
+  } catch (_) { rows = []; }
+  const count = (rows[0]?.attempt_count || 0) + 1;
+  try {
+    await sb('POST', '/admin_login_attempts', {
+      identifier: ip, attempt_count: count, last_attempt_at: new Date().toISOString()
+    });
+  } catch (_) {}
 }
-function clearFail(ip) { attempts.delete(ip); }
+async function clearFail(ip) {
+  try { await sb('DELETE', `/admin_login_attempts?identifier=eq.${encodeURIComponent(ip)}`, null); } catch (_) {}
+}
+
+/* ── Rate limiting بسيط بالذاكرة لطلبات save_order — حماية أساسية ضد إغراق سريع
+   من نفس المصدر داخل نفس الحاوية. حد أخف من قفل الأدمن (لا نريد منع زبون حقيقي
+   من إرسال أكثر من طلب)، وليست مصممة لتكون مضمونة عبر كل الحاويات (انظر التقرير). */
+const orderAttempts = new Map();
+function checkOrderRateLimit(ip) {
+  const now = Date.now();
+  const rec = orderAttempts.get(ip) || { count: 0, windowStart: now };
+  if (now - rec.windowStart > 60000) { orderAttempts.set(ip, { count: 1, windowStart: now }); return { blocked: false }; }
+  if (rec.count >= 8) return { blocked: true, secs: Math.ceil((rec.windowStart + 60000 - now) / 1000) };
+  orderAttempts.set(ip, { count: rec.count + 1, windowStart: rec.windowStart });
+  return { blocked: false };
+}
 
 /* ════════════════════════════════
    MAIN HANDLER
@@ -161,7 +205,7 @@ exports.handler = async function(event) {
 
   /* LOGIN */
   if (action === 'login') {
-    const rl = checkRateLimit('login_' + ip);
+    const rl = await checkRateLimit('login_' + ip);
     if (rl.blocked) return res(headers, 429, { error: `محاولات كثيرة — انتظر ${rl.secs} ثانية` });
 
     const { password } = body;
@@ -169,50 +213,89 @@ exports.handler = async function(event) {
 
     const hash = sha256(password);
     if (hash !== ADMIN_PASS_HASH) {
-      recordFail('login_' + ip);
+      await recordFail('login_' + ip);
       return res(headers, 401, { error: 'كلمة المرور غير صحيحة' });
     }
 
-    clearFail('login_' + ip);
+    await clearFail('login_' + ip);
     const token = signToken({ role: 'admin', iat: Date.now(), exp: Date.now() + 4 * 60 * 60 * 1000 }); /* 4 ساعات */
     return res(headers, 200, { token });
   }
 
   /* SAVE ORDER — من الزوار */
   if (action === 'save_order') {
+    const rl = checkOrderRateLimit(ip);
+    if (rl.blocked) return res(headers, 429, { error: `طلبات كثيرة جداً من نفس المصدر — انتظر ${rl.secs} ثانية` });
+
     const { order } = body;
     if (!order?.id) return res(headers, 400, { error: 'بيانات الطلب ناقصة' });
+    /* صيغة id صارمة — نفس صيغة doOrder() بـindex.html (RSI-YYMMDD-NNNN). يمنع
+       تمرير id مُعدّ يدوياً قد يكسر سياق onclick="...('+id+'...)" بلوحة الأدمن
+       (esc() لا تحمي ذلك السياق بمفردها — انظر ordersTable). */
+    if (!/^RSI-\d{6}-\d{4}$/.test(order.id)) return res(headers, 400, { error: 'صيغة رقم الطلب غير صحيحة' });
+
     try {
-      /* تجميد السعر في السلة: order.items[].p هو السعر الذي رآه الزبون ودفعه فعلاً — لا يُعدَّل هنا أبداً.
-         نضيف current_price (السعر الحالي في قاعدة البيانات وقت إرسال الطلب) لكل عنصر كمعلومة إضافية
-         للأدمن فقط عبر لوحة الإدارة — best-effort، وفشلها لا يوقف حفظ الطلب أبداً. */
-      let items = Array.isArray(order.items) ? order.items : [];
-      try {
-        const ids = [...new Set(items.map(i => i.id).filter(Boolean))];
-        if (ids.length) {
+      /* تنظيف الحقول النصية من أي وسم HTML/script قبل الحفظ — طبقة دفاع ثانية
+         بجانب esc() عند العرض بلوحة الأدمن (ordersTable بـindex.html). */
+      const ph    = stripTags(order.ph || '');
+      const city  = stripTags(order.city || '');
+      const area  = stripTags(order.area || '');
+      const notes = stripTags(order.notes || '');
+
+      let items = (Array.isArray(order.items) ? order.items : []).map(it => ({
+        ...it, n: stripTags(String(it?.n ?? it?.name ?? ''))
+      }));
+
+      /* إعادة حساب السعر/العملة/الإجمالي من قاعدة البيانات الحقيقية على الخادم —
+         لا اعتماد إطلاقاً على أرقام أرسلها المتصفح (كانت سابقاً تُحفظ كما هي بلا
+         تحقق). عنصر بمعرّف منتج معروف يُصحَّح فوراً لسعره/عملته الحالية؛ عنصر
+         بمعرّف غير معروف (نادر — منتج محذوف مثلاً) يبقى بقيمه المُرسَلة best-effort. */
+      const ids = [...new Set(items.map(i => i.id).filter(Boolean))];
+      let byId = {};
+      if (ids.length) {
+        try {
           const idParam = ids.map(id => encodeURIComponent(id)).join(',');
-          const current = await sb('GET', `/products?id=in.(${idParam})&select=id,price,variants`, null);
-          const byId = {};
+          const current = await sb('GET', `/products?id=in.(${idParam})&select=id,price,currency,stock,variants`, null);
           (current || []).forEach(p => { byId[p.id] = p; });
-          items = items.map(it => {
-            const p = it.id ? byId[it.id] : null;
-            if (!p) return it;
-            let variants = p.variants;
-            if (typeof variants === 'string') { try { variants = JSON.parse(variants || '[]'); } catch (_) { variants = []; } }
-            let currentPrice = p.price;
-            if (it.variantIndex != null && Array.isArray(variants) && variants[it.variantIndex]) {
-              currentPrice = variants[it.variantIndex].price;
-            }
-            return { ...it, current_price: currentPrice, price_changed: currentPrice != null && currentPrice !== it.p };
-          });
+        } catch (_) { /* best-effort */ }
+      }
+
+      let usd = 0, iqd = 0;
+      items = items.map(it => {
+        const p = it.id ? byId[it.id] : null;
+        const qty = Number(it.q) > 0 ? Number(it.q) : 1;
+        let price, cur, preorder, currentPrice = null, priceChanged = false;
+        if (p) {
+          let variants = p.variants;
+          if (typeof variants === 'string') { try { variants = JSON.parse(variants || '[]'); } catch (_) { variants = []; } }
+          currentPrice = p.price;
+          if (it.variantIndex != null && Array.isArray(variants) && variants[it.variantIndex]) {
+            currentPrice = variants[it.variantIndex].price;
+          }
+          cur = (p.currency === 'USD' || p.currency === 'IQD') ? p.currency : (p.stock === 'preorder' ? 'USD' : 'IQD');
+          price = currentPrice;
+          preorder = p.stock === 'preorder';
+          priceChanged = currentPrice != null && currentPrice !== it.p;
+        } else {
+          cur = it.cur === 'USD' ? 'USD' : 'IQD';
+          price = Number(it.p) || 0;
+          preorder = !!it.preorder;
         }
-      } catch (_) { /* best-effort — لا يوقف حفظ الطلب */ }
+        const lt = price * qty;
+        if (cur === 'USD') usd += lt; else iqd += lt;
+        return { ...it, q: qty, p: price, lt, cur, preorder, current_price: currentPrice, price_changed: priceChanged };
+      });
+
+      const DELIVERY_FEE = 5000; /* يطابق CFG.delivery بـindex.html */
+      const delivery = iqd > 0 ? DELIVERY_FEE : 0;
+      const subtotal = usd + iqd; /* يطابق منطق totals() بالواجهة */
+      const total = subtotal + delivery;
 
       await sb('POST', '/orders', {
-        id: order.id, customer_phone: order.ph, customer_city: order.city,
-        customer_area: order.area, customer_notes: order.notes || '',
-        items: JSON.stringify(items), subtotal: order.sub,
-        delivery: order.del, total: order.tot, status: 'new',
+        id: order.id, customer_phone: ph, customer_city: city,
+        customer_area: area, customer_notes: notes,
+        items: JSON.stringify(items), subtotal,
+        delivery, total, status: 'new',
         created_at: new Date().toISOString()
       });
       return res(headers, 200, { ok: true });
