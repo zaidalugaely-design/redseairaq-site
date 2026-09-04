@@ -1,0 +1,5 @@
+# Generated at Netlify build time
+/dist/
+
+# Local Netlify CLI state (netlify-cli serve/dev/link) — machine-local, never part of the site
+/.netlify/
