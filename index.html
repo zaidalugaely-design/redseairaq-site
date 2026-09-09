@@ -3175,7 +3175,7 @@ window.onAdminImg=async function(e){
     toast('جاري رفع الصورة...');
     const result=await apiCall('upload_product_image',{data:dataUri},true);
     adminImgData=result.url;
-    document.getElementById('adminImagePreview').innerHTML=`<img src="${adminImgData}" alt="">`;
+    document.getElementById('adminImagePreview').innerHTML=`<img src="${adminImgData}" alt="" onerror="this.parentElement.textContent='⚠️ الصورة رُفعت لكن يتعذر عرضها الآن — جرّب تحديث الصفحة'">`;
     toast('تم رفع الصورة ✓');
   }catch(err){toast('تعذر رفع الصورة: '+(err&&err.message||'خطأ غير معروف'));}
 };;
@@ -3279,7 +3279,7 @@ window.editAdminProduct=function(id){
   document.getElementById('adminVariants').value=(p.variants||[]).map(v=>`${v.name}=${v.price}`).join('\n');
   adminImgData=p.image||'';
   document.getElementById('adminFormTitle').textContent='تعديل المنتج';
-  document.getElementById('adminImagePreview').innerHTML=p.image?`<img src="${p.image}" alt="">`:' اختر صورة المنتج';
+  document.getElementById('adminImagePreview').innerHTML=p.image?`<img src="${p.image}" alt="" onerror="this.parentElement.textContent='⚠️ يتعذر تحميل صورة هذا المنتج حالياً'">`:' اختر صورة المنتج';
   window.scrollTo({top:0,behavior:'smooth'});
 };
 window.deleteAdminProduct=async function(id){
