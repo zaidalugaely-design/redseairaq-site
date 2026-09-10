@@ -6,6 +6,14 @@
 [functions]
   node_bundler = "esbuild"
 
+# api.js يستخدم heic-convert (يعتمد داخلياً على libheif-js) لتحويل صور HEIC/HEIF
+# (كاميرا هواتف Samsung/iPhone) إلى JPEG قبل تصغيرها بـsharp. الـWASM الخاص بها
+# يُحمَّل بمسار نسبي وقت التشغيل (__dirname + '/libheif.wasm') لا عبر require()
+# ثابت، فـesbuild لا يكتشفه تلقائياً ليضمّه — لازم تضمينه صراحة هنا وإلا يفشل
+# التحويل بخطأ "لم يوجد الملف" وقت التنفيذ الفعلي على Netlify.
+[functions.api]
+  included_files = ["node_modules/libheif-js/libheif-wasm/libheif.wasm"]
+
 [images]
   remote_images = ["https://glhmmrovxyijtzjaldtf\\.supabase\\.co/.*"]
 

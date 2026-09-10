@@ -18,6 +18,7 @@
 
 const crypto = require('crypto');
 const sharp = require('sharp');
+const heicConvert = require('heic-convert');
 
 /* ── helpers ── */
 const SB_URL = process.env.SUPABASE_URL || 'https://glhmmrovxyijtzjaldtf.supabase.co';
@@ -422,7 +423,20 @@ exports.handler = async function(event) {
         headers: { apikey: SB_SERVICE_KEY, Authorization: `Bearer ${SB_SERVICE_KEY}` }
       });
       if (!getRes.ok) throw new Error(`تعذّرت قراءة الملف المرفوع: HTTP ${getRes.status}`);
-      const rawBuf = Buffer.from(await getRes.arrayBuffer());
+      let rawBuf = Buffer.from(await getRes.arrayBuffer());
+
+      /* صور HEIC/HEIF (افتراضي كاميرا هواتف Samsung/iPhone الحديثة) — sharp
+         (libvips) بنسخته المُجمَّعة الجاهزة لا تفك تشفير HEIC (فقط AVIF تحت
+         نفس معرّف الصيغة "heif")، فتُحوَّل أولاً لـJPEG بمكتبة heic-convert
+         (فك تشفير WASM مستقل تماماً عن sharp) قبل تمريرها لـsharp للتصغير. */
+      if (/\.hei[cf]$/i.test(path)) {
+        try {
+          const jpegOut = await heicConvert({ buffer: rawBuf, format: 'JPEG', quality: 0.92 });
+          rawBuf = Buffer.from(jpegOut);
+        } catch (e) {
+          throw new Error(`تعذّر تحويل صيغة HEIC/HEIF: ${e.message}`);
+        }
+      }
 
       let quality = 82;
       let outBuf = await sharp(rawBuf).rotate().resize(900, 1200, { fit: 'inside', withoutEnlargement: true }).webp({ quality }).toBuffer();
