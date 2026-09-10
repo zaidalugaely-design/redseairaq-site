@@ -17,6 +17,7 @@
  */
 
 const crypto = require('crypto');
+const sharp = require('sharp');
 
 /* ── helpers ── */
 const SB_URL = process.env.SUPABASE_URL || 'https://glhmmrovxyijtzjaldtf.supabase.co';
@@ -377,6 +378,81 @@ exports.handler = async function(event) {
         throw new Error(`Storage ${upRes.status}: ${err.slice(0, 200)}`);
       }
       const url = `${SB_URL}/storage/v1/object/public/products/${filename}`;
+      return res(headers, 200, { url });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
+  /* CREATE SIGNED UPLOAD — يرجع رابط توقيع للرفع المباشر من المتصفح لـSupabase
+     Storage، بدون ما يمر الملف الخام عبر هذه الدالة أصلاً. يتجاوز حد حجم/زمن
+     تنفيذ Netlify Functions (~6MB / ~10s) للصور الكبيرة غير المعالَجة (كاميرا
+     هاتف عالية الدقة) — الملف يوصل مباشرة لـSupabase، ثم finalize_product_image
+     يعالجه سيرفر-سايد. */
+  if (action === 'create_signed_upload') {
+    const ext = ((body.ext || 'jpg') + '').replace(/[^a-z0-9]/gi, '').toLowerCase() || 'jpg';
+    const path = `raw-uploads/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    try {
+      const signRes = await fetch(`${SB_URL}/storage/v1/object/upload/sign/products/${path}`, {
+        method: 'POST',
+        headers: {
+          apikey:          SB_SERVICE_KEY,
+          Authorization:   `Bearer ${SB_SERVICE_KEY}`,
+          'Content-Type':  'application/json'
+        },
+        body: JSON.stringify({ expiresIn: 300 }) /* 5 دقائق كافية لإكمال رفع صورة واحدة */
+      });
+      if (!signRes.ok) {
+        const err = await signRes.text();
+        throw new Error(`Storage sign ${signRes.status}: ${err.slice(0, 200)}`);
+      }
+      const signData = await signRes.json(); /* { url: '/object/upload/sign/products/<path>?token=...' } */
+      if (!signData.url) throw new Error('لم يرجع السيرفر رابط توقيع صالح');
+      return res(headers, 200, { path, uploadUrl: `${SB_URL}/storage/v1${signData.url}` });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
+  /* FINALIZE PRODUCT IMAGE — يجلب الملف الخام اللي رُفع مباشرة (راجع
+     create_signed_upload أعلاه)، يصغّره ويحوّله WebP بنفس أبعاد/جودة compress()
+     القديمة بالمتصفح (900×1200 كحد أقصى)، يرفع النسخة النهائية للمسار المعتاد،
+     ثم يحذف الملف الخام المؤقت. */
+  if (action === 'finalize_product_image') {
+    const { path } = body;
+    if (!path || !path.startsWith('raw-uploads/') || path.includes('..')) return res(headers, 400, { error: 'مسار غير صالح' });
+    try {
+      const getRes = await fetch(`${SB_URL}/storage/v1/object/products/${path}`, {
+        headers: { apikey: SB_SERVICE_KEY, Authorization: `Bearer ${SB_SERVICE_KEY}` }
+      });
+      if (!getRes.ok) throw new Error(`تعذّرت قراءة الملف المرفوع: HTTP ${getRes.status}`);
+      const rawBuf = Buffer.from(await getRes.arrayBuffer());
+
+      let quality = 82;
+      let outBuf = await sharp(rawBuf).rotate().resize(900, 1200, { fit: 'inside', withoutEnlargement: true }).webp({ quality }).toBuffer();
+      while (outBuf.length > 1200000 && quality > 40) {
+        quality -= 15;
+        outBuf = await sharp(rawBuf).rotate().resize(900, 1200, { fit: 'inside', withoutEnlargement: true }).webp({ quality }).toBuffer();
+      }
+
+      const finalPath = `product-images/${Date.now()}.webp`;
+      const upRes = await fetch(`${SB_URL}/storage/v1/object/products/${finalPath}`, {
+        method: 'POST',
+        headers: {
+          apikey:          SB_SERVICE_KEY,
+          Authorization:   `Bearer ${SB_SERVICE_KEY}`,
+          'Content-Type':  'image/webp',
+          'x-upsert':      'true'
+        },
+        body: outBuf
+      });
+      if (!upRes.ok) {
+        const err = await upRes.text();
+        throw new Error(`Storage ${upRes.status}: ${err.slice(0, 200)}`);
+      }
+
+      fetch(`${SB_URL}/storage/v1/object/products/${path}`, {
+        method: 'DELETE',
+        headers: { apikey: SB_SERVICE_KEY, Authorization: `Bearer ${SB_SERVICE_KEY}` }
+      }).catch(() => {}); /* حذف الملف الخام المؤقت — best-effort، لا يوقف نجاح العملية */
+
+      const url = `${SB_URL}/storage/v1/object/public/products/${finalPath}`;
       return res(headers, 200, { url });
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }

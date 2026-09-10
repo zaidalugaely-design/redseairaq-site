@@ -3166,14 +3166,22 @@ function parseSpec(txt){return txt.split(/\r?\n/).map(x=>x.trim()).filter(Boolea
 function compress(file,mw=900,q=.82){const mh=1200;function fromSrc(w,h,src){const sc=Math.min(1,mw/w,mh/h);const cv=document.createElement('canvas');cv.width=Math.round(w*sc);cv.height=Math.round(h*sc);const ctx=cv.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);ctx.drawImage(src,0,0,cv.width,cv.height);let out=cv.toDataURL('image/webp',q);let qr=q;while(out.length>1600000&&qr>0.4){qr=Math.max(0.4,+(qr-0.15).toFixed(2));out=cv.toDataURL('image/webp',qr);}return out;}return new Promise((res,rej)=>{(async()=>{if(window.createImageBitmap){try{const bmp=await createImageBitmap(file);const out=fromSrc(bmp.width,bmp.height,bmp);if(bmp.close)bmp.close();res(out);return;}catch(_){/* بعض الصيغ/المتصفحات — نكمل للمسار القديم بالأسفل */}}const rd=new FileReader();rd.onload=e=>{const img=new Image();img.onload=()=>{try{res(fromSrc(img.width,img.height,img));}catch(err){rej(new Error('تعذر ضغط الصورة: '+(err&&err.message||err)));}};img.onerror=()=>rej(new Error('تعذر تحميل الصورة — تأكد أن الملف صورة صالحة'));img.src=e.target.result;};rd.onerror=()=>rej(new Error('تعذر قراءة ملف الصورة'));rd.readAsDataURL(file);})();});}
 function dlFile(name,content){const b=new Blob([content],{type:'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u);}
 window.onAdminImg=async function(e){
+  /* لا ضغط ولا فك تشفير بالمتصفح إطلاقاً هنا — الملف الخام يُرفع مباشرة
+     لـSupabase Storage عبر رابط موقّع، والضغط/التصغير يصير سيرفر-سايد
+     (finalize_product_image بـapi.js). هذا يتجاوز مشكلة فشل فك تشفير بعض
+     صور الكاميرا الحية بمتصفح الجوال، وحد حجم/زمن تنفيذ Netlify Functions. */
   const f=e.target.files[0];if(!f)return;
-  if(!f.type.startsWith('image/')){toast('اختر ملف صورة');return;}
+  if(f.type&&!f.type.startsWith('image/')){toast('اختر ملف صورة');return;}
   if(!_adminToken){toast('سجل الدخول أولاً');return;}
   try{
-    toast('جاري ضغط الصورة...');
-    const dataUri=await compress(f);
+    toast('جاري تجهيز الرفع...');
+    const ext=((f.name||'').split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';
+    const sign=await apiCall('create_signed_upload',{ext},true);
     toast('جاري رفع الصورة...');
-    const result=await apiCall('upload_product_image',{data:dataUri},true);
+    const putRes=await fetch(sign.uploadUrl,{method:'PUT',headers:{'Content-Type':f.type||'application/octet-stream'},body:f});
+    if(!putRes.ok)throw new Error('فشل رفع الملف الأصلي: HTTP '+putRes.status);
+    toast('جاري معالجة الصورة على السيرفر...');
+    const result=await apiCall('finalize_product_image',{path:sign.path},true);
     adminImgData=result.url;
     document.getElementById('adminImagePreview').innerHTML=`<img src="${adminImgData}" alt="" onerror="this.parentElement.textContent='⚠️ الصورة رُفعت لكن يتعذر عرضها الآن — جرّب تحديث الصفحة'">`;
     toast('تم رفع الصورة ✓');
