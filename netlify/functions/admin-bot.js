@@ -4,6 +4,21 @@
  * الـ API key محفوظ في متغيرات البيئة فقط — لا يظهر في الكود أبداً
  */
 
+const crypto = require('crypto');
+const JWT_SECRET = process.env.JWT_SECRET;
+
+function verifyToken(token) {
+  try {
+    const [header, body, sig] = token.split('.');
+    const expected = crypto.createHmac('sha256', JWT_SECRET)
+      .update(`${header}.${body}`).digest('base64url');
+    if (sig !== expected) return null;
+    const payload = JSON.parse(Buffer.from(body, 'base64url').toString());
+    if (payload.exp < Date.now()) return null;
+    return payload;
+  } catch { return null; }
+}
+
 exports.handler = async function(event) {
 
   /* ── CORS: نسمح فقط من نفس الدومين ── */
@@ -17,7 +32,7 @@ exports.handler = async function(event) {
 
   const headers = {
     'Access-Control-Allow-Origin' : isLocal ? '*' : origin,
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json'
   };
@@ -29,6 +44,17 @@ exports.handler = async function(event) {
 
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
+  }
+
+  /* ── Auth — نفس آلية باقي عمليات الأدمن الحساسة (api.js, generate-description.js,
+     enrich-fish-card.js). فحص Origin وحده لا يمنع أي عميل غير متصفح (curl/سكربت)
+     من وضع ترويسة Origin يدوياً — هذا كان يسمح باستهلاك رصيد OpenAI للمالك من أي
+     شخص بلا كلمة مرور إطلاقاً. ── */
+  const authHeader = event.headers.authorization || event.headers.Authorization || '';
+  const token      = authHeader.replace('Bearer ', '').trim();
+  const payload    = token ? verifyToken(token) : null;
+  if (!payload || payload.role !== 'admin') {
+    return { statusCode: 401, headers, body: JSON.stringify({ error: 'غير مصرح — يرجى تسجيل الدخول' }) };
   }
 
   /* ── قراءة الطلب ── */
