@@ -1667,6 +1667,19 @@ src="https://www.facebook.com/tr?id=851806290780479&ev=PageView&noscript=1"
     </div><!-- /educationAdminSection -->
 
 
+    <div id="groupLinkAdminSection" class="acc-section" style="margin-top:14px">
+      <div class="acc-header" onclick="toggleAccordion('groupLinkAdminSection');loadGroupLink()">
+        <span class="acc-header-title">🔗 تغيير رابط كروب وتساب</span>
+        <svg class="acc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="acc-body"><div class="acc-body-inner">
+        <p style="margin:0 0 12px;color:var(--text-secondary);font-size:14px;line-height:1.7">الرابط المنشور redseairaq.com/group يفتح هذا الرابط. إذا تغيّر رابط الكروب، الصق الرابط الجديد هنا واضغط حفظ.</p>
+        <input class="input" id="groupLinkInput" dir="ltr" inputmode="url" autocomplete="off" placeholder="https://chat.whatsapp.com/..." style="width:100%;margin-bottom:12px">
+        <button class="btn primary" id="groupLinkSaveBtn" onclick="saveGroupLink()">حفظ الرابط</button>
+        <p id="groupLinkStatus" style="margin:12px 0 0;font-size:13px;color:var(--text-muted)"></p>
+      </div></div>
+    </div><!-- /groupLinkAdminSection -->
+
 </div><!-- /adminPageContent -->
 </section>
 
@@ -5671,6 +5684,30 @@ function renderAdminEducation(){
 /* ════════════════════════════════
    ACCORDION
 ════════════════════════════════ */
+/* ── تغيير رابط كروب واتساب (لوحة الأدمن) — يُحفظ بجدول site_settings عبر api.js ── */
+window.loadGroupLink=async function(){
+  var inp=document.getElementById('groupLinkInput'),st=document.getElementById('groupLinkStatus');
+  if(!inp||inp.dataset.loaded==='1')return;
+  st.textContent='جاري تحميل الرابط الحالي...';
+  try{
+    var r=await apiCall('get_group_link',{},true);
+    inp.value=r.link||'';inp.dataset.loaded='1';
+    st.textContent=r.link?'هذا هو الرابط الحالي.':'لا يوجد رابط محفوظ.';
+  }catch(e){st.textContent='تعذّر تحميل الرابط: '+e.message;}
+};
+window.saveGroupLink=async function(){
+  var inp=document.getElementById('groupLinkInput'),st=document.getElementById('groupLinkStatus'),btn=document.getElementById('groupLinkSaveBtn');
+  var v=(inp.value||'').trim();
+  if(!v){st.textContent='الصق الرابط الجديد أولاً.';return;}
+  btn.disabled=true;st.textContent='جاري الحفظ...';
+  try{
+    var r=await apiCall('save_group_link',{link:v},true);
+    inp.value=r.link;inp.dataset.loaded='1';
+    st.textContent='تم الحفظ ✓ — redseairaq.com/group يفتح الرابط الجديد الآن.';
+    toast('تم حفظ رابط الكروب');
+  }catch(e){st.textContent=e.message;}
+  finally{btn.disabled=false;}
+};
 window.toggleAccordion=function(id){
   var el=document.getElementById(id);
   if(el) el.classList.toggle('open');

@@ -1256,6 +1256,29 @@ ${fieldList}`;
     } catch (e) { return res(headers, 500, { error: e.message }); }
   }
 
+  /* WHATSAPP GROUP LINK — يقرأه redseairaq.com/group عبر netlify/functions/group.js */
+  if (action === 'get_group_link') {
+    try {
+      const rows = await sb('GET', '/site_settings?key=eq.whatsapp_group_link&select=value', null);
+      return res(headers, 200, { link: (rows && rows[0] && rows[0].value) || '' });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
+  if (action === 'save_group_link') {
+    const raw = typeof body.link === 'string' ? body.link.trim() : '';
+    /* يُحذف أي شي بعد ? أو # (علامات تتبع من واتساب مثل ?s=cl&p=a) */
+    const link = raw.split(/[?#]/)[0].replace(/\/+$/, '');
+    if (!/^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]{10,40}$/.test(link)) {
+      return res(headers, 400, { error: 'الرابط غير صحيح — لازم يكون رابط دعوة كروب واتساب يبدأ بـ https://chat.whatsapp.com/' });
+    }
+    try {
+      await sb('POST', '/site_settings', {
+        key: 'whatsapp_group_link', value: link, updated_at: new Date().toISOString()
+      });
+      return res(headers, 200, { ok: true, link });
+    } catch (e) { return res(headers, 500, { error: e.message }); }
+  }
+
   return res(headers, 400, { error: `action غير معروف: ${action}` });
 };
 

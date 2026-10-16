@@ -30,12 +30,13 @@
     Content-Security-Policy = "frame-ancestors 'none'"
 
 # رابط كروب واتساب الثابت — انشر redseairaq.com/group بكل مكان بدل رابط واتساب المباشر.
-# إذا انلغى رابط الكروب، بدّل السطر "to" هنا فقط وكل الروابط المنشورة تبقى شغالة.
+# الرابط الفعلي محفوظ بجدول site_settings ويتغيّر من لوحة الأدمن
+# («تغيير رابط كروب واتساب»)، والدالة netlify/functions/group.js تحوّل الزائر له.
 # لازم يبقى قبل الـSPA catch-all حتى ما يبتلعه.
 [[redirects]]
   from   = "/group"
-  to     = "https://chat.whatsapp.com/Eu0VL9PXlK2B6F3eidXpbr"
-  status = 302
+  to     = "/.netlify/functions/group"
+  status = 200
   force  = true
 
 # SPA catch-all — serves index.html for any path with no matching file
